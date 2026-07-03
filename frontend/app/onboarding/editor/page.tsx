@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Check, Loader2, Image as ImageIcon, Images, Type, LayoutTemplate, ShoppingBag,
   Menu as MenuIcon, Palette, Plus, Trash2, Monitor, Smartphone, Sparkles, ChevronDown, Tag, Eye, EyeOff,
-  ChevronsLeft, ChevronsRight, GripVertical, PanelBottom, MoveVertical, MoveHorizontal, MousePointerClick, Link2, Video
+  ChevronsLeft, ChevronsRight, GripVertical, PanelBottom, MoveVertical, MoveHorizontal, MousePointerClick, Link2, Video,
+  Home, FileText, ChevronRight, Globe, ArrowRight
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -28,14 +29,14 @@ const TABS: { key: TabKey; label: string; icon: any }[] = [
   { key: 'estilo-final', label: 'Estilo del pie', icon: Palette },
 ];
 
-// La página se edita en 3 bloques que reflejan dónde aparece cada cosa en
-// la tienda publicada: arriba del todo (navbar), el cuerpo (todo lo demás)
-// y el cierre (footer). Cada bloque tiene su PROPIO color/tipografía/tamaño,
-// independiente de los otros dos — así el menú puede ser negro y el pie azul.
-const TAB_GROUPS: { group: string; desc: string; keys: TabKey[] }[] = [
-  { group: 'Superior', desc: 'El menú de navegación', keys: ['marca', 'menu', 'estilo-superior'] },
-  { group: 'Centro', desc: 'Estilo, banners y productos', keys: ['estilo', 'banner', 'productos', 'botones', 'imagenes'] },
-  { group: 'Final', desc: 'El pie de página', keys: ['footer', 'estilo-final'] },
+// Tipos de página — cada uno agrupa las tabs relevantes de su sección
+type PageTypeKey = 'preview' | 'inicio' | 'productos' | 'colecciones' | 'footer';
+const EDITOR_PAGE_TYPES: { key: PageTypeKey; label: string; icon: any; tabs: TabKey[]; count: number; total: number; color: string; isPreview?: boolean }[] = [
+  { key: 'preview',    label: 'Mi Página',          icon: Eye,          tabs: [],                                            count: 1, total: 1, color: '#00b2bd', isPreview: true },
+  { key: 'inicio',     label: 'Página de Inicio',   icon: Home,         tabs: ['marca', 'menu', 'estilo-superior', 'estilo'], count: 1, total: 1, color: '#00b2bd' },
+  { key: 'productos',  label: 'Página de Productos', icon: ShoppingBag, tabs: ['productos', 'estilo'],                       count: 0, total: 1, color: '#f59e0b' },
+  { key: 'colecciones',label: 'Colecciones',         icon: LayoutTemplate, tabs: ['estilo', 'banner'],                       count: 0, total: 1, color: '#10b981' },
+  { key: 'footer',     label: 'Pie de Página',       icon: PanelBottom,  tabs: ['footer', 'estilo-final'],                  count: 1, total: 1, color: '#ec4899' },
 ];
 
 // Tipografías reales ya cargadas en toda la app (next/font, ver app/layout.tsx)
@@ -324,11 +325,15 @@ function EditorContent() {
   const [templateName, setTemplateName] = useState('');
   const [draft, setDraft] = useState<any>(null);
   const [tab, setTab] = useState<TabKey>('marca');
+  const [selectedPageType, setSelectedPageType] = useState<PageTypeKey | null>(null);
   const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [openSection, setOpenSection] = useState<string | null>('principal');
   const toggleSection = (key: string) => setOpenSection(prev => (prev === key ? null : key));
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [allTemplates, setAllTemplates] = useState<any[]>([]);
+  const [showBlankModal, setShowBlankModal] = useState(false);
+  const [blankPageName, setBlankPageName] = useState('');
 
   const [storeName, setStoreName] = useState(() => sessionStorage.getItem('bayup_ob_store_name') || '');
   const [logoPreview, setLogoPreview] = useState<string | null>(() => sessionStorage.getItem('bayup_ob_logo_preview'));
@@ -367,6 +372,7 @@ function EditorContent() {
     fetch(`${apiBase}/web-templates`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.ok ? res.json() : [])
       .then((list: any[]) => {
+        setAllTemplates((list || []).filter(t => t.schema_data && t.template_type !== 'html'));
         const tpl = (list || []).find(t => t.id === templateId);
         if (!tpl || !tpl.schema_data || tpl.template_type === 'html') {
           // Sin esto, una plantilla inactiva, inexistente o tipo HTML (que
@@ -833,37 +839,107 @@ function EditorContent() {
       </header>
 
       <div className="flex-1 flex min-h-0">
-        {/* RAIL DE PESTAÑAS, agrupado por la zona real de la página que edita */}
-        <div className="w-[240px] bg-white border-r border-gray-100 shrink-0 p-3 space-y-5 overflow-y-auto">
-          {TAB_GROUPS.map(g => (
-            <div key={g.group} className="space-y-1">
-              <div className="px-4 pt-1 pb-0.5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-300">{g.group}</p>
-                <p className="text-[10px] text-gray-300 font-light">{g.desc}</p>
-              </div>
-              {g.keys.map(key => {
-                const t = TABS.find(tb => tb.key === key)!;
-                return (
-                  <button
-                    key={t.key}
-                    onClick={() => setTab(t.key)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                      tab === t.key ? 'bg-gray-50 text-petroleum ring-1 ring-cyan/20' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50/60'
-                    }`}
-                  >
-                    <span className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${tab === t.key ? 'bg-cyan/10 text-petroleum' : 'bg-gray-100 text-gray-400'}`}>
-                      <t.icon size={15} />
+        {/* ── SIDEBAR: tipos de página ── */}
+        <div className="w-[220px] shrink-0 flex flex-col bg-white border-r border-gray-100">
+          {/* Header */}
+          <div className="px-5 py-4 border-b border-gray-100">
+            <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-gray-400 mb-0.5">Pages</p>
+            <p className="text-[11px] text-gray-400 font-light">Gestiona tus páginas</p>
+          </div>
+
+          {/* Lista */}
+          <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-0.5">
+            {EDITOR_PAGE_TYPES.map((pt, idx) => {
+              const isActive = selectedPageType === pt.key;
+              return (
+                <div key={pt.key}>
+                  {idx === 1 && <div className="my-2 h-px bg-gray-100" />}
+                <button
+                  onClick={() => { setSelectedPageType(pt.key); if (!pt.isPreview && pt.tabs[0]) setTab(pt.tabs[0]); setPanelCollapsed(pt.isPreview ? true : false); }}
+                  className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-left transition-all ${
+                    isActive ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <pt.icon size={13} style={{ color: isActive ? pt.color : undefined, flexShrink: 0 }} />
+                    <span className="text-[12px] font-medium truncate">{pt.label}</span>
+                  </div>
+                  {!pt.isPreview && (
+                    <span
+                      className="text-[8px] font-bold shrink-0 px-1.5 py-0.5 rounded"
+                      style={{
+                        border: `1px dashed ${isActive ? pt.color + '90' : '#d1d5db'}`,
+                        color: isActive ? pt.color : '#9ca3af',
+                      }}
+                    >
+                      {pt.count}/{pt.total}
                     </span>
-                    {t.label}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
+                  )}
+                </button>
+                </div>
+              );
+            })}
+          </nav>
         </div>
 
+
+
+        {/* PANEL INICIO — galería de plantillas */}
+        {selectedPageType === 'inicio' && (
+          <div className="flex-1 overflow-y-auto bg-white flex flex-col">
+            {/* Header */}
+            <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+              <p className="text-[9px] font-semibold tracking-widest text-gray-400 uppercase mb-0.5">Página de Inicio</p>
+              <h2 className="text-sm font-black text-gray-900">Elige tu plantilla</h2>
+            </div>
+
+            {/* Grid */}
+            <div className="px-5 py-5 grid grid-cols-3 gap-3">
+              {/* Blank Page */}
+              <button
+                onClick={() => { setBlankPageName(''); setShowBlankModal(true); }}
+                className="group flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-gray-200 hover:border-gray-400 bg-gray-50 hover:bg-gray-100 transition-all"
+                style={{ aspectRatio: '4/3' }}
+              >
+                <div className="h-7 w-7 rounded-full border border-dashed border-gray-300 group-hover:border-gray-500 flex items-center justify-center transition-colors">
+                  <Plus size={13} className="text-gray-400 group-hover:text-gray-600 transition-colors" />
+                </div>
+                <span className="text-[9px] text-gray-400 group-hover:text-gray-600 font-medium tracking-wide transition-colors">En blanco</span>
+              </button>
+
+              {/* Template cards */}
+              {allTemplates.map(tpl => (
+                <button
+                  key={tpl.id}
+                  onClick={() => router.push(`/onboarding/editor?templateId=${tpl.id}${targetUserId ? `&targetUserId=${targetUserId}` : ''}`)}
+                  className="group relative rounded-xl overflow-hidden border transition-all shadow-sm hover:shadow-md"
+                  style={{ aspectRatio: '4/3', borderColor: tpl.id === templateId ? '#00b2bd' : '#e5e7eb' }}
+                >
+                  {tpl.preview_url
+                    ? <img src={tpl.preview_url} alt={tpl.name} className="w-full h-full object-cover object-top" />
+                    : <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center p-2"><span className="text-[9px] text-gray-500 font-medium text-center leading-tight">{tpl.name}</span></div>
+                  }
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <span className="px-3 py-1 rounded-full bg-white text-gray-900 text-[9px] font-bold shadow-lg">
+                      {tpl.id === templateId ? '✓ Activa' : 'Elegir'}
+                    </span>
+                  </div>
+                  {tpl.id === templateId && (
+                    <div className="absolute top-1.5 right-1.5 h-4 w-4 rounded-full bg-[#00b2bd] flex items-center justify-center shadow">
+                      <Check size={8} className="text-white" />
+                    </div>
+                  )}
+                  <div className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-gradient-to-t from-black/60 to-transparent">
+                    <p className="text-[8px] text-white font-semibold truncate">{tpl.name}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* PANEL DE OPCIONES */}
-        {!panelCollapsed && (
+        {!panelCollapsed && selectedPageType !== 'preview' && selectedPageType !== 'inicio' && (
         <div className="relative w-[420px] bg-white border-r border-gray-100 overflow-y-auto shrink-0 p-7 space-y-6">
           <button
             onClick={() => setPanelCollapsed(true)}
@@ -1609,18 +1685,9 @@ function EditorContent() {
         </div>
         )}
 
-        {panelCollapsed && (
-          <button
-            onClick={() => setPanelCollapsed(false)}
-            title="Mostrar panel"
-            className="self-start mt-5 h-9 w-9 rounded-r-xl bg-white border border-l-0 border-gray-100 shadow-sm flex items-center justify-center text-gray-400 hover:text-petroleum hover:bg-gray-50 transition-colors shrink-0"
-          >
-            <ChevronsRight size={15} />
-          </button>
-        )}
 
         {/* VISTA PREVIA */}
-        <div ref={previewScrollRef} className="flex-1 bg-gray-100/60 overflow-y-auto flex justify-center p-8">
+        <div ref={previewScrollRef} className="flex-1 bg-gray-100/60 overflow-y-auto flex justify-center p-8" style={selectedPageType === 'inicio' ? { display: 'none' } : {}}>
           <div className={`bg-white rounded-[1.25rem] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.15)] overflow-hidden shrink-0 h-fit transition-all ${device === 'desktop' ? 'w-full max-w-[1100px]' : 'w-[400px]'}`}>
             <div className="h-10 bg-gray-50 flex items-center gap-2 px-4 border-b border-gray-200">
               <span className="h-2.5 w-2.5 rounded-full bg-rose-300" />
@@ -1740,6 +1807,46 @@ function EditorContent() {
           border-radius: 9999px;
         }
       `}</style>
+
+      {/* MODAL — Crear página en blanco */}
+      {showBlankModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#1a1a2e] rounded-2xl shadow-2xl w-[480px] p-8 relative">
+            <button
+              onClick={() => setShowBlankModal(false)}
+              className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors"
+            >
+              ✕
+            </button>
+            <h3 className="text-lg font-bold text-white mb-1">Crear nueva página</h3>
+            <p className="text-[12px] text-gray-400 mb-6">Dale un nombre a tu página para comenzar a editarla desde cero.</p>
+            <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Título</label>
+            <input
+              autoFocus
+              type="text"
+              placeholder="Ej. Página de bienvenida"
+              value={blankPageName}
+              onChange={e => setBlankPageName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && blankPageName.trim()) {
+                  router.push(`/onboarding/blank-editor?name=${encodeURIComponent(blankPageName.trim())}${targetUserId ? `&targetUserId=${targetUserId}` : ''}`);
+                }
+              }}
+              className="w-full bg-[#0f0f1a] border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-gray-600 outline-none focus:border-[#6366f1] transition-colors mb-8"
+            />
+            <div className="flex justify-end">
+              <button
+                disabled={!blankPageName.trim()}
+                onClick={() => router.push(`/onboarding/blank-editor?name=${encodeURIComponent(blankPageName.trim())}${targetUserId ? `&targetUserId=${targetUserId}` : ''}`)}
+                className="px-6 py-2.5 rounded-xl text-white text-[13px] font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                style={{ background: blankPageName.trim() ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : '#374151' }}
+              >
+                Crear página →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2196,6 +2196,35 @@ async def toggle_suspend_company(company_id: str, request: Request):
     finally:
         db.close()
 
+@app.delete("/super-admin/companies/{company_id}/pages")
+async def delete_company_pages(company_id: str, request: Request):
+    """Elimina todas las páginas publicadas de una tienda (despublica la web). No elimina la empresa."""
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+        try:
+            target_uuid = uuid_lib.UUID(company_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="company_id inválido")
+        company = db.query(models.User).filter(
+            models.User.id == target_uuid,
+            models.User.role == "admin_tienda",
+            models.User.owner_id.is_(None),
+        ).first()
+        if not company:
+            raise HTTPException(status_code=404, detail="Empresa no encontrada")
+        deleted = db.query(models.ShopPage).filter(models.ShopPage.tenant_id == target_uuid).delete(synchronize_session=False)
+        company.onboarding_completed = False
+        db.commit()
+        if company.shop_slug:
+            _shop_cache.pop(company.shop_slug, None)
+        return {"deleted_pages": deleted, "message": "Página web eliminada y onboarding reiniciado"}
+    finally:
+        db.close()
+
 @app.get("/super-admin/registrations")
 async def get_super_admin_registrations(request: Request):
     """Clientes recien registrados (email ya confirmado) que esperan a que
@@ -3953,3 +3982,164 @@ async def get_public_shop_products(
 # ── Registrar rutas de Liquidación ───────────────────────────────────────
 from liquidation_endpoints import register_liquidation_routes
 register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_admin)
+
+# ── Roadmap / Novedades ───────────────────────────────────────────────────
+class RoadmapItemIn(BaseModel):
+    title:        str
+    tagline:      str = ""
+    description:  str = ""
+    phase:        str = "proximamente"
+    tags:         list = []
+    gradient:     str = ""
+    accent_color: str = ""
+    image_url:    str = ""
+    sort_order:   int = 0
+    is_active:    bool = True
+
+@app.get("/public/roadmap")
+def get_roadmap_public():
+    import models as _rm
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        items = db.query(_rm.RoadmapItem).filter(_rm.RoadmapItem.is_active == True).order_by(_rm.RoadmapItem.sort_order).all()
+        return [{"id": str(i.id), "title": i.title, "tagline": i.tagline, "description": i.description,
+                 "phase": i.phase, "tags": i.tags or [], "gradient": i.gradient, "accent_color": i.accent_color,
+                 "image_url": i.image_url, "votes": i.votes, "sort_order": i.sort_order} for i in items]
+    finally:
+        db.close()
+
+@app.get("/super-admin/roadmap")
+async def get_roadmap_admin(request: Request):
+    import models as _rm
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        caller = await _authenticate(request, db)
+        _require_super_admin(caller)
+        items = db.query(_rm.RoadmapItem).order_by(_rm.RoadmapItem.sort_order).all()
+        return [{"id": str(i.id), "title": i.title, "tagline": i.tagline, "description": i.description,
+                 "phase": i.phase, "tags": i.tags or [], "gradient": i.gradient, "accent_color": i.accent_color,
+                 "image_url": i.image_url, "votes": i.votes, "sort_order": i.sort_order,
+                 "is_active": i.is_active, "created_at": str(i.created_at)} for i in items]
+    finally:
+        db.close()
+
+@app.post("/super-admin/roadmap")
+async def create_roadmap_item(request: Request, body: RoadmapItemIn):
+    import models as _rm
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        caller = await _authenticate(request, db)
+        _require_super_admin(caller)
+        data = {k: (v if v != "" else None) for k, v in body.dict().items()}
+        item = _rm.RoadmapItem(id=uuid.uuid4(), **data)
+        db.add(item)
+        db.commit()
+        db.refresh(item)
+        return {"id": str(item.id)}
+    finally:
+        db.close()
+
+@app.put("/super-admin/roadmap/{item_id}")
+async def update_roadmap_item(item_id: str, request: Request, body: RoadmapItemIn):
+    import models as _rm
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        caller = await _authenticate(request, db)
+        _require_super_admin(caller)
+        item = db.query(_rm.RoadmapItem).filter(_rm.RoadmapItem.id == item_id).first()
+        if not item:
+            raise HTTPException(status_code=404, detail="Item no encontrado")
+        for k, v in body.dict().items():
+            setattr(item, k, v if v != "" else None)
+        db.commit()
+        return {"ok": True}
+    finally:
+        db.close()
+
+@app.delete("/super-admin/roadmap/{item_id}")
+async def delete_roadmap_item(item_id: str, request: Request):
+    import models as _rm
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        caller = await _authenticate(request, db)
+        _require_super_admin(caller)
+        item = db.query(_rm.RoadmapItem).filter(_rm.RoadmapItem.id == item_id).first()
+        if not item:
+            raise HTTPException(status_code=404, detail="Item no encontrado")
+        db.delete(item)
+        db.commit()
+        return {"ok": True}
+    finally:
+        db.close()
+
+@app.get("/super-admin/roadmap/{item_id}/voters")
+async def get_roadmap_voters(item_id: str, request: Request):
+    import models as _rm
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        caller = await _authenticate(request, db)
+        _require_super_admin(caller)
+        votes = db.query(_rm.RoadmapVote).filter(_rm.RoadmapVote.item_id == item_id).order_by(_rm.RoadmapVote.voted_at.desc()).all()
+        result = []
+        for v in votes:
+            user = db.query(models.User).filter(models.User.id == v.user_id).first() if v.user_id else None
+            result.append({
+                "id": str(v.id),
+                "voted_at": str(v.voted_at),
+                "user_id": str(v.user_id) if v.user_id else None,
+                "user_name": getattr(user, "full_name", None) or getattr(user, "email", None) if user else None,
+                "user_email": getattr(user, "email", None) if user else None,
+                "session_key": v.session_key,
+            })
+        return result
+    finally:
+        db.close()
+
+class RoadmapVoteIn(BaseModel):
+    session_key: str = ""
+
+@app.post("/public/roadmap/{item_id}/vote")
+async def vote_roadmap_item(item_id: str, request: Request, body: RoadmapVoteIn):
+    import models as _rm
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        # Intentar autenticar (opcional — anónimos también pueden votar con session_key)
+        user_id = None
+        try:
+            caller = await _authenticate(request, db)
+            user_id = caller.id
+        except Exception:
+            pass
+
+        item = db.query(_rm.RoadmapItem).filter(_rm.RoadmapItem.id == item_id).first()
+        if not item:
+            raise HTTPException(status_code=404, detail="Item no encontrado")
+
+        # Verificar si ya votó
+        q = db.query(_rm.RoadmapVote).filter(_rm.RoadmapVote.item_id == item_id)
+        if user_id:
+            existing = q.filter(_rm.RoadmapVote.user_id == user_id).first()
+        else:
+            existing = q.filter(_rm.RoadmapVote.session_key == body.session_key).first() if body.session_key else None
+
+        if existing:
+            # Toggle: quitar voto
+            db.delete(existing)
+            item.votes = max(0, (item.votes or 0) - 1)
+            db.commit()
+            return {"voted": False, "votes": item.votes}
+        else:
+            vote = _rm.RoadmapVote(id=uuid.uuid4(), item_id=item.id, user_id=user_id, session_key=body.session_key or None)
+            db.add(vote)
+            item.votes = (item.votes or 0) + 1
+            db.commit()
+            return {"voted": True, "votes": item.votes}
+    finally:
+        db.close()

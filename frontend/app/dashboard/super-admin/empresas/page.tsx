@@ -5,11 +5,13 @@ import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
 import { useSuperAdminTheme } from "@/context/super-admin-theme-context";
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import {
   Building2, Search, X, Eye, RefreshCw, Globe,
   DollarSign, Phone, Mail, MapPin, Store, Copy,
   Ban, Play, Calendar, TrendingUp, ChevronRight,
-  Filter, Users, ShoppingCart, Trash2, AlertTriangle, Loader2
+  Users, ShoppingCart, Trash2, AlertTriangle, Loader2,
+  Pencil, LayoutTemplate, ExternalLink, FileX
 } from 'lucide-react';
 
 const fmtCOP  = (n: number) => `$${new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(n || 0)}`;
@@ -44,6 +46,7 @@ function Avatar({ name, size = 8 }: { name: string; size?: number }) {
 export default function EmpresasPage() {
   const { token }     = useAuth();
   const { showToast } = useToast();
+  const router = useRouter();
   const [companies,  setCompanies]  = useState<Company[]>([]);
   const [loading,    setLoading]    = useState(false);
   const [search,     setSearch]     = useState('');
@@ -53,6 +56,8 @@ export default function EmpresasPage() {
   const [deleteTarget, setDeleteTarget] = useState<Company | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deletePagesTarget, setDeletePagesTarget] = useState<Company | null>(null);
+  const [isDeletingPages, setIsDeletingPages] = useState(false);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -74,11 +79,11 @@ export default function EmpresasPage() {
   // ya oscurecido por el overlay raíz, por eso conserva su propio backdrop más
   // oscuro (bg-black/70) — es una jerarquía de 2 capas válida, no redundancia.
   useEffect(() => {
-    if (selected || deleteTarget) {
+    if (selected || deleteTarget || deletePagesTarget) {
       document.body.classList.add('modal-open');
       return () => { document.body.classList.remove('modal-open'); };
     }
-  }, [selected, deleteTarget]);
+  }, [selected, deleteTarget, deletePagesTarget]);
 
   const filtered = useMemo(() => companies.filter(c => {
     const q = search.toLowerCase();
@@ -110,6 +115,27 @@ export default function EmpresasPage() {
       showToast('No se pudo cambiar el estado', 'error');
     }
     setIsToggling(false);
+  };
+
+  const confirmDeletePages = async () => {
+    if (!token || !deletePagesTarget || isDeletingPages) return;
+    setIsDeletingPages(true);
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
+      const res = await fetch(`${base}/super-admin/companies/${deletePagesTarget.id}/pages`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        showToast('Página web eliminada y onboarding reiniciado', 'success');
+        setDeletePagesTarget(null);
+      } else {
+        showToast('No se pudo eliminar la página web', 'error');
+      }
+    } catch {
+      showToast('No se pudo eliminar la página web', 'error');
+    }
+    setIsDeletingPages(false);
   };
 
   const confirmDelete = async () => {
@@ -337,32 +363,102 @@ export default function EmpresasPage() {
               </div>
 
               {/* Acciones */}
-              <div className="px-6 pb-6 pt-4 space-y-2.5 border-t border-white/5 shrink-0">
-                <button onClick={() => { showToast(`Accediendo como ${selected.full_name}`, 'success'); window.open('/dashboard','_blank'); }}
-                  className="w-full h-11 rounded-2xl bg-[#00f2ff]/8 hover:bg-[#00f2ff]/15 border border-[#00f2ff]/15 hover:border-[#00f2ff]/30 text-[#00f2ff]/70 hover:text-[#00f2ff] font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
-                  <Eye size={13}/> Acceder como empresa
-                </button>
-                {selected.shop_slug && (
-                  <button onClick={() => window.open(`/shop/${selected.shop_slug}`,'_blank')}
-                    className="w-full h-10 rounded-2xl bg-white/3 hover:bg-white/6 border border-white/6 text-white/30 hover:text-white/60 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
-                    <Globe size={12}/> Ver tienda pública
+              <div className="px-6 pb-6 pt-4 space-y-4 border-t border-white/5 shrink-0">
+
+                {/* Cuenta */}
+                <div className="space-y-2">
+                  <p className="text-[8px] font-bold text-white/15 uppercase tracking-[0.2em]">Cuenta</p>
+                  <button onClick={() => { showToast(`Accediendo como ${selected.full_name}`, 'success'); window.open('/dashboard','_blank'); }}
+                    className="w-full h-10 rounded-2xl bg-[#00f2ff]/8 hover:bg-[#00f2ff]/15 border border-[#00f2ff]/15 hover:border-[#00f2ff]/30 text-[#00f2ff]/70 hover:text-[#00f2ff] font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
+                    <Eye size={12}/> Acceder como empresa
                   </button>
-                )}
-                <button onClick={() => toggle(selected)} disabled={isToggling}
-                  className={`w-full h-10 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border disabled:opacity-50 ${
-                    selected.status === 'Activo'
-                      ? 'border-red-500/15 text-red-400/60 hover:bg-red-500/8 hover:text-red-400'
-                      : 'border-emerald-500/15 text-emerald-400/60 hover:bg-emerald-500/8 hover:text-emerald-400'
-                  }`}>
-                  {isToggling ? <Loader2 size={12} className="animate-spin"/> : selected.status === 'Activo' ? <><Ban size={12}/>Suspender</> : <><Play size={12}/>Reactivar</>}
-                </button>
-                <button onClick={() => { setDeleteTarget(selected); setDeleteConfirmText(''); }}
-                  className="w-full h-10 rounded-2xl border border-red-500/10 text-red-500/40 hover:bg-red-500/8 hover:text-red-500 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
-                  <Trash2 size={12}/> Eliminar permanentemente
-                </button>
+                  <button onClick={() => toggle(selected)} disabled={isToggling}
+                    className={`w-full h-10 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border disabled:opacity-50 ${
+                      selected.status === 'Activo'
+                        ? 'border-orange-500/15 text-orange-400/60 hover:bg-orange-500/8 hover:text-orange-400'
+                        : 'border-emerald-500/15 text-emerald-400/60 hover:bg-emerald-500/8 hover:text-emerald-400'
+                    }`}>
+                    {isToggling ? <Loader2 size={12} className="animate-spin"/> : selected.status === 'Activo' ? <><Ban size={12}/>Suspender</> : <><Play size={12}/>Reactivar</>}
+                  </button>
+                </div>
+
+                {/* Página Web */}
+                <div className="space-y-2">
+                  <p className="text-[8px] font-bold text-white/15 uppercase tracking-[0.2em]">Página Web</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {selected.shop_slug ? (
+                      <button onClick={() => window.open(`/shop/${selected.shop_slug}`, '_blank')}
+                        className="h-10 rounded-2xl bg-white/4 hover:bg-white/8 border border-white/8 text-white/40 hover:text-white/70 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all">
+                        <ExternalLink size={11}/> Ver tienda
+                      </button>
+                    ) : (
+                      <button disabled className="h-10 rounded-2xl bg-white/2 border border-white/4 text-white/15 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-1.5 cursor-not-allowed">
+                        <ExternalLink size={11}/> Sin tienda
+                      </button>
+                    )}
+                    <button onClick={() => { setSelected(null); router.push(`/onboarding/editor?targetUserId=${selected.id}`); }}
+                      className="h-10 rounded-2xl bg-white/4 hover:bg-white/8 border border-white/8 text-white/40 hover:text-white/70 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all">
+                      <Pencil size={11}/> Editar diseño
+                    </button>
+                    <button onClick={() => { setSelected(null); router.push(`/onboarding?targetUserId=${selected.id}`); }}
+                      className="h-10 rounded-2xl bg-white/4 hover:bg-white/8 border border-white/8 text-white/40 hover:text-white/70 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all">
+                      <LayoutTemplate size={11}/> Cambiar plantilla
+                    </button>
+                    <button onClick={() => setDeletePagesTarget(selected)}
+                      className="h-10 rounded-2xl border border-red-500/10 text-red-400/40 hover:bg-red-500/8 hover:text-red-400 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all">
+                      <FileX size={11}/> Eliminar página
+                    </button>
+                  </div>
+                </div>
+
+                {/* Zona de peligro */}
+                <div className="space-y-2">
+                  <p className="text-[8px] font-bold text-red-500/30 uppercase tracking-[0.2em]">Zona de peligro</p>
+                  <button onClick={() => { setDeleteTarget(selected); setDeleteConfirmText(''); }}
+                    className="w-full h-10 rounded-2xl border border-red-500/10 text-red-500/40 hover:bg-red-500/8 hover:text-red-500 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
+                    <Trash2 size={12}/> Eliminar empresa permanentemente
+                  </button>
+                </div>
+
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Modal confirmación eliminar página web ── */}
+      <AnimatePresence>
+        {deletePagesTarget && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              onClick={() => !isDeletingPages && setDeletePagesTarget(null)} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="relative bg-[#0a0f0f] border border-orange-500/20 rounded-3xl w-full max-w-md p-7 space-y-5 shadow-2xl">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-400 shrink-0">
+                  <FileX size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white">Eliminar página web</h3>
+                  <p className="text-[10px] text-white/30 mt-0.5">El cliente tendrá que volver a configurar su tienda</p>
+                </div>
+              </div>
+              <p className="text-[12px] text-white/50 leading-relaxed">
+                Se eliminarán todas las páginas publicadas de <span className="text-white font-bold">{deletePagesTarget.full_name}</span> y se reiniciará su proceso de onboarding. Sus productos y pedidos no se verán afectados.
+              </p>
+              <div className="flex gap-2.5">
+                <button onClick={() => setDeletePagesTarget(null)} disabled={isDeletingPages}
+                  className="flex-1 h-10 rounded-xl bg-white/5 hover:bg-white/10 text-white/50 font-black text-[9px] uppercase tracking-widest transition-all disabled:opacity-50">
+                  Cancelar
+                </button>
+                <button onClick={confirmDeletePages} disabled={isDeletingPages}
+                  className="flex-1 h-10 rounded-xl bg-orange-500/15 hover:bg-orange-500/25 border border-orange-500/30 text-orange-400 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all disabled:opacity-30">
+                  {isDeletingPages ? <Loader2 size={12} className="animate-spin" /> : <FileX size={12} />} Eliminar página
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

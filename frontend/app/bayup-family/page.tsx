@@ -39,7 +39,7 @@ export default function BayupFamilyLogin() {
                  window.location.hostname === '127.0.0.1' ||
                  window.location.hostname.includes('192.168.'));
             const apiBase = isLocal
-                ? 'http://localhost:8000'
+                ? 'http://localhost:8001'
                 : (process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co');
             
             const response = await fetch(`${apiBase}/auth/login`, {

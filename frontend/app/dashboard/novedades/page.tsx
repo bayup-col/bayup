@@ -4,38 +4,32 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  MessageSquare, Bot, GitBranch, ShoppingBag, Users,
-  BarChart3, Smartphone, FileText, Star, X,
+  Star, X,
   Zap, Sparkles, Rocket, Clock, CalendarClock,
-  ChevronLeft, ChevronRight, ArrowRight, Send, Lightbulb,
+  ChevronLeft, ChevronRight, ArrowRight, Send, Lightbulb, Image,
 } from 'lucide-react';
 
-type Phase = 'Q3 2026' | 'Q4 2026' | '2027';
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+
+type Phase = string;
 
 interface Feature {
   id: string; title: string; tagline: string; description: string;
-  phase: Phase; icon: React.ReactNode; tags: string[];
+  phase: Phase; image_url: string | null; tags: string[];
   votes: number; gradient: string; accentColor: string;
 }
 
-const FEATURES: Feature[] = [
-  { id:'agente-ia',              title:'Agente IA',                 tagline:'Tu vendedor que nunca duerme',      description:'Un agente con la voz de tu marca. Responde preguntas, cierra ventas y aprende de cada conversación. Disponible 24/7.', phase:'Q3 2026', icon:<Bot          size={40} strokeWidth={1.4}/>, tags:['IA','Ventas'],          votes:412, gradient:'linear-gradient(145deg,#001a1a 0%,#004040 100%)', accentColor:'#00c2c2' },
-  { id:'whatsapp-billing',       title:'Cobros por WhatsApp',       tagline:'Vende sin salir del chat',          description:'Genera links de pago y cobra directamente desde WhatsApp. Tus clientes pagan en segundos.',                           phase:'Q3 2026', icon:<MessageSquare size={40} strokeWidth={1.4}/>, tags:['Pagos','WhatsApp'],     votes:284, gradient:'linear-gradient(145deg,#071a0d 0%,#1a6b35 100%)', accentColor:'#34d367' },
-  { id:'facturacion-electronica',title:'Facturación Electrónica',   tagline:'DIAN integrada, sin dolores',       description:'Emite facturas válidas ante la DIAN desde Bayup. Sin software externo, sin XML manuales.',                            phase:'Q3 2026', icon:<FileText     size={40} strokeWidth={1.4}/>, tags:['DIAN','Finanzas'],      votes:231, gradient:'linear-gradient(145deg,#07101f 0%,#153580 100%)', accentColor:'#60a5fa' },
-  { id:'automatizaciones',       title:'Automatizaciones',          tagline:'Tu negocio en piloto automático',   description:'Flujos visuales: cuando X pasa, hacer Y. Emails de abandono y notificaciones automáticas.',                          phase:'Q4 2026', icon:<GitBranch    size={40} strokeWidth={1.4}/>, tags:['Flujos','Productividad'],votes:198, gradient:'linear-gradient(145deg,#1a0f00 0%,#6b3800 100%)', accentColor:'#f59e0b' },
-  { id:'marketplace',            title:'Marketplace Multicanal',    tagline:'Un panel para todos tus canales',   description:'Sincroniza inventario con Mercado Libre, Rappi e Instagram Shopping desde Bayup.',                                   phase:'Q4 2026', icon:<ShoppingBag  size={40} strokeWidth={1.4}/>, tags:['Multicanal','Inventario'],votes:176, gradient:'linear-gradient(145deg,#0d0720 0%,#3b1f80 100%)', accentColor:'#a78bfa' },
-  { id:'crm',                    title:'CRM Comercial',             tagline:'Cada cliente, una oportunidad',     description:'Kanban de oportunidades, historial completo de clientes y seguimiento automático.',                                   phase:'Q4 2026', icon:<Users        size={40} strokeWidth={1.4}/>, tags:['CRM','Ventas'],         votes:154, gradient:'linear-gradient(145deg,#00101a 0%,#003d66 100%)', accentColor:'#38bdf8' },
-  { id:'marketing-ia',           title:'Marketing IA',              tagline:'Campañas que se optimizan solas',  description:'IA que analiza tu audiencia, crea copies y mide ROI en tiempo real. Email, WhatsApp y SMS.',                         phase:'2027',    icon:<BarChart3    size={40} strokeWidth={1.4}/>, tags:['Marketing','IA'],       votes:203, gradient:'linear-gradient(145deg,#1a0010 0%,#6b004a 100%)', accentColor:'#f472b6' },
-  { id:'app-movil',              title:'App Móvil',                 tagline:'Tu negocio en el bolsillo',        description:'Gestiona pedidos, revisa métricas y procesa pagos desde tu celular. Notificaciones en tiempo real.',                 phase:'2027',    icon:<Smartphone   size={40} strokeWidth={1.4}/>, tags:['App','Móvil'],          votes:341, gradient:'linear-gradient(145deg,#1a0800 0%,#6b2500 100%)', accentColor:'#fb923c' },
-];
+const PHASE_ORDER: Phase[] = ['Q3 2026', 'Q4 2026', '2027', 'proximamente'];
 
-const PHASE_ORDER: Phase[] = ['Q3 2026', 'Q4 2026', '2027'];
-
-const PHASE_LABEL: Record<Phase, { label: string; icon: React.ReactNode }> = {
-  'Q3 2026': { label: 'Muy pronto', icon: <Rocket       size={9}/> },
-  'Q4 2026': { label: 'Este año',   icon: <Clock        size={9}/> },
-  '2027':    { label: 'En camino',  icon: <CalendarClock size={9}/> },
+const PHASE_LABEL: Record<string, { label: string; icon: React.ReactNode }> = {
+  'Q3 2026':      { label: 'Muy pronto',   icon: <Rocket        size={9}/> },
+  'Q4 2026':      { label: 'Este año',     icon: <Clock         size={9}/> },
+  '2027':         { label: 'En camino',    icon: <CalendarClock size={9}/> },
+  'proximamente': { label: 'Próximamente', icon: <Sparkles      size={9}/> },
 };
+function getPhaseLabel(phase: string) {
+  return PHASE_LABEL[phase] || { label: phase, icon: <CalendarClock size={9}/> };
+}
 
 // ── MODAL ──────────────────────────────────────────────────────────────────────
 function Modal({ feature, onClose, voted, onVote }: {
@@ -45,79 +39,101 @@ function Modal({ feature, onClose, voted, onVote }: {
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-6"
+      className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center sm:p-6"
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-md" />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
       <motion.div
-        initial={{ scale: 0.93, y: 20, opacity: 0 }}
-        animate={{ scale: 1, y: 0, opacity: 1 }}
-        exit={{ scale: 0.93, y: 20, opacity: 0 }}
+        initial={{ scale: 0.75, rotateY: -25, opacity: 0, transformPerspective: 1200 }}
+        animate={{ scale: 1, rotateY: 0, opacity: 1, transformPerspective: 1200 }}
+        exit={{ scale: 0.88, opacity: 0, y: 24 }}
         transition={{ type: 'spring', damping: 26, stiffness: 300 }}
-        className="relative w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl z-10"
+        className="relative w-full sm:max-w-sm rounded-t-[2.5rem] sm:rounded-[2.5rem] overflow-hidden shadow-[0_32px_80px_-8px_rgba(0,0,0,0.6)] z-10"
         onClick={e => e.stopPropagation()}
       >
-        {/* Visual header */}
-        <div className="relative flex flex-col items-center justify-center pt-12 pb-9"
-          style={{ background: feature.gradient }}>
-          <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 50% 65%, ${feature.accentColor}40 0%, transparent 60%)` }} />
-          <div className="absolute rounded-full border border-white/10"
-            style={{ width: 190, height: 190, top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }} />
-          <div className="relative z-10 mb-3" style={{ color: feature.accentColor }}>
-            {feature.icon}
+        {/* Hero — imagen o gradiente a altura fija */}
+        <div className="relative overflow-hidden" style={{ height: 220 }}>
+          {feature.image_url ? (
+            <>
+              <img src={feature.image_url} alt={feature.title} className="absolute inset-0 w-full h-full object-cover" />
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 100%)' }} />
+            </>
+          ) : (
+            <>
+              <div className="absolute inset-0" style={{ background: feature.gradient }} />
+              <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 50% 60%, ${feature.accentColor}50 0%, transparent 65%)` }} />
+              <div className="absolute rounded-full border border-white/10" style={{ width: 200, height: 200, top: '50%', left: '50%', transform: 'translate(-50%,-55%)' }} />
+              <div className="absolute rounded-full border border-white/6"  style={{ width: 280, height: 280, top: '50%', left: '50%', transform: 'translate(-50%,-55%)' }} />
+              <div className="absolute flex items-center justify-center" style={{ width: 64, height: 64, top: '50%', left: '50%', transform: 'translate(-50%,-70%)', background: `${feature.accentColor}25`, borderRadius: 18, border: `1.5px solid ${feature.accentColor}50` }}>
+                <div className="w-6 h-6 rounded-lg" style={{ background: feature.accentColor + '60' }} />
+              </div>
+            </>
+          )}
+          {/* Badge fase — siempre encima */}
+          <div className="absolute top-4 left-4 z-10">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest"
+              style={{ background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', backdropFilter: 'blur(10px)' }}>
+              {getPhaseLabel(feature.phase).icon}
+              {getPhaseLabel(feature.phase).label}{feature.phase !== 'proximamente' ? ` · ${feature.phase}` : ''}
+            </span>
           </div>
-          <span
-            className="relative z-10 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[7.5px] font-black uppercase tracking-widest"
-            style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.15)', color: feature.accentColor, backdropFilter: 'blur(8px)' }}
-          >
-            {PHASE_LABEL[feature.phase].icon} {PHASE_LABEL[feature.phase].label} · {feature.phase}
-          </span>
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 h-8 w-8 rounded-xl flex items-center justify-center transition-colors"
-            style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}
-          >
-            <X size={13} />
+          {/* Título sobre la imagen */}
+          <div className="absolute bottom-0 inset-x-0 px-6 pb-5 z-10">
+            <h2 className="text-[22px] font-black text-white leading-tight drop-shadow-md">{feature.title}</h2>
+            {feature.tagline && (
+              <p className="text-[12px] font-medium mt-0.5 drop-shadow-sm" style={{ color: feature.image_url ? 'rgba(255,255,255,0.75)' : feature.accentColor }}>{feature.tagline}</p>
+            )}
+          </div>
+          {/* Botón cerrar */}
+          <button onClick={onClose}
+            className="absolute top-4 right-4 z-10 h-8 w-8 rounded-xl flex items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(8px)', color: 'rgba(255,255,255,0.8)' }}>
+            <X size={14} />
           </button>
-          <div className="absolute bottom-0 inset-x-0 h-10 pointer-events-none"
-            style={{ background: 'linear-gradient(to top, white 0%, transparent 100%)' }} />
         </div>
 
         {/* Content */}
-        <div className="bg-white px-7 pb-7 pt-3">
-          <h2 className="text-[20px] font-black text-gray-900 mb-0.5">{feature.title}</h2>
-          <p className="text-[11px] font-semibold mb-4" style={{ color: feature.accentColor }}>{feature.tagline}</p>
-          <p className="text-[12.5px] text-gray-500 leading-relaxed mb-5">{feature.description}</p>
-          <div className="flex flex-wrap gap-1.5 mb-5">
-            {feature.tags.map(t => (
-              <span key={t} className="text-[8px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-gray-50 border border-gray-100 text-gray-400">{t}</span>
-            ))}
-          </div>
-          <div className="p-4 rounded-2xl mb-4 bg-gray-50 border border-gray-100">
-            <div className="flex justify-between items-center mb-2.5">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">Interés comunidad</p>
-              <p className="text-[13px] font-black" style={{ color: feature.accentColor }}>{total.toLocaleString('es-CO')}</p>
+        <div className="bg-white px-6 pb-6 pt-5">
+          {feature.description && (
+            <p className="text-[13px] text-gray-500 leading-relaxed mb-4">{feature.description}</p>
+          )}
+
+          {feature.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-5">
+              {feature.tags.map(t => (
+                <span key={t} className="text-[8px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full"
+                  style={{ background: `${feature.accentColor}12`, color: feature.accentColor, border: `1px solid ${feature.accentColor}25` }}>{t}</span>
+              ))}
             </div>
-            <div className="h-1.5 rounded-full bg-gray-200 overflow-hidden">
+          )}
+
+          {/* Interés */}
+          <div className="rounded-2xl mb-4 overflow-hidden" style={{ background: `${feature.accentColor}08`, border: `1px solid ${feature.accentColor}18` }}>
+            <div className="flex justify-between items-center px-4 pt-3.5 pb-2">
+              <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">Interés comunidad</p>
+              <p className="text-[15px] font-black" style={{ color: feature.accentColor }}>{total.toLocaleString('es-CO')}</p>
+            </div>
+            <div className="h-1 mx-4 mb-3.5 rounded-full bg-black/5 overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.min(100, (total / 500) * 100)}%` }}
-                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
                 className="h-full rounded-full"
                 style={{ background: `linear-gradient(90deg, ${feature.accentColor}88, ${feature.accentColor})` }}
               />
             </div>
           </div>
+
           <motion.button
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
             onClick={onVote}
-            className="w-full h-11 rounded-2xl font-black text-[10px] uppercase tracking-[0.15em] flex items-center justify-center gap-2 transition-all"
+            className="w-full h-12 rounded-2xl font-black text-[10px] uppercase tracking-[0.18em] flex items-center justify-center gap-2 transition-all"
             style={voted
-              ? { background: `${feature.accentColor}15`, color: feature.accentColor, border: `1.5px solid ${feature.accentColor}30` }
-              : { background: feature.accentColor, color: '#fff' }}
+              ? { background: `${feature.accentColor}15`, color: feature.accentColor, border: `1.5px solid ${feature.accentColor}35` }
+              : { background: feature.accentColor, color: '#fff', boxShadow: `0 8px 24px ${feature.accentColor}55` }}
           >
             <Star size={13} fill={voted ? feature.accentColor : '#fff'} strokeWidth={0} />
-            {voted ? 'Ya marcaste interés' : 'Me interesa esta función'}
+            {voted ? '¡Ya marcaste interés!' : 'Me interesa esta función'}
           </motion.button>
         </div>
       </motion.div>
@@ -267,18 +283,70 @@ const CARD_W = 220;
 const GAP    = 14;
 
 export default function NovedadesPage() {
+  const [features, setFeatures]       = useState<Feature[]>([]);
+  const [loadingFeatures, setLoadingFeatures] = useState(true);
   const [activeIdx, setActiveIdx]     = useState(0);
   const [selectedId, setSelectedId]   = useState<string | null>(null);
   const [votes, setVotes]             = useState<Record<string, boolean>>({});
   const [activePhase, setActivePhase] = useState<Phase | 'all'>('all');
   const [showIdeaModal, setShowIdeaModal] = useState(false);
+  const [flippingId, setFlippingId] = useState<string | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
 
-  const filtered        = activePhase === 'all' ? FEATURES : FEATURES.filter(f => f.phase === activePhase);
-  const safeIdx         = Math.min(activeIdx, filtered.length - 1);
-  const totalVotes      = Object.values(votes).filter(Boolean).length;
-  const toggleVote      = (id: string) => setVotes(v => ({ ...v, [id]: !v[id] }));
-  const selectedFeature = FEATURES.find(f => f.id === selectedId);
+  const handleCardClick = (id: string, idx: number, isActive: boolean) => {
+    if (isActive && !flippingId) {
+      setFlippingId(id);
+      setTimeout(() => {
+        setSelectedId(id);
+        setFlippingId(null);
+      }, 330);
+    } else if (!isActive) {
+      setActiveIdx(idx);
+    }
+  };
+
+  useEffect(() => {
+    document.body.style.overflowX = 'hidden';
+    return () => { document.body.style.overflowX = ''; };
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API}/public/roadmap`)
+      .then(r => r.json())
+      .then(data => setFeatures(data.map((i: any) => ({
+        id: i.id, title: i.title, tagline: i.tagline || '', description: i.description || '',
+        phase: i.phase, image_url: i.image_url, tags: i.tags || [],
+        votes: i.votes, gradient: i.gradient || 'linear-gradient(145deg,#001a1a 0%,#004040 100%)',
+        accentColor: i.accent_color || '#00c2c2',
+      }))))
+      .catch(() => {})
+      .finally(() => setLoadingFeatures(false));
+  }, []);
+
+  const allPhases = Array.from(new Set(features.map(f => f.phase)));
+  const filtered        = activePhase === 'all' ? features : features.filter(f => f.phase === activePhase);
+  const safeIdx         = Math.min(activeIdx, Math.max(0, filtered.length - 1));
+  const totalVotes = Object.values(votes).filter(Boolean).length;
+
+  const toggleVote = async (id: string) => {
+    const sessionKey = (() => {
+      const k = 'bayup_vote_session';
+      let s = localStorage.getItem(k);
+      if (!s) { s = Math.random().toString(36).slice(2); localStorage.setItem(k, s); }
+      return s;
+    })();
+    const newState = !votes[id];
+    setVotes(v => ({ ...v, [id]: newState }));
+    setFeatures(prev => prev.map(f => f.id === id ? { ...f, votes: f.votes + (newState ? 1 : -1) } : f));
+    try {
+      await fetch(`${API}/public/roadmap/${id}/vote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_key: sessionKey }),
+      });
+    } catch {}
+  };
+  const selectedFeature = features.find(f => f.id === selectedId);
 
   const prev = () => setActiveIdx(i => Math.max(0, i - 1));
   const next = () => setActiveIdx(i => Math.min(filtered.length - 1, i + 1));
@@ -286,6 +354,9 @@ export default function NovedadesPage() {
 
   return (
     <div className="max-w-5xl mx-auto pb-16 space-y-8 relative">
+      {loadingFeatures && (
+        <div className="flex items-center justify-center h-32 text-gray-400 text-sm">Cargando novedades…</div>
+      )}
 
       {/* Ambient background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: -1 }}>
@@ -353,16 +424,16 @@ export default function NovedadesPage() {
 
       {/* FILTERS */}
       <div className="flex items-center gap-2 flex-wrap">
-        {(['all', ...PHASE_ORDER] as const).map(p => (
+        {(['all', ...allPhases] as const).map(p => (
           <button
             key={p}
             onClick={() => handlePhase(p as Phase | 'all')}
-            className="px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-[0.15em] transition-all duration-200"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-[0.15em] transition-all duration-200"
             style={activePhase === p
               ? { background: '#001a1a', color: '#00b2bd', border: '1px solid rgba(0,77,77,0.4)' }
               : { background: '#fff', color: '#9ca3af', border: '1px solid #f3f4f6' }}
           >
-            {p === 'all' ? 'Todas' : p === 'Q3 2026' ? 'Muy pronto · Q3 2026' : p === 'Q4 2026' ? 'Este año · Q4 2026' : 'En camino · 2027'}
+            {p === 'all' ? 'Todas' : <>{getPhaseLabel(p as string).icon} {getPhaseLabel(p as string).label}{p !== 'proximamente' ? ` · ${p}` : ''}</>}
           </button>
         ))}
       </div>
@@ -391,15 +462,24 @@ export default function NovedadesPage() {
               return (
                 <motion.div
                   key={f.id}
-                  onClick={() => { if (isActive) setSelectedId(f.id); else setActiveIdx(i); }}
-                  animate={{ opacity: isActive ? 1 : 0.6, scale: isActive ? 1 : 0.93, y: isActive ? 0 : 18 }}
-                  transition={{ type: 'spring', damping: 30, stiffness: 260 }}
+                  onClick={() => handleCardClick(f.id, i, isActive)}
+                  animate={{
+                    opacity: isActive ? 1 : 0.6,
+                    scale: flippingId === f.id ? 1.06 : isActive ? 1 : 0.93,
+                    y: isActive ? 0 : 18,
+                    rotateY: flippingId === f.id ? 90 : 0,
+                    transformPerspective: 900,
+                  }}
+                  transition={flippingId === f.id
+                    ? { rotateY: { duration: 0.28, ease: 'easeIn' }, scale: { duration: 0.28, ease: 'easeIn' }, opacity: { duration: 0.1 } }
+                    : { type: 'spring', damping: 30, stiffness: 260 }
+                  }
                   className="flex-shrink-0 cursor-pointer"
                   style={{ width: CARD_W }}
                 >
                   {/* Image area */}
                   <div
-                    className="relative flex items-center justify-center rounded-3xl overflow-hidden"
+                    className="relative rounded-3xl overflow-hidden"
                     style={{
                       height: IMG_H,
                       background: f.gradient,
@@ -409,28 +489,35 @@ export default function NovedadesPage() {
                       transition: 'box-shadow 0.4s ease',
                     }}
                   >
-                    <div className="absolute inset-0 pointer-events-none"
-                      style={{ background: `radial-gradient(circle at 50% 55%, ${f.accentColor}45 0%, transparent 60%)` }} />
-                    <div className="absolute rounded-full border border-white/10" style={{ width: 160, height: 160 }} />
-                    <div className="absolute rounded-full border border-white/6"  style={{ width: 220, height: 220 }} />
-                    {isActive && (
-                      <div className="absolute rounded-full"
-                        style={{ width: 130, height: 130, border: `1.5px solid ${f.accentColor}40`, boxShadow: `0 0 24px 4px ${f.accentColor}25` }} />
+                    {/* Imagen de fondo completa */}
+                    {f.image_url ? (
+                      <>
+                        <img src={f.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/25" />
+                      </>
+                    ) : (
+                      <>
+                        <div className="absolute inset-0 pointer-events-none"
+                          style={{ background: `radial-gradient(circle at 50% 55%, ${f.accentColor}45 0%, transparent 60%)` }} />
+                        <div className="absolute rounded-full border border-white/10" style={{ width: 160, height: 160, top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }} />
+                        <div className="absolute rounded-full border border-white/6"  style={{ width: 220, height: 220, top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }} />
+                        {isActive && (
+                          <div className="absolute rounded-full" style={{ width: 130, height: 130, top: '50%', left: '50%', transform: 'translate(-50%,-50%)', border: `1.5px solid ${f.accentColor}40`, boxShadow: `0 0 24px 4px ${f.accentColor}25` }} />
+                        )}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-12 h-12 rounded-2xl"
+                            style={{ background: `${f.accentColor}33`, border: `1.5px solid ${f.accentColor}55`,
+                              boxShadow: isActive ? `0 0 24px ${f.accentColor}66` : 'none' }} />
+                        </div>
+                      </>
                     )}
-                    <motion.div
-                      className="relative z-10"
-                      style={{ color: f.accentColor }}
-                      animate={{ scale: isActive ? 1.1 : 1, filter: isActive ? `drop-shadow(0 0 14px ${f.accentColor}88)` : 'none' }}
-                      transition={{ duration: 0.35 }}
-                    >
-                      {f.icon}
-                    </motion.div>
-                    <div className="absolute top-4 left-4">
+                    {/* Badge fase */}
+                    <div className="absolute top-4 left-4 z-10">
                       <span
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[7.5px] font-black uppercase tracking-widest"
-                        style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.15)', color: f.accentColor, backdropFilter: 'blur(8px)' }}
+                        style={{ background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.2)', color: f.image_url ? '#fff' : f.accentColor, backdropFilter: 'blur(8px)' }}
                       >
-                        {PHASE_LABEL[f.phase].icon} {PHASE_LABEL[f.phase].label}
+                        {getPhaseLabel(f.phase).icon} {getPhaseLabel(f.phase).label}
                       </span>
                     </div>
                   </div>

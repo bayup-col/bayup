@@ -58,6 +58,15 @@ const getProductImage = (p: any): string | null => {
   return img;
 };
 
+const isVideo = (url: string | null) => !!url && /\.(mp4|webm|mov|ogg)$/i.test(url);
+
+const ProductMedia = ({ src, className, alt }: { src: string | null; className?: string; alt?: string }) => {
+  if (!src) return null;
+  if (isVideo(src))
+    return <video src={src} className={className} autoPlay muted loop playsInline style={{ objectFit: 'cover' }}/>;
+  return <img src={src} className={className} alt={alt || ''} onError={e => { (e.target as any).style.display = 'none'; }}/>;
+};
+
 // ── KPI CARD ───────────────────────────────────────────────────────────────
 function KpiCard({ label, value, sub, icon, trend, trendUp, accent = '#004d4d', isSimple = false }: any) {
   return (
@@ -690,7 +699,7 @@ export default function ProductsPage() {
                               {(idx === 0 || invRows[idx-1].product.id !== p.id) && (
                                 <div className="flex items-center gap-2">
                                   <div className="h-8 w-8 rounded-xl bg-gray-50 overflow-hidden border border-gray-100 shrink-0 flex items-center justify-center">
-                                    {getProductImage(p) ? <img src={getProductImage(p)!} className="h-full w-full object-cover" alt={p.name} onError={(e) => (e.target as any).style.display='none'}/> : <ImageIcon size={12} className="text-gray-300"/>}
+                                    {getProductImage(p) ? <ProductMedia src={getProductImage(p)} className="h-full w-full object-cover" alt={p.name}/> : <ImageIcon size={12} className="text-gray-300"/>}
                                   </div>
                                   <p className="text-[11px] font-bold text-gray-800 truncate max-w-[130px]">{p.name}</p>
                                 </div>
@@ -847,7 +856,7 @@ export default function ProductsPage() {
                                   <div className="flex items-center gap-3">
                                     <div className="h-10 w-10 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform">
                                       {img ? (
-                                        <img src={img} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={p.name} onError={(e) => (e.target as any).style.display='none'}/>
+                                        <ProductMedia src={img} className="h-full w-full object-cover" alt={p.name}/>
                                       ) : (
                                         <ImageIcon size={14} className="text-gray-300"/>
                                       )}
@@ -1101,7 +1110,7 @@ export default function ProductsPage() {
                             <div key={p.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:-translate-y-0.5 hover:shadow-md transition-all">
                               <div className="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
                                 {getProductImage(p)
-                                  ? <img src={getProductImage(p)!} loading="lazy" className="h-full w-full object-cover" alt={p.name}/>
+                                  ? <ProductMedia src={getProductImage(p)} className="h-full w-full object-cover" alt={p.name}/>
                                   : <ImageIcon size={20} className="text-gray-200"/>}
                               </div>
                               <div className="p-3">
@@ -1169,7 +1178,7 @@ export default function ProductsPage() {
                             {selectedCategoryProducts.slice(0, 4).map(p => (
                               <div key={p.id} className="flex items-center gap-3">
                                 <div className="h-10 w-10 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
-                                  {getProductImage(p) ? <img src={getProductImage(p)!} className="h-full w-full object-cover" alt={p.name}/> : <ImageIcon size={12} className="text-gray-300"/>}
+                                  {getProductImage(p) ? <ProductMedia src={getProductImage(p)} className="h-full w-full object-cover" alt={p.name}/> : <ImageIcon size={12} className="text-gray-300"/>}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-[11px] font-bold text-gray-900 truncate">{p.name}</p>
@@ -1486,7 +1495,7 @@ export default function ProductsPage() {
                 {/* Header imagen */}
                 <div className="relative bg-gray-50 shrink-0" style={{ height: 200 }}>
                   {getProductImage(selectedProduct) ? (
-                    <img src={getProductImage(selectedProduct)!} className="h-full w-full object-cover" alt={selectedProduct.name}/>
+                    <ProductMedia src={getProductImage(selectedProduct)} className="h-full w-full object-cover" alt={selectedProduct.name}/>
                   ) : (
                     <div className="h-full w-full flex items-center justify-center text-gray-200"><ImageIcon size={48}/></div>
                   )}

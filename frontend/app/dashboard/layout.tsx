@@ -16,7 +16,7 @@ import {
   LogOut, Eye, ShieldCheck, Building2, UserPlus, Users, Wallet, Headset,
   Layout, BarChart3, Code, Activity,
   ChevronLeft, ChevronRight,
-  UserCheck, Coins, HelpCircle, Lock, Menu, X, CreditCard, Send, Sparkles
+  UserCheck, Coins, HelpCircle, Lock, Menu, X, CreditCard, Send, Sparkles, Globe
 } from 'lucide-react';
 
 // Componente externo memoizado — evita re-mount en cada render del layout
@@ -317,6 +317,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <MenuItem href="/dashboard/super-admin/empresas" label="Empresas" icon={<Building2 size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin/empresas')} />
               <MenuItem href="/dashboard/super-admin/tesoreria" label="Tesorería" icon={<Wallet size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin/tesoreria')} />
               <MenuItem href="/dashboard/super-admin/liquidaciones" label="Liquidaciones" icon={<Send size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin/liquidaciones')} />
+              <MenuItem href="/dashboard/super-admin/novedades" label="Novedades" icon={<Sparkles size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin/novedades')} />
               <MenuItem href="/dashboard/super-admin/users" label="Usuarios" icon={<Users size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin/users')} />
               {!isSidebarCollapsed && <p className="px-3 text-[8px] font-bold text-white/15 uppercase tracking-[0.3em] mt-4 mb-1.5">Plataforma</p>}
               <MenuItem href="/dashboard/super-admin/web-templates" label="Plantillas Web" icon={<Layout size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin/web-templates')} />
@@ -334,6 +335,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <MenuItem href="/dashboard/products" label="Productos" icon={<Store size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/products')} />
               <MenuItem href="/dashboard/shipping" label="Envíos" icon={<Truck size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/shipping')} />
               <MenuItem href="/dashboard/customers" label="Clientes" icon={<UserCheck size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/customers')} />
+              <MenuItem href="/dashboard/paginas" label="Páginas Web" icon={<Globe size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/paginas')} />
               <MenuItem href="/dashboard/web-analytics" label="Estadísticas" icon={<BarChart3 size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/web-analytics')} />
               <MenuItem href="/dashboard/reports/gastos" label="Gastos" icon={<Coins size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/reports/gastos')} />
               <MenuItem href="/dashboard/liquidacion" label="Liquidación" icon={<Wallet size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/liquidacion')} />
@@ -345,7 +347,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         {/* ── BOTTOM: Ayuda + Cerrar Sesión ── */}
         <div className="px-2 pb-4 pt-2 shrink-0 space-y-0.5">
           <div className="mx-2 mb-2 h-px bg-white/5" />
-          <Link
+          {!isSuperAdminZone && <Link
             href="/dashboard/novedades"
             title={isSidebarCollapsed ? 'Novedades' : ''}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm rounded-xl text-white/30 hover:text-white hover:bg-white/5 transition-colors duration-150 group"
@@ -355,7 +357,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-[#00f2ff] animate-pulse"/>
             </span>
             {!isSidebarCollapsed && <span className="truncate font-semibold">Novedades</span>}
-          </Link>
+          </Link>}
           <button
             onClick={() => setIsSupportOpen(true)}
             title={isSidebarCollapsed ? 'Ayuda' : ''}
@@ -379,7 +381,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {/* ── MAIN CONTENT ── */}
       <div className="flex-1 flex flex-col min-w-0 relative overflow-hidden">
         <DashboardHeader pathname={pathname} userEmail={authEmail} userRole={authRole} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} logout={logout} setIsUserSettingsOpen={setIsUserSettingsOpen} isBaytOpen={isBaytOpen} setIsBaytOpen={setIsBaytOpen} />
-        <main className={`flex-1 overflow-y-auto pt-20 sm:pt-24 px-3 sm:px-6 pb-6 relative ${isSuperAdminZone ? (saTheme === 'light' ? 'bg-[#F4F6F7]' : 'bg-[#001212]') : ''}`}>
+        <main className={`flex-1 overflow-y-auto overflow-x-hidden pt-20 sm:pt-24 px-3 sm:px-6 pb-6 relative ${isSuperAdminZone ? (saTheme === 'light' ? 'bg-[#F4F6F7]' : 'bg-[#001212]') : ''}`}>
           <div className="max-w-[1600px] mx-auto">{children}</div>
         </main>
       </div>

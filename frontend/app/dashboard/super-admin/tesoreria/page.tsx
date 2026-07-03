@@ -109,7 +109,7 @@ export default function TesoreriaPage() {
       <div className="rounded-2xl border border-white/6 bg-white/[0.02] p-6">
         <div className="flex items-end justify-between mb-6">
           <div>
-            <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] mb-1">Ingresos 2025</p>
+            <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] mb-1">Ingresos {new Date().getFullYear()}</p>
             <p className="text-2xl font-black text-white">{fmtCOP(totalRev)}</p>
           </div>
           <div className="flex items-center gap-4">

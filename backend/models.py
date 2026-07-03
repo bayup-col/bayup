@@ -505,3 +505,30 @@ class Payment(Base):
     created_at       = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at       = Column(DateTime, default=datetime.datetime.utcnow,
                               onupdate=datetime.datetime.utcnow)
+
+
+class RoadmapVote(Base):
+    __tablename__ = "roadmap_votes"
+    id          = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    item_id     = Column(GUID(), nullable=False, index=True)
+    user_id     = Column(GUID(), nullable=True, index=True)
+    session_key = Column(String, nullable=True)
+    voted_at    = Column(DateTime, default=datetime.datetime.utcnow)
+
+class RoadmapItem(Base):
+    __tablename__ = "roadmap_items"
+    id           = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    title        = Column(String, nullable=False)
+    tagline      = Column(String, nullable=True)
+    description  = Column(String, nullable=True)
+    # "Q3 2026" | "Q4 2026" | "2027" | "proximamente" | fecha libre
+    phase        = Column(String, nullable=False, default="proximamente")
+    tags         = Column(JSON, default=list)
+    gradient     = Column(String, nullable=True)
+    accent_color = Column(String, nullable=True)
+    image_url    = Column(String, nullable=True)  # imagen custom (opcional)
+    votes        = Column(Integer, default=0)
+    sort_order   = Column(Integer, default=0)
+    is_active    = Column(Boolean, default=True)
+    created_at   = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at   = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
