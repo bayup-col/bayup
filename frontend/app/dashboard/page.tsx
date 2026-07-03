@@ -119,6 +119,9 @@ export default function DashboardPage() {
   }, [userName]);
   const [activities, setActivities] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [openInsight, setOpenInsight] = useState<null | 'meta' | 'producto' | 'stock' | 'analisis'>(null);
+  const [stockFilter, setStockFilter] = useState<'all' | 'urgent' | 'low'>('all');
   const [realStats, setRealStats] = useState({ 
     revenue: 0, 
     orders_count: 0, 
@@ -196,8 +199,8 @@ export default function DashboardPage() {
     });
   }, [weeklySales]);
 
-  // --- INSIGHTS DINÁMICOS ---
-  const insights = useMemo(() => {
+  // --- DATOS DE INSIGHTS (compartidos con modales) ---
+  const insightData = useMemo(() => {
     const now = new Date();
     const monthlyTotal = orders.reduce((acc, o) => {
         const d = new Date(o.created_at);
@@ -217,32 +220,70 @@ export default function DashboardPage() {
             productMap[key].units += (item.quantity || 1);
         });
     });
-    const topProduct = Object.values(productMap).sort((a, b) => b.total - a.total)[0];
+    const topProducts = Object.values(productMap).sort((a, b) => b.total - a.total);
+    const topProduct = topProducts[0];
 
+    const monthOrders = orders
+        .filter(o => { const d = new Date(o.created_at); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); })
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const daysLeft = lastDay - now.getDate();
+
+    const statusCount: Record<string, number> = {};
+    orders.forEach(o => { const s = o.status || 'pending'; statusCount[s] = (statusCount[s] || 0) + 1; });
+
+    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const dayCounts: Record<number, number> = {};
+    orders.forEach(o => { const d = new Date(o.created_at).getDay(); dayCounts[d] = (dayCounts[d] || 0) + 1; });
+    const peakDayIdx = Object.keys(dayCounts).length > 0
+        ? parseInt(Object.keys(dayCounts).reduce((a, b) => dayCounts[+a] > dayCounts[+b] ? a : b))
+        : 1;
+
+    const totalOrders = orders.length;
+    const totalRevenue = orders.reduce((a, o) => a + (o.total_price || 0), 0);
+    const avgTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    const completedOrders = orders.filter(o => o.status === 'delivered' || o.status === 'paid').length;
+    const successRate = totalOrders > 0 ? Math.round((completedOrders / totalOrders) * 100) : 0;
+
+    return { monthlyTotal, goal, goalPct, fmt, topProducts, topProduct, monthOrders, daysLeft, statusCount, peakDay: dayNames[peakDayIdx], totalOrders, totalRevenue, avgTicket, completedOrders, successRate };
+  }, [orders]);
+
+  // --- INSIGHTS DINÁMICOS ---
+  const insights = useMemo(() => {
+    const { monthlyTotal, goalPct, topProduct, fmt } = insightData;
     return [
         {
             icon: <TrendingUp size={15} />, iconBg: 'bg-rose-100 text-rose-500',
-            bg: 'bg-rose-50 border border-rose-100', tag: 'Meta del mes', tagBg: 'bg-rose-100', tagColor: 'text-rose-600',
+            tag: 'Meta del mes', tagBg: 'bg-rose-100', tagColor: 'text-rose-600',
             title: '1. Meta del mes',
             text: monthlyTotal > 0 ? `${goalPct}% completado. Ventas acumuladas: ${fmt(monthlyTotal)}.` : 'Sin ventas registradas este mes aún. ¡Activa tu primera venta!',
-            link: '/dashboard/invoicing',
+            modal: 'meta' as const,
         },
         {
             icon: <Zap size={15} />, iconBg: 'bg-amber-100 text-amber-500',
-            bg: 'bg-amber-50 border border-amber-100', tag: 'Top ventas', tagBg: 'bg-amber-100', tagColor: 'text-amber-600',
+            tag: 'Top ventas', tagBg: 'bg-amber-100', tagColor: 'text-amber-600',
             title: '2. Producto líder del mes',
             text: topProduct ? `"${topProduct.name}" lidera con ${fmt(topProduct.total)} (${topProduct.units} uds).` : 'Registra ventas para ver tu producto estrella del mes.',
-            link: '/dashboard/products',
+            modal: 'producto' as const,
         },
         {
             icon: <AlertCircle size={15} />, iconBg: 'bg-red-100 text-red-500',
-            bg: 'bg-red-50 border border-red-100', tag: 'Alerta stock', tagBg: 'bg-red-100', tagColor: 'text-red-600',
+            tag: 'Alerta stock', tagBg: 'bg-red-100', tagColor: 'text-red-600',
             title: '3. Stock crítico',
             text: realStats.low_stock > 0 ? `${realStats.low_stock} producto${realStats.low_stock > 1 ? 's' : ''} con stock crítico (≤5 uds). Reponlos para no perder ventas.` : 'Inventario en niveles óptimos. Todo bajo control.',
-            link: '/dashboard/products',
+            modal: 'stock' as const,
         }
     ];
-  }, [orders, realStats]);
+  }, [insightData, realStats]);
+
+  // --- PRODUCTOS CON STOCK CRÍTICO ---
+  const lowStockProducts = useMemo(() =>
+    products
+        .map(p => ({ ...p, stockLevel: p.stock ?? (p.variants?.reduce((a: number, v: any) => a + (v.stock || 0), 0) ?? 0) }))
+        .filter(p => p.stockLevel <= 5)
+        .sort((a, b) => a.stockLevel - b.stockLevel),
+  [products]);
 
   const loadDashboardData = useCallback(async () => {
     if (!token) return;
@@ -261,6 +302,7 @@ export default function DashboardPage() {
         }
         
         const products = Array.isArray(pData) ? pData : [];
+        setProducts(products);
         const ordersList = Array.isArray(oData) ? oData : [];
         const logs = Array.isArray(lData) ? lData : [];
 
@@ -695,7 +737,7 @@ export default function DashboardPage() {
                     </div>
 
                     {insights.map((ins, i) => (
-                        <div key={i} onClick={() => router.push(ins.link)} className="bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl p-4 flex flex-col gap-2 transition-colors duration-150 cursor-pointer">
+                        <div key={i} onClick={() => setOpenInsight(ins.modal)} className="bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl p-4 flex flex-col gap-2 transition-colors duration-150 cursor-pointer">
                             <div className="flex items-center gap-3">
                                 <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${ins.iconBg}`}>{ins.icon}</div>
                                 <h5 className="font-semibold text-[13px] text-white leading-tight">{ins.title}</h5>
@@ -705,7 +747,7 @@ export default function DashboardPage() {
                         </div>
                     ))}
 
-                    <button onClick={() => router.push('/dashboard/web-analytics')} className="mt-auto w-full py-2.5 rounded-xl border border-white/10 text-[9px] font-semibold tracking-widest uppercase text-white/50 hover:text-white hover:border-white/20 transition-colors duration-150 flex items-center justify-center gap-2">
+                    <button onClick={() => setOpenInsight('analisis')} className="mt-auto w-full py-2.5 rounded-xl border border-white/10 text-[9px] font-semibold tracking-widest uppercase text-white/50 hover:text-white hover:border-white/20 transition-colors duration-150 flex items-center justify-center gap-2">
                         <BarChart3 size={12} /> Ver Análisis Detallado
                     </button>
                 </div>
@@ -753,6 +795,498 @@ export default function DashboardPage() {
                 </table>
             </div>
         </PremiumCard>
+
+        {/* ── MODAL 1: META DEL MES ── */}
+        <AnimatePresence>
+          {openInsight === 'meta' && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[300]"
+                onClick={() => setOpenInsight(null)}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="fixed inset-0 flex items-center justify-center z-[301] p-4 pointer-events-none"
+              >
+                <div className="pointer-events-auto w-full max-w-lg bg-[#001a1a] border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                  <div className="h-1 w-full bg-gradient-to-r from-rose-600 via-pink-400 to-rose-500" />
+                  <div className="p-6">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-rose-500/30 to-pink-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
+                          <TrendingUp size={22} className="text-rose-400" />
+                        </div>
+                        <div>
+                          <h3 className="font-black text-white text-lg uppercase tracking-wider leading-tight">Meta del Mes</h3>
+                          <span className="text-[9px] text-emerald-400 font-semibold tracking-widest uppercase flex items-center gap-1.5 mt-0.5">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                            En tiempo real
+                          </span>
+                        </div>
+                      </div>
+                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center transition-colors shrink-0" aria-label="Cerrar modal">
+                        <X size={14} className="text-white/50" />
+                      </button>
+                    </div>
+
+                    {/* Circular progress */}
+                    <div className="flex flex-col items-center mb-6">
+                      <div className="relative h-44 w-44">
+                        <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                          <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="9"/>
+                          <circle cx="50" cy="50" r="40" fill="none"
+                            stroke="url(#metaGradInsight)"
+                            strokeWidth="9"
+                            strokeLinecap="round"
+                            strokeDasharray={`${2 * Math.PI * 40 * insightData.goalPct / 100} ${2 * Math.PI * 40}`}
+                          />
+                          <defs>
+                            <linearGradient id="metaGradInsight" x1="0" y1="0" x2="1" y2="0">
+                              <stop offset="0%" stopColor="#f43f5e"/>
+                              <stop offset="100%" stopColor="#fb923c"/>
+                            </linearGradient>
+                          </defs>
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-[3.25rem] font-black text-white leading-none">{insightData.goalPct}</span>
+                          <span className="text-[10px] text-white/30 font-semibold uppercase tracking-widest mt-1">% completado</span>
+                        </div>
+                      </div>
+                      {/* Motivational message */}
+                      <div className={`mt-4 w-full rounded-2xl px-4 py-3 text-center border ${
+                        insightData.goalPct < 25
+                          ? 'bg-rose-500/10 border-rose-500/20'
+                          : insightData.goalPct < 75
+                            ? 'bg-amber-500/10 border-amber-500/20'
+                            : 'bg-emerald-500/10 border-emerald-500/20'
+                      }`}>
+                        <p className={`font-bold text-sm ${insightData.goalPct < 25 ? 'text-rose-400' : insightData.goalPct < 75 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                          {insightData.goalPct < 25
+                            ? '¡Acelera! Aún hay mucho por conquistar este mes.'
+                            : insightData.goalPct < 75
+                              ? '¡Vas bien! Mantén el ritmo y lo lograrás.'
+                              : '¡Casi lo logras! El sprint final vale la pena.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* KPI Grid */}
+                    <div className="grid grid-cols-3 gap-3 mb-6">
+                      {[
+                        { label: 'Acumulado', value: insightData.fmt(insightData.monthlyTotal), sub: 'este mes' },
+                        { label: 'Meta', value: insightData.fmt(insightData.goal), sub: 'proyectada' },
+                        { label: 'Días restantes', value: String(insightData.daysLeft), sub: 'del mes' },
+                      ].map((kpi, i) => (
+                        <div key={i} className="bg-white/[0.04] border border-white/[0.06] rounded-2xl p-3 text-center">
+                          <p className="text-[8px] text-white/30 uppercase tracking-widest font-semibold mb-1.5">{kpi.label}</p>
+                          <p className="font-black text-white text-sm leading-tight break-all">{kpi.value}</p>
+                          <p className="text-[8px] text-white/20 mt-0.5">{kpi.sub}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Monthly orders list */}
+                    <div>
+                      <p className="text-[9px] text-white/30 uppercase tracking-widest font-semibold mb-3 flex items-center gap-2">
+                        <span className="flex-1 h-px bg-white/5" />
+                        Pedidos del mes ({insightData.monthOrders.length})
+                        <span className="flex-1 h-px bg-white/5" />
+                      </p>
+                      <div className="space-y-1.5 max-h-44 overflow-y-auto pr-0.5">
+                        {insightData.monthOrders.length === 0 ? (
+                          <p className="text-[11px] text-white/20 text-center py-6">Sin pedidos registrados este mes</p>
+                        ) : insightData.monthOrders.slice(0, 10).map((o: any, i: number) => {
+                          const stColor: Record<string, string> = { pending: 'text-amber-400', paid: 'text-emerald-400', shipped: 'text-blue-400', delivered: 'text-green-400', cancelled: 'text-rose-400' };
+                          const stLabel: Record<string, string> = { pending: 'Pendiente', paid: 'Pagado', shipped: 'Enviado', delivered: 'Entregado', cancelled: 'Cancelado' };
+                          return (
+                            <div key={i} className="flex items-center justify-between bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.04] rounded-xl px-3 py-2 transition-colors gap-2">
+                              <span className="text-[9px] text-white/30 font-mono shrink-0">#{String(o.id || i + 1).slice(-6).toUpperCase()}</span>
+                              <span className="text-[9px] text-white/40 shrink-0">{new Date(o.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}</span>
+                              <span className="flex-1 text-right text-[10px] font-semibold text-white">{insightData.fmt(o.total_price || 0)}</span>
+                              <span className={`text-[9px] font-semibold shrink-0 ${stColor[o.status || 'pending'] || 'text-white/30'}`}>{stLabel[o.status || 'pending'] || o.status}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* ── MODAL 2: PRODUCTO LÍDER DEL MES ── */}
+        <AnimatePresence>
+          {openInsight === 'producto' && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[300]"
+                onClick={() => setOpenInsight(null)}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="fixed inset-0 flex items-center justify-center z-[301] p-4 pointer-events-none"
+              >
+                <div className="pointer-events-auto w-full max-w-lg bg-[#001a1a] border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                  <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-yellow-400 to-orange-400" />
+                  <div className="p-6">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-amber-500/30 to-yellow-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                          <Zap size={22} className="text-amber-400" />
+                        </div>
+                        <div>
+                          <h3 className="font-black text-white text-lg uppercase tracking-wider leading-tight">Producto Líder</h3>
+                          <p className="text-[9px] text-white/30 font-semibold tracking-widest uppercase mt-0.5">Top ventas del mes</p>
+                        </div>
+                      </div>
+                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center transition-colors shrink-0" aria-label="Cerrar modal">
+                        <X size={14} className="text-white/50" />
+                      </button>
+                    </div>
+
+                    {insightData.topProducts.length === 0 ? (
+                      <div className="py-14 text-center">
+                        <Zap size={36} className="text-amber-400/20 mx-auto mb-3" />
+                        <p className="text-white/30 text-sm font-semibold">Sin ventas registradas aún</p>
+                        <p className="text-white/20 text-xs mt-1">Registra tu primera venta para ver el podio.</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Podio top 3 */}
+                        <div className="flex items-end justify-center gap-3 mb-6 pt-2 px-2">
+                          {/* 2° lugar */}
+                          {insightData.topProducts[1] ? (
+                            <div className="flex flex-col items-center gap-2 flex-1">
+                              <div className="h-8 w-8 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-white/50 font-black text-sm">2</div>
+                              <div className="w-full bg-white/[0.05] border border-white/[0.08] rounded-t-2xl rounded-b-lg p-3 text-center h-[90px] flex flex-col justify-end">
+                                <p className="text-[9px] text-white/50 font-semibold leading-tight mb-1 line-clamp-2">{insightData.topProducts[1].name}</p>
+                                <p className="text-[10px] font-black text-white/70 break-all">{insightData.fmt(insightData.topProducts[1].total)}</p>
+                                <p className="text-[8px] text-white/30 mt-0.5">{insightData.topProducts[1].units} uds</p>
+                              </div>
+                            </div>
+                          ) : <div className="flex-1" />}
+                          {/* 1° lugar */}
+                          <div className="flex flex-col items-center gap-2 flex-1">
+                            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center text-[#001a1a] font-black text-base shadow-lg shadow-amber-500/30">1</div>
+                            <div className="w-full bg-gradient-to-b from-amber-500/15 to-amber-500/5 border border-amber-500/20 rounded-t-2xl rounded-b-lg p-3 text-center h-[120px] flex flex-col justify-end">
+                              <p className="text-[9px] text-amber-300 font-bold leading-tight mb-1 line-clamp-2">{insightData.topProducts[0].name}</p>
+                              <p className="text-xs font-black text-amber-400 break-all">{insightData.fmt(insightData.topProducts[0].total)}</p>
+                              <p className="text-[8px] text-amber-400/60 mt-0.5">{insightData.topProducts[0].units} uds</p>
+                            </div>
+                          </div>
+                          {/* 3° lugar */}
+                          {insightData.topProducts[2] ? (
+                            <div className="flex flex-col items-center gap-2 flex-1">
+                              <div className="h-7 w-7 rounded-xl bg-white/[0.06] border border-white/[0.06] flex items-center justify-center text-white/30 font-black text-xs">3</div>
+                              <div className="w-full bg-white/[0.03] border border-white/[0.05] rounded-t-2xl rounded-b-lg p-3 text-center h-[70px] flex flex-col justify-end">
+                                <p className="text-[8px] text-white/40 font-semibold leading-tight mb-1 line-clamp-2">{insightData.topProducts[2].name}</p>
+                                <p className="text-[9px] font-black text-white/50 break-all">{insightData.fmt(insightData.topProducts[2].total)}</p>
+                              </div>
+                            </div>
+                          ) : <div className="flex-1" />}
+                        </div>
+
+                        {/* Stats del líder */}
+                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 mb-4">
+                          <p className="text-[9px] text-amber-400/70 uppercase tracking-widest font-semibold mb-3">Estadísticas del líder</p>
+                          <div className="grid grid-cols-3 gap-3">
+                            {[
+                              { label: 'Ingresos', value: insightData.fmt(insightData.topProducts[0].total) },
+                              { label: 'Unidades', value: String(insightData.topProducts[0].units) },
+                              { label: 'Ticket prom.', value: insightData.fmt(insightData.topProducts[0].units > 0 ? insightData.topProducts[0].total / insightData.topProducts[0].units : 0) },
+                            ].map((s, i) => (
+                              <div key={i} className="text-center">
+                                <p className="text-[8px] text-white/30 uppercase tracking-widest font-semibold mb-1">{s.label}</p>
+                                <p className="text-sm font-black text-white break-all">{s.value}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Ranking completo si hay más de 3 */}
+                        {insightData.topProducts.length > 3 && (
+                          <div>
+                            <p className="text-[9px] text-white/30 uppercase tracking-widest font-semibold mb-2 flex items-center gap-2">
+                              <span className="flex-1 h-px bg-white/5" />Ranking completo<span className="flex-1 h-px bg-white/5" />
+                            </p>
+                            <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                              {insightData.topProducts.slice(3, 10).map((p, i) => (
+                                <div key={i} className="flex items-center gap-3 bg-white/[0.03] border border-white/[0.04] rounded-xl px-3 py-2">
+                                  <span className="text-[9px] text-white/20 font-mono w-4 shrink-0">{i + 4}</span>
+                                  <span className="flex-1 text-[11px] text-white/60 truncate">{p.name}</span>
+                                  <span className="text-[10px] font-semibold text-white/70 shrink-0">{insightData.fmt(p.total)}</span>
+                                  <span className="text-[9px] text-white/30 shrink-0">{p.units}u</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* ── MODAL 3: STOCK CRÍTICO ── */}
+        <AnimatePresence>
+          {openInsight === 'stock' && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[300]"
+                onClick={() => setOpenInsight(null)}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="fixed inset-0 flex items-center justify-center z-[301] p-4 pointer-events-none"
+              >
+                <div className="pointer-events-auto w-full max-w-lg bg-[#001a1a] border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                  <div className="h-1 w-full bg-gradient-to-r from-rose-700 via-red-500 to-rose-600" />
+                  <div className="p-6">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-rose-500/30 to-red-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
+                          <AlertCircle size={22} className="text-rose-400" />
+                        </div>
+                        <div>
+                          <h3 className="font-black text-white text-lg uppercase tracking-wider leading-tight">Alerta de Stock</h3>
+                          <p className="text-[9px] text-white/30 font-semibold tracking-widest uppercase mt-0.5">
+                            {lowStockProducts.length} producto{lowStockProducts.length !== 1 ? 's' : ''} en nivel crítico
+                          </p>
+                        </div>
+                      </div>
+                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center transition-colors shrink-0" aria-label="Cerrar modal">
+                        <X size={14} className="text-white/50" />
+                      </button>
+                    </div>
+
+                    {/* Filter tabs */}
+                    <div className="flex gap-2 mb-4 flex-wrap">
+                      {([
+                        { key: 'all' as const, label: 'Todos', count: lowStockProducts.length },
+                        { key: 'urgent' as const, label: 'Agotado', count: lowStockProducts.filter(p => p.stockLevel === 0).length },
+                        { key: 'low' as const, label: 'Stock bajo', count: lowStockProducts.filter(p => p.stockLevel > 0).length },
+                      ]).map(tab => (
+                        <button key={tab.key} onClick={() => setStockFilter(tab.key)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-semibold uppercase tracking-widest border transition-colors ${
+                            stockFilter === tab.key
+                              ? 'bg-rose-500/20 border-rose-500/30 text-rose-400'
+                              : 'bg-white/[0.03] border-white/[0.06] text-white/30 hover:text-white/50'
+                          }`}>
+                          {tab.label}
+                          <span className={`h-4 min-w-[16px] px-1 rounded-full text-[8px] font-bold flex items-center justify-center ${stockFilter === tab.key ? 'bg-rose-500/30 text-rose-300' : 'bg-white/5 text-white/20'}`}>{tab.count}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Products list */}
+                    {lowStockProducts.length === 0 ? (
+                      <div className="py-12 text-center">
+                        <CheckCircle2 size={36} className="text-emerald-400/30 mx-auto mb-3" />
+                        <p className="text-white/30 text-sm font-semibold">Inventario en niveles óptimos</p>
+                        <p className="text-white/20 text-xs mt-1">No hay productos con stock crítico</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-64 overflow-y-auto pr-0.5">
+                        {lowStockProducts
+                          .filter(p => stockFilter === 'all' ? true : stockFilter === 'urgent' ? p.stockLevel === 0 : p.stockLevel > 0)
+                          .map((p, i) => (
+                            <div key={i} className={`border rounded-2xl p-3.5 transition-colors ${p.stockLevel === 0 ? 'bg-rose-500/10 border-rose-500/20' : 'bg-white/[0.03] border-white/[0.06]'}`}>
+                              <div className="flex items-center justify-between mb-2.5 gap-2">
+                                <span className="text-[13px] font-semibold text-white truncate flex-1">{p.name}</span>
+                                {p.stockLevel === 0 ? (
+                                  <span className="text-[8px] font-bold bg-rose-500 text-white px-2.5 py-1 rounded-full uppercase tracking-widest shrink-0">AGOTADO</span>
+                                ) : (
+                                  <span className={`text-[11px] font-black shrink-0 ${p.stockLevel <= 2 ? 'text-rose-400' : 'text-orange-400'}`}>{p.stockLevel} uds</span>
+                                )}
+                              </div>
+                              {/* Stock bar */}
+                              <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${Math.min((p.stockLevel / 5) * 100, 100)}%` }}
+                                  transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.05 }}
+                                  className={`h-full rounded-full ${p.stockLevel === 0 ? 'bg-rose-600' : p.stockLevel <= 2 ? 'bg-rose-500' : 'bg-orange-400'}`}
+                                />
+                              </div>
+                              <div className="flex justify-between mt-1">
+                                <span className="text-[8px] text-white/20">0</span>
+                                <span className="text-[8px] text-white/20">5 uds (crítico)</span>
+                              </div>
+                            </div>
+                          ))}
+                        {lowStockProducts.filter(p => stockFilter === 'all' ? true : stockFilter === 'urgent' ? p.stockLevel === 0 : p.stockLevel > 0).length === 0 && (
+                          <p className="text-[11px] text-white/20 text-center py-6">Sin productos en esta categoría</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* ── MODAL 4: ANÁLISIS DETALLADO ── */}
+        <AnimatePresence>
+          {openInsight === 'analisis' && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[300]"
+                onClick={() => setOpenInsight(null)}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="fixed inset-0 flex items-center justify-center z-[301] p-4 pointer-events-none"
+              >
+                <div className="pointer-events-auto w-full max-w-2xl bg-[#001a1a] border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                  <div className="h-1 w-full bg-gradient-to-r from-teal-600 via-emerald-400 to-cyan-500" />
+                  <div className="p-6">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-teal-500/30 to-emerald-500/10 border border-teal-500/20 flex items-center justify-center shrink-0">
+                          <BarChart3 size={22} className="text-teal-400" />
+                        </div>
+                        <div>
+                          <h3 className="font-black text-white text-lg uppercase tracking-wider leading-tight">Análisis Detallado</h3>
+                          <p className="text-[9px] text-white/30 font-semibold tracking-widest uppercase mt-0.5">Resumen ejecutivo completo</p>
+                        </div>
+                      </div>
+                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center transition-colors shrink-0" aria-label="Cerrar modal">
+                        <X size={14} className="text-white/50" />
+                      </button>
+                    </div>
+
+                    {/* 6 KPIs Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+                      {[
+                        { label: 'Total pedidos', value: String(insightData.totalOrders), icon: <ShoppingBag size={13}/>, color: 'text-teal-400', bg: 'bg-teal-500/10 border-teal-500/20' },
+                        { label: 'Ingresos totales', value: insightData.fmt(insightData.totalRevenue), icon: <DollarSign size={13}/>, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+                        { label: 'Ticket promedio', value: insightData.fmt(insightData.avgTicket), icon: <TrendingUp size={13}/>, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/20' },
+                        { label: 'Completados', value: String(insightData.completedOrders), icon: <CheckCircle2 size={13}/>, color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
+                        { label: 'Tasa de éxito', value: `${insightData.successRate}%`, icon: <Target size={13}/>, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
+                        { label: 'Día pico', value: insightData.peakDay, icon: <Calendar size={13}/>, color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
+                      ].map((k, i) => (
+                        <div key={i} className={`border rounded-2xl p-3.5 ${k.bg}`}>
+                          <div className={`flex items-center gap-1.5 mb-2 ${k.color}`}>
+                            {k.icon}
+                            <p className="text-[8px] font-semibold uppercase tracking-widest">{k.label}</p>
+                          </div>
+                          <p className={`text-sm font-black ${k.color} break-all`}>{k.value}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Top 5 productos */}
+                    {insightData.topProducts.length > 0 && (
+                      <div className="mb-6">
+                        <p className="text-[9px] text-white/30 uppercase tracking-widest font-semibold mb-3 flex items-center gap-2">
+                          <span className="flex-1 h-px bg-white/5" />Top 5 Productos<span className="flex-1 h-px bg-white/5" />
+                        </p>
+                        <div className="space-y-1.5">
+                          {insightData.topProducts.slice(0, 5).map((p, i) => {
+                            const maxTotal = insightData.topProducts[0]?.total || 1;
+                            return (
+                              <div key={i} className="flex items-center gap-3 bg-white/[0.03] border border-white/[0.04] rounded-xl px-3 py-2.5">
+                                <span className="text-[9px] text-white/20 font-mono w-4 shrink-0">{i + 1}</span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[11px] text-white/70 font-semibold truncate">{p.name}</p>
+                                  <div className="h-1 bg-white/5 rounded-full mt-1.5 overflow-hidden">
+                                    <motion.div
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${(p.total / maxTotal) * 100}%` }}
+                                      transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.06 }}
+                                      className="h-full bg-gradient-to-r from-teal-500 to-emerald-400 rounded-full"
+                                    />
+                                  </div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className="text-[10px] font-black text-white/80">{insightData.fmt(p.total)}</p>
+                                  <p className="text-[8px] text-white/30">{p.units} uds</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Distribución por estado */}
+                    <div className="mb-6">
+                      <p className="text-[9px] text-white/30 uppercase tracking-widest font-semibold mb-3 flex items-center gap-2">
+                        <span className="flex-1 h-px bg-white/5" />Estado de pedidos<span className="flex-1 h-px bg-white/5" />
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(insightData.statusCount).map(([status, count]) => {
+                          const stStyle: Record<string, string> = {
+                            pending:   'bg-amber-500/15 border-amber-500/25 text-amber-400',
+                            paid:      'bg-emerald-500/15 border-emerald-500/25 text-emerald-400',
+                            shipped:   'bg-blue-500/15 border-blue-500/25 text-blue-400',
+                            delivered: 'bg-green-500/15 border-green-500/25 text-green-400',
+                            cancelled: 'bg-rose-500/15 border-rose-500/25 text-rose-400',
+                          };
+                          const stLabel: Record<string, string> = { pending: 'Pendiente', paid: 'Pagado', shipped: 'Enviado', delivered: 'Entregado', cancelled: 'Cancelado' };
+                          return (
+                            <div key={status} className={`border rounded-full px-3 py-1 flex items-center gap-1.5 ${stStyle[status] || 'bg-white/5 border-white/10 text-white/40'}`}>
+                              <span className="text-[9px] font-semibold">{stLabel[status] || status}</span>
+                              <span className="text-[10px] font-black">{count}</span>
+                            </div>
+                          );
+                        })}
+                        {Object.keys(insightData.statusCount).length === 0 && (
+                          <p className="text-[11px] text-white/20">Sin pedidos registrados</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Insight textual automático */}
+                    {orders.length > 0 && (
+                      <div className="bg-teal-500/10 border border-teal-500/20 rounded-2xl p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Lightbulb size={14} className="text-teal-400 shrink-0" />
+                          <p className="text-[9px] text-teal-400 font-semibold uppercase tracking-widest">Insight automático</p>
+                        </div>
+                        <p className="text-[11px] text-white/60 leading-relaxed">
+                          Tu día más fuerte históricamente es el{' '}
+                          <span className="text-teal-400 font-semibold">{insightData.peakDay}</span>.{' '}
+                          {insightData.successRate >= 70
+                            ? `Con una tasa de éxito del ${insightData.successRate}%, tu operación está en excelente estado.`
+                            : insightData.successRate >= 40
+                              ? `Tu tasa de éxito actual es del ${insightData.successRate}% — revisar pedidos cancelados puede mejorar tus métricas.`
+                              : 'Sigue registrando ventas para obtener patrones e insights más precisos.'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         <MetricDetailModal isOpen={!!selectedMetric} onClose={() => setSelectedMetric(null)} metric={selectedMetric} />
 
