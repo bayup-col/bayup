@@ -12,7 +12,7 @@ import {
 
 // ────────── Types ──────────
 type ColumnCount = 1 | 2 | 3 | 4;
-type ElementType = 'titulo' | 'texto' | 'imagen' | 'video' | 'boton' | 'separador';
+type ElementType = 'titulo' | 'texto' | 'imagen' | 'video' | 'boton' | 'separador' | 'audio';
 
 interface CanvasElement {
   id: string;
@@ -250,7 +250,7 @@ function BlankEditorContent() {
   function duplicateRow(rowId: string) {
     const idx = rows.findIndex(r => r.id === rowId);
     if (idx === -1) return;
-    const copy: CanvasRow = { id: uid(), columns: rows[idx].columns.map(col => ({ id: uid(), elements: col.elements.map(e => ({ ...e, id: uid() })) })) };
+    const copy: CanvasRow = { id: uid(), paddingTop: rows[idx].paddingTop, paddingBottom: rows[idx].paddingBottom, tabletLayout: rows[idx].tabletLayout, mobileLayout: rows[idx].mobileLayout, columns: rows[idx].columns.map(col => ({ id: uid(), flex: col.flex, elements: col.elements.map(e => ({ ...e, id: uid() })) })) };
     const next = [...rows];
     next.splice(idx + 1, 0, copy);
     setRows(next);
