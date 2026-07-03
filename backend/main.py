@@ -1050,7 +1050,7 @@ async def get_shipments(request: Request):
                 "order_number":     str(order.id)[:8].upper(),
                 "tracking_number":  ship.tracking_number or "",
                 "carrier":          ship.carrier or "",
-                "status":           ship.status or "pendiente",
+                "status":           ship.status if ship.status in ("pendiente","guia_generada","en_transito","en_reparto","entregado","incidencia","devuelto") else "pendiente",
                 "customer_name":    order.customer_name or "Cliente",
                 "customer_phone":   order.customer_phone or "",
                 "customer_city":    order.customer_city or "",
@@ -1128,7 +1128,7 @@ def _create_shipment_for_order(db, order, tenant_id):
         ship = _m.Shipment(
             order_id=order.id,
             tenant_id=tenant_id,
-            status="pendiente",
+            status="pendiente",  # siempre explícito, nunca depende del default del modelo
             recipient_name=order.customer_name or "Cliente",
             recipient_phone=order.customer_phone or "",
             destination_address=order.shipping_address or order.customer_city or "",

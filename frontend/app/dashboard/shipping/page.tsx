@@ -84,7 +84,7 @@ function KpiCard({ label, value, sub, icon, trend, trendUp, accent = '#004d4d' }
 
 // ── BADGE ESTADO ───────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: ShipStatus }) {
-  const s = STATUS[status];
+  const s = STATUS[status] ?? STATUS['pendiente'];
   return (
     <span className={`flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-1 rounded-full border ${s.bg} ${s.color} ${s.border}`}>
       <div className={`h-1.5 w-1.5 rounded-full ${s.dot}`}/>
