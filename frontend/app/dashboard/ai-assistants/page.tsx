@@ -38,7 +38,6 @@ import {
 } from 'lucide-react';
 import { useToast } from "@/context/toast-context";
 import { useAuth } from "@/context/auth-context";
-import { assistantService } from '@/lib/api';
 import Link from 'next/link';
 
 // --- INTERFACES ---

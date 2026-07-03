@@ -44,7 +44,7 @@ export async function GET() {
 
   const buffer = await wb.xlsx.writeBuffer();
 
-  return new NextResponse(buffer as Buffer, {
+  return new NextResponse(new Uint8Array(buffer), {
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': 'attachment; filename="plantilla-productos-bayup.xlsx"',
