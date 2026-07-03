@@ -687,7 +687,7 @@ export default function InvoicingPage() {
                         </button>
                         {isSourceDropdownOpen && (
                           <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-1.5 space-y-0.5">
-                            {['Tienda Física','WhatsApp','Página Web','Redes Sociales'].map(opt => (
+                            {['Tienda Física','WhatsApp','Redes Sociales'].map(opt => (
                               <button key={opt} onClick={() => { setCustomerInfo(p => ({ ...p, source: opt })); setIsSourceDropdownOpen(false); }}
                                 className="w-full text-left px-3 py-2 rounded-lg text-[11px] font-semibold hover:bg-gray-50 text-gray-700">
                                 {opt}

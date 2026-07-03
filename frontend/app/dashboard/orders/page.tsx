@@ -623,6 +623,23 @@ export default function OrdersPage() {
               {/* Footer CTAs */}
               <div className="p-5 border-t border-gray-100 space-y-2 shrink-0 bg-gray-50/50">
 
+                {/* Comprobante: disponible en proceso y completado */}
+                {(drawerOrder.status === 'processing' || drawerOrder.status === 'completed') && (
+                  <button
+                    onClick={async () => {
+                      const companyData = (() => { try { const c = localStorage.getItem('bayup_company_profile'); return c ? JSON.parse(c) : null; } catch { return null; } })();
+                      const { generateInvoicePDF } = await import('@/lib/report-generator');
+                      await generateInvoicePDF({
+                        company: companyData,
+                        order: drawerOrder,
+                        customer: { name: drawerOrder.customer_name, email: drawerOrder.customer_email, phone: drawerOrder.customer_phone, city: drawerOrder.customer_city },
+                      });
+                    }}
+                    className="w-full h-11 rounded-2xl bg-[#004d4d] hover:bg-[#003838] text-white font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
+                    <Download size={13}/> Generar comprobante
+                  </button>
+                )}
+
                 {/* CTA principal: Aceptar y facturar */}
                 {drawerOrder.status === 'pending' && (
                   <button
