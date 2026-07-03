@@ -107,6 +107,22 @@ export const DashboardHeader = ({
 
     const unreadCount = notifications.filter(n => !n.is_read).length;
 
+    const markAsRead = async (id: string) => {
+        if (!token) return;
+        try {
+            await apiRequest(`/notifications/${id}/read`, { method: 'PUT', token });
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+        } catch {}
+    };
+
+    const markAllAsRead = async () => {
+        if (!token || unreadCount === 0) return;
+        try {
+            await apiRequest('/notifications/read-all', { method: 'PUT', token });
+            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+        } catch {}
+    };
+
     const isSuperAdminDark = isSuperAdminZone && saTheme === 'dark';
 
     const getNotificationStyles = (type: string) => {
@@ -184,10 +200,20 @@ export const DashboardHeader = ({
                                             isSuperAdminDark ? 'bg-[#001A1A]/95 border-white/5' : 'bg-white/95 border-gray-100'
                                         }`}
                                     >
-                                        <div className={`px-5 py-4 border-b flex items-center justify-between ${isSuperAdminDark ? 'border-white/5' : 'border-gray-100'}`}>
-                                            <h3 className={`text-[10px] font-semibold tracking-[0.2em] uppercase ${isSuperAdminDark ? 'text-white/40' : 'text-[#004d4d]'}`}>Notificaciones</h3>
+                                        <div className={`px-5 py-3 border-b flex items-center justify-between gap-2 ${isSuperAdminDark ? 'border-white/5' : 'border-gray-100'}`}>
+                                            <div className="flex items-center gap-2">
+                                                <h3 className={`text-[10px] font-semibold tracking-[0.2em] uppercase ${isSuperAdminDark ? 'text-white/40' : 'text-[#004d4d]'}`}>Notificaciones</h3>
+                                                {unreadCount > 0 && (
+                                                    <span className={`text-white text-[8px] font-bold px-2 py-0.5 rounded-full ${isSuperAdminDark ? 'bg-[#00f2ff]/80' : 'bg-emerald-500'}`}>{unreadCount}</span>
+                                                )}
+                                            </div>
                                             {unreadCount > 0 && (
-                                                <span className={`text-white text-[8px] font-bold px-2 py-0.5 rounded-full ${isSuperAdminDark ? 'bg-[#00f2ff]/80' : 'bg-emerald-500'}`}>{unreadCount}</span>
+                                                <button
+                                                    onClick={markAllAsRead}
+                                                    className={`text-[9px] font-semibold px-2.5 py-1 rounded-xl transition-colors shrink-0 ${isSuperAdminDark ? 'text-[#00f2ff]/60 hover:text-[#00f2ff] hover:bg-white/5' : 'text-[#004d4d]/60 hover:text-[#004d4d] hover:bg-[#004d4d]/5'}`}
+                                                >
+                                                    Marcar todas como leídas
+                                                </button>
                                             )}
                                         </div>
                                         <div className="max-h-[320px] overflow-y-auto">
@@ -196,13 +222,20 @@ export const DashboardHeader = ({
                                             ) : notifications.map((n) => {
                                                 const styles = getNotificationStyles(n.type);
                                                 return (
-                                                    <div key={n.id} className={`px-5 py-4 border-b flex gap-3 transition-colors ${isSuperAdminDark ? 'border-white/5 hover:bg-white/5' : 'border-gray-50 hover:bg-gray-50/80'} ${!n.is_read ? '' : 'opacity-40'}`}>
+                                                    <button
+                                                        key={n.id}
+                                                        onClick={() => { if (!n.is_read) markAsRead(n.id); }}
+                                                        className={`w-full px-5 py-4 border-b flex gap-3 transition-colors text-left ${isSuperAdminDark ? 'border-white/5 hover:bg-white/5' : 'border-gray-50 hover:bg-gray-50/80'} ${!n.is_read ? '' : 'opacity-40'}`}
+                                                    >
                                                         <div className={`h-8 w-8 shrink-0 rounded-xl flex items-center justify-center ${styles.bg}`}>{styles.icon}</div>
                                                         <div className="flex-1 min-w-0">
                                                             <p className={`text-[11px] font-semibold truncate ${isSuperAdminDark ? 'text-white/80' : 'text-gray-800'}`}>{n.title}</p>
                                                             <p className="text-[10px] text-gray-400 mt-0.5 line-clamp-2">{n.message}</p>
                                                         </div>
-                                                    </div>
+                                                        {!n.is_read && (
+                                                            <div className={`h-2 w-2 rounded-full shrink-0 mt-1 ${isSuperAdminDark ? 'bg-[#00f2ff]' : 'bg-[#004d4d]'}`}/>
+                                                        )}
+                                                    </button>
                                                 );
                                             })}
                                         </div>
