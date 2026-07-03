@@ -259,7 +259,9 @@ export default function DashboardPage() {
       day, count: dayCounts[i] || 0,
       pct: Math.round(((dayCounts[i] || 0) / maxDayCount) * 100),
     }));
-    return { monthlyTotal, goal, goalPct, fmt, topProducts, topProduct, monthOrders, daysLeft, dailyNeeded, statusCount, peakDay: dayNames[peakDayIdx], totalOrders, totalRevenue, avgTicket, completedOrders, successRate, leaderSharePct, dayStats };
+    const activeDays = now.getDate();
+    const projectedPct = activeDays > 0 && monthlyTotal > 0 ? Math.round((monthlyTotal / activeDays) * lastDay / goal * 100) : 0;
+    return { monthlyTotal, goal, goalPct, fmt, topProducts, topProduct, monthOrders, daysLeft, dailyNeeded, statusCount, peakDay: dayNames[peakDayIdx], totalOrders, totalRevenue, avgTicket, completedOrders, successRate, leaderSharePct, dayStats, activeDays, projectedPct };
   }, [orders, monthlyGoal]);
 
   // --- INSIGHTS DINÁMICOS ---
@@ -820,140 +822,147 @@ export default function DashboardPage() {
                 onClick={() => setOpenInsight(null)}
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.96, y: 24 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: 24 }}
-                transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 30 }}
+                transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
                 className="fixed inset-0 flex items-center justify-center z-[301] p-4 pointer-events-none"
               >
-                <div className="pointer-events-auto w-full max-w-lg bg-[#030f0f] border border-white/[0.07] rounded-[2rem] shadow-[0_40px_120px_-20px_rgba(0,0,0,0.9)] overflow-hidden max-h-[88vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                  {/* Hero */}
-                  <div className="relative overflow-hidden bg-gradient-to-b from-rose-950/60 via-[#030f0f] to-transparent px-6 pt-6 pb-8">
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(244,63,94,0.13),transparent)]" />
-                    <div className="relative flex items-start justify-between mb-7">
+                <div className="pointer-events-auto w-full max-w-sm bg-[#0e0e0e] border border-white/[0.08] rounded-[1.25rem] shadow-[0_30px_80px_rgba(0,0,0,0.8)] max-h-[88vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                  <div className="flex-1 overflow-y-auto">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-5 pt-5 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-rose-500/30 to-pink-600/10 border border-rose-500/25 flex items-center justify-center shrink-0">
+                        <div className="h-11 w-11 rounded-xl bg-rose-500/20 border border-rose-500/20 flex items-center justify-center shrink-0">
                           <Target size={19} className="text-rose-400" />
                         </div>
                         <div>
-                          <h3 className="font-black text-white text-base uppercase tracking-wider">Meta del Mes</h3>
-                          <span className="text-[9px] text-rose-400/80 font-semibold tracking-widest uppercase flex items-center gap-1.5 mt-0.5">
-                            <span className="h-1.5 w-1.5 rounded-full bg-rose-400 animate-pulse inline-block" />
-                            Actualizado en tiempo real
-                          </span>
+                          <h3 className="text-[17px] font-black text-white leading-tight">Meta del mes</h3>
+                          <p className="text-[9px] text-rose-400 font-bold uppercase tracking-widest mt-0.5">
+                            SEGUIMIENTO · {insightData.activeDays} DÍAS ACTIVOS
+                          </p>
                         </div>
                       </div>
-                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/[0.07] flex items-center justify-center transition-colors shrink-0">
-                        <X size={14} className="text-white/40" />
+                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/[0.06] hover:bg-white/10 flex items-center justify-center transition-colors shrink-0">
+                        <X size={14} className="text-white/50" />
                       </button>
                     </div>
-                    {/* Ring + stats */}
-                    <div className="relative flex items-center gap-5">
-                      <div className="relative h-[130px] w-[130px] shrink-0">
+                    {/* Ring + Stats */}
+                    <div className="flex items-center gap-4 px-5 pb-4">
+                      <div className="relative h-[105px] w-[105px] shrink-0">
                         <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                          <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="8"/>
-                          <circle cx="50" cy="50" r="40" fill="none" stroke="url(#roseGradM)" strokeWidth="8" strokeLinecap="round"
+                          <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10"/>
+                          <circle cx="50" cy="50" r="40" fill="none" stroke="url(#roseGM1)" strokeWidth="10" strokeLinecap="round"
                             strokeDasharray={`${2 * Math.PI * 40 * Math.min(insightData.goalPct, 100) / 100} ${2 * Math.PI * 40}`}
                           />
                           <defs>
-                            <linearGradient id="roseGradM" x1="0" y1="0" x2="1" y2="1">
-                              <stop offset="0%" stopColor="#fb7185"/><stop offset="100%" stopColor="#e11d48"/>
+                            <linearGradient id="roseGM1" x1="0" y1="0" x2="1" y2="1">
+                              <stop offset="0%" stopColor="#fb7185"/><stop offset="100%" stopColor="#f43f5e"/>
                             </linearGradient>
                           </defs>
                         </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <span className="text-[2.6rem] font-black text-white leading-none">{insightData.goalPct}</span>
-                          <span className="text-[9px] text-white/25 font-bold tracking-widest mt-0.5">%</span>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-[1.85rem] font-black text-white leading-none">{insightData.goalPct}%</span>
                         </div>
                       </div>
-                      <div className="flex-1 space-y-3.5">
-                        <div>
-                          <p className="text-[8px] text-white/25 uppercase tracking-widest font-semibold">Acumulado</p>
-                          <p className="text-xl font-black text-white mt-0.5">{insightData.fmt(insightData.monthlyTotal)}</p>
-                        </div>
-                        <div className="h-px bg-white/[0.06]" />
-                        <div>
-                          <p className="text-[8px] text-white/25 uppercase tracking-widest font-semibold mb-1">Meta mensual</p>
-                          {editingGoal ? (
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="number"
-                                value={goalInput}
-                                onChange={e => setGoalInput(e.target.value)}
-                                className="w-28 bg-rose-500/10 border border-rose-500/40 rounded-xl px-2.5 py-1.5 text-sm font-black text-white outline-none focus:border-rose-500"
-                                autoFocus
-                                onKeyDown={e => {
-                                  if (e.key === 'Enter') {
-                                    const val = Number(String(goalInput).replace(/\D/g,''));
-                                    if (val > 0) { setMonthlyGoal(val); localStorage.setItem('bayup_monthly_goal', String(val)); }
-                                    setEditingGoal(false); setGoalInput('');
-                                  }
-                                  if (e.key === 'Escape') { setEditingGoal(false); setGoalInput(''); }
-                                }}
-                              />
-                              <button onClick={() => {
-                                const val = Number(String(goalInput).replace(/\D/g,''));
-                                if (val > 0) { setMonthlyGoal(val); localStorage.setItem('bayup_monthly_goal', String(val)); }
-                                setEditingGoal(false); setGoalInput('');
-                              }} className="h-7 px-3 rounded-xl bg-rose-500/30 hover:bg-rose-500/50 text-[10px] font-bold text-rose-400 border border-rose-500/30 transition-colors">OK</button>
-                              <button onClick={() => { setEditingGoal(false); setGoalInput(''); }} className="h-7 w-7 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
-                                <X size={11} className="text-white/30" />
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <p className="text-base font-black text-rose-400">{insightData.fmt(insightData.goal)}</p>
-                              <button onClick={() => { setEditingGoal(true); setGoalInput(String(Math.round(insightData.goal))); }} className="h-6 w-6 rounded-lg bg-white/5 hover:bg-rose-500/20 border border-white/[0.06] flex items-center justify-center transition-colors" title="Editar meta">
-                                <Edit3 size={10} className="text-white/30" />
-                              </button>
-                              {monthlyGoal > 0 && (
-                                <button onClick={() => { setMonthlyGoal(0); localStorage.removeItem('bayup_monthly_goal'); }} className="h-6 w-6 rounded-lg bg-white/5 hover:bg-white/10 border border-white/[0.06] flex items-center justify-center transition-colors" title="Restablecer meta automática">
-                                  <RefreshCw size={9} className="text-white/25" />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-5">
-                          <div>
-                            <p className="text-[8px] text-white/25 uppercase tracking-widest font-semibold">Días restantes</p>
-                            <p className="text-sm font-black text-white/60 mt-0.5">{insightData.daysLeft}d</p>
+                      <div className="flex-1 space-y-2.5">
+                        {[
+                          { label: 'Acumulado', value: insightData.fmt(insightData.monthlyTotal), color: 'text-white', editable: false },
+                          { label: 'Meta mensual', value: insightData.fmt(insightData.goal), color: 'text-rose-400', editable: true },
+                          { label: 'Días restantes', value: `${insightData.daysLeft}d`, color: 'text-white/55', editable: false },
+                          { label: 'Necesario / día', value: insightData.dailyNeeded > 0 ? insightData.fmt(insightData.dailyNeeded) : '—', color: 'text-amber-400', editable: false },
+                        ].map((s, i) => (
+                          <div key={i} className="flex items-center justify-between">
+                            <span className="text-[11px] text-white/35 font-medium">{s.label}</span>
+                            {s.editable && editingGoal ? (
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  value={goalInput}
+                                  onChange={e => setGoalInput(e.target.value)}
+                                  className="w-24 bg-rose-500/10 border border-rose-500/30 rounded-lg px-2 py-0.5 text-[12px] font-bold text-rose-300 outline-none text-right"
+                                  autoFocus
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') {
+                                      const val = Number(String(goalInput).replace(/\D/g,''));
+                                      if (val > 0) { setMonthlyGoal(val); localStorage.setItem('bayup_monthly_goal', String(val)); }
+                                      setEditingGoal(false); setGoalInput('');
+                                    }
+                                    if (e.key === 'Escape') { setEditingGoal(false); setGoalInput(''); }
+                                  }}
+                                />
+                                <button onClick={() => {
+                                  const val = Number(String(goalInput).replace(/\D/g,''));
+                                  if (val > 0) { setMonthlyGoal(val); localStorage.setItem('bayup_monthly_goal', String(val)); }
+                                  setEditingGoal(false); setGoalInput('');
+                                }} className="text-[10px] font-bold text-rose-400 hover:text-rose-300 shrink-0">OK</button>
+                                <button onClick={() => { setEditingGoal(false); setGoalInput(''); }} className="opacity-40 hover:opacity-80 shrink-0"><X size={11} className="text-white/50" /></button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5">
+                                <span className={`text-[13px] font-bold ${s.color}`}>{s.value}</span>
+                                {s.editable && (
+                                  <button onClick={() => { setEditingGoal(true); setGoalInput(String(Math.round(insightData.goal))); }} className="opacity-30 hover:opacity-70 transition-opacity">
+                                    <Edit3 size={10} className="text-rose-400" />
+                                  </button>
+                                )}
+                                {s.editable && monthlyGoal > 0 && !editingGoal && (
+                                  <button onClick={() => { setMonthlyGoal(0); localStorage.removeItem('bayup_monthly_goal'); }} className="opacity-25 hover:opacity-60 transition-opacity">
+                                    <RefreshCw size={9} className="text-white/60" />
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          <div>
-                            <p className="text-[8px] text-white/25 uppercase tracking-widest font-semibold">Necesario/día</p>
-                            <p className="text-sm font-black text-amber-400 mt-0.5">{insightData.dailyNeeded > 0 ? insightData.fmt(insightData.dailyNeeded) : '—'}</p>
-                          </div>
-                        </div>
+                        ))}
                       </div>
                     </div>
-                  </div>
-                  {/* Bottom */}
-                  <div className="px-6 pb-6 space-y-4">
-                    <div className={`rounded-2xl px-4 py-3 border ${insightData.goalPct >= 100 ? 'bg-emerald-500/10 border-emerald-500/20' : insightData.goalPct < 25 ? 'bg-rose-500/10 border-rose-500/20' : insightData.goalPct < 75 ? 'bg-amber-500/10 border-amber-500/20' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
-                      <p className={`font-bold text-xs leading-relaxed ${insightData.goalPct >= 100 ? 'text-emerald-400' : insightData.goalPct < 25 ? 'text-rose-400' : insightData.goalPct < 75 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                        {insightData.goalPct >= 100 ? '🎉 ¡Meta superada! Considera elevar el objetivo del próximo mes.' : insightData.goalPct < 25 ? '¡Acelera! Aún hay mucho por conquistar este mes.' : insightData.goalPct < 75 ? '¡Vas bien! Mantén el ritmo y lo lograrás.' : '¡Casi lo logras! El sprint final vale la pena.'}
+                    {/* Info box */}
+                    <div className="mx-5 mb-4 bg-white/[0.04] border border-white/[0.06] rounded-2xl px-4 py-3">
+                      <p className="text-[11px] text-white/40 leading-relaxed">
+                        Llevas {insightData.activeDays} días activos y acumulaste el{' '}
+                        <span className="text-white/65 font-semibold">{insightData.goalPct}%</span> de tu meta.
+                        {insightData.projectedPct > 0 && <> A este ritmo cerrarás en ~<span className="text-white/65 font-semibold">{insightData.projectedPct}%</span>.</>}
+                        {insightData.dailyNeeded > 0 && <> Sube tu venta diaria a <span className="text-amber-400 font-semibold">{insightData.fmt(insightData.dailyNeeded)}</span> para llegar a tiempo.</>}
                       </p>
                     </div>
-                    <div>
-                      <p className="text-[9px] text-white/20 uppercase tracking-widest font-semibold mb-2 flex items-center gap-2">
-                        <span className="flex-1 h-px bg-white/[0.05]" />Pedidos del mes ({insightData.monthOrders.length})<span className="flex-1 h-px bg-white/[0.05]" />
+                    {/* Orders */}
+                    <div className="px-5 mb-3">
+                      <p className="text-[9px] text-white/25 uppercase tracking-widest font-semibold mb-2">
+                        PEDIDOS DEL MES · {insightData.monthOrders.length}
                       </p>
-                      <div className="space-y-0.5 max-h-44 overflow-y-auto">
+                      <div className="max-h-40 overflow-y-auto">
                         {insightData.monthOrders.length === 0 ? (
-                          <p className="text-[11px] text-white/20 text-center py-6">Sin pedidos registrados este mes</p>
-                        ) : insightData.monthOrders.slice(0, 12).map((o: any, i: number) => {
+                          <p className="text-[11px] text-white/20 py-4 text-center">Sin pedidos este mes</p>
+                        ) : insightData.monthOrders.slice(0, 10).map((o: any, i: number) => {
                           const dot: Record<string, string> = { pending: 'bg-amber-400', paid: 'bg-emerald-400', shipped: 'bg-blue-400', delivered: 'bg-green-400', cancelled: 'bg-rose-400' };
                           return (
-                            <div key={i} className="flex items-center gap-2.5 hover:bg-white/[0.03] rounded-xl px-2.5 py-1.5 transition-colors">
+                            <div key={i} className="flex items-center gap-2.5 py-2.5 border-b border-white/[0.04]">
                               <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot[o.status || 'pending'] || 'bg-white/20'}`} />
-                              <span className="text-[9px] text-white/25 font-mono">#{String(o.id || i+1).slice(-6).toUpperCase()}</span>
-                              <span className="text-[9px] text-white/20">{new Date(o.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}</span>
-                              <span className="flex-1 text-right text-[11px] font-semibold text-white/70">{insightData.fmt(o.total_price || 0)}</span>
+                              <span className="text-[11px] text-white/40 font-mono">#{String(o.id || i+1).slice(-7).toUpperCase()}</span>
+                              <span className="text-[11px] text-white/25">· {new Date(o.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}</span>
+                              <span className="flex-1 text-right text-[12px] font-semibold text-white/65">{insightData.fmt(o.total_price || 0)}</span>
                             </div>
                           );
                         })}
                       </div>
                     </div>
+                  </div>
+                  {/* CTAs */}
+                  <div className="px-4 py-4 shrink-0 flex gap-2.5">
+                    <button
+                      onClick={() => { setEditingGoal(true); setGoalInput(String(Math.round(insightData.goal))); }}
+                      className="flex-1 h-12 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 text-white text-[13px] font-black flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-lg shadow-rose-500/20"
+                    >
+                      <Edit3 size={14} />
+                      Ajustar meta
+                    </button>
+                    <button
+                      onClick={() => { setOpenInsight(null); router.push('/dashboard/orders'); }}
+                      className="h-12 px-4 rounded-2xl bg-white/[0.06] border border-white/[0.08] text-white/50 text-[13px] font-semibold flex items-center gap-1.5 hover:bg-white/10 transition-colors whitespace-nowrap"
+                    >
+                      Ver pedidos <ChevronRight size={14} />
+                    </button>
                   </div>
                 </div>
               </motion.div>
@@ -972,97 +981,119 @@ export default function DashboardPage() {
                 onClick={() => setOpenInsight(null)}
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.96, y: 24 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: 24 }}
-                transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 30 }}
+                transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
                 className="fixed inset-0 flex items-center justify-center z-[301] p-4 pointer-events-none"
               >
-                <div className="pointer-events-auto w-full max-w-lg bg-[#030f0f] border border-white/[0.07] rounded-[2rem] shadow-[0_40px_120px_-20px_rgba(0,0,0,0.9)] overflow-hidden max-h-[88vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                  {/* Hero */}
-                  <div className="relative overflow-hidden bg-gradient-to-b from-amber-950/50 via-[#030f0f] to-transparent px-6 pt-6 pb-7">
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(245,158,11,0.1),transparent)]" />
-                    <div className="relative flex items-start justify-between mb-6">
+                <div className="pointer-events-auto w-full max-w-sm bg-[#0e0e0e] border border-white/[0.08] rounded-[1.25rem] shadow-[0_30px_80px_rgba(0,0,0,0.8)] max-h-[88vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                  <div className="flex-1 overflow-y-auto">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-5 pt-5 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-amber-500/30 to-yellow-500/10 border border-amber-500/25 flex items-center justify-center shrink-0">
+                        <div className="h-11 w-11 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center shrink-0">
                           <Trophy size={19} className="text-amber-400" />
                         </div>
                         <div>
-                          <h3 className="font-black text-white text-base uppercase tracking-wider">Producto Líder</h3>
-                          <p className="text-[9px] text-amber-400/70 font-semibold tracking-widest uppercase mt-0.5">Top ventas del mes</p>
+                          <h3 className="text-[17px] font-black text-white leading-tight">Producto líder</h3>
+                          <p className="text-[9px] text-amber-400 font-bold uppercase tracking-widest mt-0.5">
+                            DESTACADO · TOP VENTAS
+                          </p>
                         </div>
                       </div>
-                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/[0.07] flex items-center justify-center transition-colors shrink-0">
-                        <X size={14} className="text-white/40" />
+                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/[0.06] hover:bg-white/10 flex items-center justify-center transition-colors shrink-0">
+                        <X size={14} className="text-white/50" />
                       </button>
                     </div>
                     {insightData.topProducts.length === 0 ? (
-                      <div className="py-10 text-center">
+                      <div className="py-14 text-center px-5">
                         <Trophy size={36} className="text-amber-400/20 mx-auto mb-3" />
                         <p className="text-white/30 text-sm font-semibold">Sin ventas registradas aún</p>
                         <p className="text-white/20 text-xs mt-1">Registra tu primera venta para ver el ranking.</p>
                       </div>
                     ) : (
-                      <div className="relative bg-gradient-to-br from-amber-500/[0.12] via-amber-500/[0.05] to-transparent border border-amber-500/20 rounded-2xl p-5 overflow-hidden">
-                        <div className="absolute top-3 right-4 text-[4rem] font-black text-amber-500/[0.05] leading-none select-none">1</div>
-                        <div className="relative">
-                          <div className="flex items-start gap-3 mb-4">
-                            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/30">
-                              <Trophy size={17} className="text-[#030f0f]" />
+                      <>
+                        {/* Hero card */}
+                        <div className="mx-5 mb-4 relative bg-gradient-to-br from-amber-500/10 to-amber-500/[0.04] border border-amber-500/20 rounded-2xl p-4 overflow-hidden">
+                          <div className="absolute top-2 right-3 text-[5rem] font-black text-amber-400/[0.06] leading-none select-none pointer-events-none">1</div>
+                          <div className="relative">
+                            <p className="text-[9px] text-amber-400/60 uppercase tracking-widest font-bold mb-1">Producto estrella</p>
+                            <p className="text-[15px] font-black text-white leading-tight mb-3">{insightData.topProducts[0].name}</p>
+                            <div className="grid grid-cols-3 gap-2">
+                              {[
+                                { label: 'Ingresos', value: insightData.fmt(insightData.topProducts[0].total) },
+                                { label: 'Unidades', value: String(insightData.topProducts[0].units) },
+                                { label: '% del total', value: `${insightData.leaderSharePct}%` },
+                              ].map((s, i) => (
+                                <div key={i} className="bg-black/25 rounded-xl p-2 text-center border border-amber-500/10">
+                                  <p className="text-[8px] text-amber-400/40 uppercase tracking-widest font-semibold mb-0.5">{s.label}</p>
+                                  <p className="text-[11px] font-black text-amber-300">{s.value}</p>
+                                </div>
+                              ))}
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[9px] text-amber-400/60 uppercase tracking-widest font-semibold">Producto estrella</p>
-                              <p className="text-base font-black text-white mt-0.5 leading-tight">{insightData.topProducts[0].name}</p>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-3 gap-2.5">
-                            {[
-                              { label: 'Ingresos', value: insightData.fmt(insightData.topProducts[0].total) },
-                              { label: 'Unidades', value: String(insightData.topProducts[0].units) },
-                              { label: '% del total', value: `${insightData.leaderSharePct}%` },
-                            ].map((s, i) => (
-                              <div key={i} className="bg-black/25 rounded-xl p-2.5 text-center border border-amber-500/10">
-                                <p className="text-[8px] text-amber-400/50 uppercase tracking-widest font-semibold mb-1">{s.label}</p>
-                                <p className="text-xs font-black text-amber-300">{s.value}</p>
-                              </div>
-                            ))}
                           </div>
                         </div>
-                      </div>
+                        {/* Warning si precio $0 */}
+                        {insightData.topProducts[0].total === 0 && (
+                          <div className="mx-5 mb-4 bg-amber-500/[0.08] border border-amber-500/20 rounded-2xl px-4 py-3 flex items-start gap-2.5">
+                            <AlertCircle size={14} className="text-amber-400 shrink-0 mt-0.5" />
+                            <p className="text-[11px] text-amber-300/80 leading-relaxed">
+                              Este producto tiene precio en $0.{' '}
+                              <button onClick={() => { setOpenInsight(null); router.push('/dashboard/products'); }} className="text-amber-400 font-bold underline underline-offset-2">Configúralo</button>
+                              {' '}para que aparezca en tus estadísticas de ingresos.
+                            </p>
+                          </div>
+                        )}
+                        {/* Ranking */}
+                        {insightData.topProducts.length > 1 && (
+                          <div className="px-5 mb-4">
+                            <p className="text-[9px] text-white/25 uppercase tracking-widest font-semibold mb-2.5">TOP PRODUCTOS</p>
+                            <div className="space-y-2.5">
+                              {insightData.topProducts.slice(0, 6).map((p, i) => {
+                                const pct = insightData.topProducts[0]?.total > 0 ? (p.total / insightData.topProducts[0].total) * 100 : 0;
+                                const medals = ['🥇','🥈','🥉'];
+                                return (
+                                  <div key={i} className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="w-5 shrink-0 text-center text-sm leading-none">{i < 3 ? medals[i] : <span className="text-[10px] text-white/20 font-mono">{i+1}</span>}</span>
+                                      <span className="flex-1 text-[12px] text-white/65 font-semibold truncate">{p.name}</span>
+                                      <span className="text-[11px] font-bold text-white/75 shrink-0">{insightData.fmt(p.total)}</span>
+                                      <span className="text-[9px] text-white/25 shrink-0 w-6 text-right">{p.units}u</span>
+                                    </div>
+                                    <div className="ml-7 h-1 bg-white/[0.05] rounded-full overflow-hidden">
+                                      <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${pct}%` }}
+                                        transition={{ duration: 0.55, ease: 'easeOut', delay: i * 0.05 }}
+                                        className={`h-full rounded-full ${i === 0 ? 'bg-gradient-to-r from-amber-400 to-yellow-400' : i === 1 ? 'bg-white/30' : i === 2 ? 'bg-white/20' : 'bg-white/10'}`}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
-                  {/* Ranking con barras */}
-                  {insightData.topProducts.length > 1 && (
-                    <div className="px-6 pb-6">
-                      <p className="text-[9px] text-white/20 uppercase tracking-widest font-semibold mb-3 flex items-center gap-2">
-                        <span className="flex-1 h-px bg-white/[0.05]" />Ranking completo<span className="flex-1 h-px bg-white/[0.05]" />
-                      </p>
-                      <div className="space-y-3">
-                        {insightData.topProducts.slice(0, 8).map((p, i) => {
-                          const pct = insightData.topProducts[0]?.total > 0 ? (p.total / insightData.topProducts[0].total) * 100 : 0;
-                          const medals = ['🥇','🥈','🥉'];
-                          return (
-                            <div key={i} className="space-y-1.5">
-                              <div className="flex items-center gap-2.5">
-                                <span className="w-6 text-center shrink-0 text-sm leading-none">{i < 3 ? medals[i] : <span className="text-[10px] text-white/20 font-mono">{i+1}</span>}</span>
-                                <span className="flex-1 text-[12px] text-white/70 font-semibold truncate">{p.name}</span>
-                                <span className="text-[11px] font-black text-white/80 shrink-0">{insightData.fmt(p.total)}</span>
-                                <span className="text-[9px] text-white/25 shrink-0 w-8 text-right">{p.units}u</span>
-                              </div>
-                              <div className="ml-8 h-1 bg-white/[0.04] rounded-full overflow-hidden">
-                                <motion.div
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${pct}%` }}
-                                  transition={{ duration: 0.6, ease: 'easeOut', delay: i * 0.05 }}
-                                  className={`h-full rounded-full ${i === 0 ? 'bg-gradient-to-r from-amber-400 to-yellow-500' : i === 1 ? 'bg-white/25' : i === 2 ? 'bg-white/15' : 'bg-white/[0.08]'}`}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
+                  {/* CTAs */}
+                  <div className="px-4 py-4 shrink-0 flex gap-2.5">
+                    <button
+                      onClick={() => { setOpenInsight(null); router.push('/dashboard/products'); }}
+                      className="flex-1 h-12 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 text-[#0e0e0e] text-[13px] font-black flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-lg shadow-amber-500/20"
+                    >
+                      <Edit3 size={14} />
+                      Configurar precio
+                    </button>
+                    <button
+                      onClick={() => { setOpenInsight(null); router.push('/dashboard/products'); }}
+                      className="h-12 px-4 rounded-2xl bg-white/[0.06] border border-white/[0.08] text-white/50 text-[13px] font-semibold flex items-center gap-1.5 hover:bg-white/10 transition-colors whitespace-nowrap"
+                    >
+                      Promocionar <ChevronRight size={14} />
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             </>
@@ -1080,103 +1111,120 @@ export default function DashboardPage() {
                 onClick={() => setOpenInsight(null)}
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.96, y: 24 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: 24 }}
-                transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 30 }}
+                transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
                 className="fixed inset-0 flex items-center justify-center z-[301] p-4 pointer-events-none"
               >
-                <div className="pointer-events-auto w-full max-w-lg bg-[#030f0f] border border-white/[0.07] rounded-[2rem] shadow-[0_40px_120px_-20px_rgba(0,0,0,0.9)] overflow-hidden max-h-[88vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                  {/* Hero */}
-                  <div className="relative overflow-hidden bg-gradient-to-b from-rose-950/50 via-[#030f0f] to-transparent px-6 pt-6 pb-6">
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(244,63,94,0.08),transparent)]" />
-                    <div className="relative flex items-start justify-between mb-5">
+                <div className="pointer-events-auto w-full max-w-sm bg-[#0e0e0e] border border-white/[0.08] rounded-[1.25rem] shadow-[0_30px_80px_rgba(0,0,0,0.8)] max-h-[88vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                  <div className="flex-1 overflow-y-auto">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-5 pt-5 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-rose-500/30 to-red-600/10 border border-rose-500/25 flex items-center justify-center shrink-0">
+                        <div className="h-11 w-11 rounded-xl bg-rose-500/15 border border-rose-500/20 flex items-center justify-center shrink-0">
                           <AlertCircle size={19} className="text-rose-400" />
                         </div>
                         <div>
-                          <h3 className="font-black text-white text-base uppercase tracking-wider">Alerta de Stock</h3>
-                          <p className="text-[9px] text-rose-400/70 font-semibold tracking-widest uppercase mt-0.5">
-                            {lowStockProducts.length} producto{lowStockProducts.length !== 1 ? 's' : ''} en nivel crítico
+                          <h3 className="text-[17px] font-black text-white leading-tight">Alerta de stock</h3>
+                          <p className="text-[9px] text-rose-400 font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1.5">
+                            <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse inline-block" />
+                            URGENTE · ACCIÓN REQUERIDA
                           </p>
                         </div>
                       </div>
-                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/[0.07] flex items-center justify-center transition-colors shrink-0">
-                        <X size={14} className="text-white/40" />
+                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/[0.06] hover:bg-white/10 flex items-center justify-center transition-colors shrink-0">
+                        <X size={14} className="text-white/50" />
                       </button>
                     </div>
+                    {/* Resumen 2 cajas */}
                     {lowStockProducts.length > 0 && (() => {
                       const agotados = lowStockProducts.filter(p => p.stockLevel === 0).length;
                       const bajos = lowStockProducts.filter(p => p.stockLevel > 0).length;
                       return (
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-2.5 px-5 mb-4">
                           <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-3.5 text-center">
-                            <p className="text-2xl font-black text-rose-400">{agotados}</p>
-                            <p className="text-[9px] text-rose-400/60 uppercase tracking-widest font-semibold mt-0.5">Agotados</p>
+                            <p className="text-[1.75rem] font-black text-rose-400 leading-none">{agotados}</p>
+                            <p className="text-[9px] text-rose-400/60 uppercase tracking-widest font-bold mt-1">Agotados</p>
                           </div>
-                          <div className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-3.5 text-center">
-                            <p className="text-2xl font-black text-orange-400">{bajos}</p>
-                            <p className="text-[9px] text-orange-400/60 uppercase tracking-widest font-semibold mt-0.5">Stock bajo</p>
+                          <div className="bg-orange-500/[0.08] border border-orange-500/20 rounded-2xl p-3.5 text-center">
+                            <p className="text-[1.75rem] font-black text-orange-400 leading-none">{bajos}</p>
+                            <p className="text-[9px] text-orange-400/60 uppercase tracking-widest font-bold mt-1">Stock bajo</p>
                           </div>
                         </div>
                       );
                     })()}
-                  </div>
-                  <div className="px-6 pb-6 space-y-3">
                     {/* Filter tabs */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 px-5 mb-3">
                       {([
                         { key: 'all' as const, label: 'Todos', count: lowStockProducts.length },
                         { key: 'urgent' as const, label: 'Agotado', count: lowStockProducts.filter(p => p.stockLevel === 0).length },
                         { key: 'low' as const, label: 'Stock bajo', count: lowStockProducts.filter(p => p.stockLevel > 0).length },
                       ]).map(tab => (
                         <button key={tab.key} onClick={() => setStockFilter(tab.key)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-semibold uppercase tracking-widest border transition-colors ${
+                          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border transition-all ${
                             stockFilter === tab.key
                               ? 'bg-rose-500/20 border-rose-500/30 text-rose-400'
                               : 'bg-white/[0.03] border-white/[0.06] text-white/25 hover:text-white/40'
                           }`}>
                           {tab.label}
-                          <span className={`h-4 min-w-[16px] px-1 rounded-full text-[8px] font-bold flex items-center justify-center ${stockFilter === tab.key ? 'bg-rose-500/30 text-rose-300' : 'bg-white/[0.05] text-white/20'}`}>{tab.count}</span>
+                          <span className={`min-w-[16px] px-1 rounded-full text-[8px] font-black flex items-center justify-center ${stockFilter === tab.key ? 'bg-rose-500/30 text-rose-300' : 'bg-white/[0.05] text-white/20'}`}>{tab.count}</span>
                         </button>
                       ))}
                     </div>
-                    {lowStockProducts.length === 0 ? (
-                      <div className="py-12 text-center">
-                        <CheckCircle2 size={36} className="text-emerald-400/30 mx-auto mb-3" />
-                        <p className="text-white/30 text-sm font-semibold">Inventario en niveles óptimos</p>
-                        <p className="text-white/20 text-xs mt-1">No hay productos con stock crítico</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2 max-h-64 overflow-y-auto pr-0.5">
-                        {lowStockProducts
-                          .filter(p => stockFilter === 'all' ? true : stockFilter === 'urgent' ? p.stockLevel === 0 : p.stockLevel > 0)
-                          .map((p, i) => (
-                            <div key={i} className={`border rounded-2xl p-3.5 ${p.stockLevel === 0 ? 'bg-rose-500/[0.08] border-rose-500/20' : 'bg-orange-500/[0.05] border-orange-500/15'}`}>
-                              <div className="flex items-center justify-between mb-2 gap-2">
-                                <span className="text-[13px] font-semibold text-white/90 truncate flex-1">{p.name}</span>
-                                {p.stockLevel === 0 ? (
-                                  <span className="text-[8px] font-black bg-rose-500 text-white px-2.5 py-1 rounded-full uppercase tracking-widest shrink-0">AGOTADO</span>
-                                ) : (
-                                  <span className={`text-[11px] font-black shrink-0 ${p.stockLevel <= 2 ? 'text-rose-400' : 'text-orange-400'}`}>{p.stockLevel} uds</span>
-                                )}
+                    {/* Product list */}
+                    <div className="px-5 pb-3">
+                      {lowStockProducts.length === 0 ? (
+                        <div className="py-10 text-center">
+                          <CheckCircle2 size={32} className="text-emerald-400/30 mx-auto mb-3" />
+                          <p className="text-white/30 text-sm font-semibold">Inventario en niveles óptimos</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 max-h-52 overflow-y-auto">
+                          {lowStockProducts
+                            .filter(p => stockFilter === 'all' ? true : stockFilter === 'urgent' ? p.stockLevel === 0 : p.stockLevel > 0)
+                            .map((p, i) => (
+                              <div key={i} className={`border rounded-2xl px-3.5 py-3 flex items-center gap-3 ${p.stockLevel === 0 ? 'bg-rose-500/[0.07] border-rose-500/20' : 'bg-orange-500/[0.05] border-orange-500/15'}`}>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[13px] font-semibold text-white/85 truncate">{p.name}</p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <div className="flex-1 h-1 bg-white/[0.06] rounded-full overflow-hidden">
+                                      <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${Math.min((p.stockLevel / 5) * 100, 100)}%` }}
+                                        transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.06 }}
+                                        className={`h-full rounded-full ${p.stockLevel === 0 ? 'bg-rose-600' : p.stockLevel <= 2 ? 'bg-rose-500' : 'bg-orange-400'}`}
+                                      />
+                                    </div>
+                                    <span className={`text-[10px] font-black shrink-0 ${p.stockLevel === 0 ? 'text-rose-400' : p.stockLevel <= 2 ? 'text-rose-400' : 'text-orange-400'}`}>
+                                      {p.stockLevel === 0 ? 'AGOTADO' : `${p.stockLevel} uds`}
+                                    </span>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => { setOpenInsight(null); router.push('/dashboard/products'); }}
+                                  className="shrink-0 h-8 px-3 rounded-xl bg-rose-500/15 border border-rose-500/25 text-rose-400 text-[10px] font-bold hover:bg-rose-500/25 transition-colors"
+                                >
+                                  Reponer
+                                </button>
                               </div>
-                              <div className="h-1.5 w-full rounded-full bg-white/[0.05] overflow-hidden">
-                                <motion.div
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${Math.min((p.stockLevel / 5) * 100, 100)}%` }}
-                                  transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.06 }}
-                                  className={`h-full rounded-full ${p.stockLevel === 0 ? 'bg-rose-600' : p.stockLevel <= 2 ? 'bg-rose-500' : 'bg-orange-400'}`}
-                                />
-                              </div>
-                            </div>
-                          ))}
-                        {lowStockProducts.filter(p => stockFilter === 'all' ? true : stockFilter === 'urgent' ? p.stockLevel === 0 : p.stockLevel > 0).length === 0 && (
-                          <p className="text-[11px] text-white/20 text-center py-6">Sin productos en esta categoría</p>
-                        )}
-                      </div>
-                    )}
+                            ))}
+                          {lowStockProducts.filter(p => stockFilter === 'all' ? true : stockFilter === 'urgent' ? p.stockLevel === 0 : p.stockLevel > 0).length === 0 && (
+                            <p className="text-[11px] text-white/20 text-center py-6">Sin productos en esta categoría</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {/* CTA */}
+                  <div className="px-4 py-4 shrink-0">
+                    <button
+                      onClick={() => { setOpenInsight(null); router.push('/dashboard/products'); }}
+                      className="w-full h-12 rounded-2xl bg-gradient-to-r from-rose-500 to-rose-600 text-white text-[13px] font-black flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-lg shadow-rose-500/20"
+                    >
+                      <Package size={15} />
+                      Reponer inventario ahora
+                    </button>
                   </div>
                 </div>
               </motion.div>
@@ -1195,101 +1243,94 @@ export default function DashboardPage() {
                 onClick={() => setOpenInsight(null)}
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.96, y: 24 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: 24 }}
-                transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 30 }}
+                transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
                 className="fixed inset-0 flex items-center justify-center z-[301] p-4 pointer-events-none"
               >
-                <div className="pointer-events-auto w-full max-w-2xl bg-[#030f0f] border border-white/[0.07] rounded-[2rem] shadow-[0_40px_120px_-20px_rgba(0,0,0,0.9)] overflow-hidden max-h-[88vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                  {/* Hero */}
-                  <div className="relative overflow-hidden bg-gradient-to-b from-teal-950/50 via-[#030f0f] to-transparent px-6 pt-6 pb-7">
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(20,184,166,0.08),transparent)]" />
-                    <div className="relative flex items-start justify-between mb-6">
+                <div className="pointer-events-auto w-full max-w-sm bg-[#0e0e0e] border border-white/[0.08] rounded-[1.25rem] shadow-[0_30px_80px_rgba(0,0,0,0.8)] max-h-[88vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                  <div className="flex-1 overflow-y-auto">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-5 pt-5 pb-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-teal-500/30 to-emerald-500/10 border border-teal-500/25 flex items-center justify-center shrink-0">
-                          <BarChart3 size={19} className="text-teal-400" />
+                        <div className="h-11 w-11 rounded-xl bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                          <BarChart3 size={19} className="text-emerald-400" />
                         </div>
                         <div>
-                          <h3 className="font-black text-white text-base uppercase tracking-wider">Análisis Detallado</h3>
-                          <p className="text-[9px] text-teal-400/70 font-semibold tracking-widest uppercase mt-0.5">Resumen ejecutivo completo</p>
+                          <h3 className="text-[17px] font-black text-white leading-tight">Análisis detallado</h3>
+                          <p className="text-[9px] text-emerald-400 font-bold uppercase tracking-widest mt-0.5">
+                            RESUMEN EJECUTIVO
+                          </p>
                         </div>
                       </div>
-                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/[0.07] flex items-center justify-center transition-colors shrink-0">
-                        <X size={14} className="text-white/40" />
+                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/[0.06] hover:bg-white/10 flex items-center justify-center transition-colors shrink-0">
+                        <X size={14} className="text-white/50" />
                       </button>
                     </div>
-                    {/* 6 KPIs Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    {/* 6 KPIs 2×3 */}
+                    <div className="grid grid-cols-2 gap-2 px-5 mb-4">
                       {[
-                        { label: 'Total pedidos', value: String(insightData.totalOrders), icon: <ShoppingBag size={12}/>, color: 'text-teal-400', border: 'border-teal-500/20', bg: 'bg-teal-500/[0.08]' },
-                        { label: 'Ingresos totales', value: insightData.fmt(insightData.totalRevenue), icon: <DollarSign size={12}/>, color: 'text-emerald-400', border: 'border-emerald-500/20', bg: 'bg-emerald-500/[0.08]' },
-                        { label: 'Ticket promedio', value: insightData.fmt(insightData.avgTicket), icon: <TrendingUp size={12}/>, color: 'text-cyan-400', border: 'border-cyan-500/20', bg: 'bg-cyan-500/[0.08]' },
-                        { label: 'Completados', value: String(insightData.completedOrders), icon: <CheckCircle2 size={12}/>, color: 'text-green-400', border: 'border-green-500/20', bg: 'bg-green-500/[0.08]' },
-                        { label: 'Tasa de éxito', value: `${insightData.successRate}%`, icon: <Target size={12}/>, color: 'text-amber-400', border: 'border-amber-500/20', bg: 'bg-amber-500/[0.08]' },
-                        { label: 'Día pico', value: insightData.peakDay, icon: <Calendar size={12}/>, color: 'text-purple-400', border: 'border-purple-500/20', bg: 'bg-purple-500/[0.08]' },
+                        { label: 'Total pedidos', sub: 'Histórico', value: String(insightData.totalOrders), color: 'text-white', accent: 'text-white/30' },
+                        { label: 'Ingresos totales', sub: 'Todos los tiempos', value: insightData.fmt(insightData.totalRevenue), color: 'text-emerald-400', accent: 'text-emerald-400/40' },
+                        { label: 'Ticket promedio', sub: 'Por pedido', value: insightData.fmt(insightData.avgTicket), color: 'text-cyan-400', accent: 'text-cyan-400/40' },
+                        { label: 'Completados', sub: `de ${insightData.totalOrders} pedidos`, value: String(insightData.completedOrders), color: 'text-green-400', accent: 'text-green-400/40' },
+                        { label: 'Tasa de éxito', sub: 'Pedidos exitosos', value: `${insightData.successRate}%`, color: 'text-amber-400', accent: 'text-amber-400/40' },
+                        { label: 'Día pico', sub: 'Más ventas', value: insightData.peakDay, color: 'text-purple-400', accent: 'text-purple-400/40' },
                       ].map((k, i) => (
-                        <div key={i} className={`border rounded-2xl p-3.5 ${k.bg} ${k.border}`}>
-                          <div className={`flex items-center gap-1.5 mb-2 ${k.color}`}>
-                            {k.icon}
-                            <p className="text-[8px] font-semibold uppercase tracking-widest">{k.label}</p>
-                          </div>
-                          <p className={`text-sm font-black ${k.color} break-all`}>{k.value}</p>
+                        <div key={i} className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-3">
+                          <p className="text-[9px] text-white/30 font-semibold mb-0.5">{k.label}</p>
+                          <p className={`text-[17px] font-black leading-none mb-0.5 ${k.color}`}>{k.value}</p>
+                          <p className={`text-[9px] font-medium ${k.accent}`}>{k.sub}</p>
                         </div>
                       ))}
                     </div>
-                  </div>
-
-                  <div className="px-6 pb-6 space-y-5">
-                    {/* Actividad por día de la semana */}
-                    <div>
-                      <p className="text-[9px] text-white/20 uppercase tracking-widest font-semibold mb-3 flex items-center gap-2">
-                        <span className="flex-1 h-px bg-white/[0.05]" />Actividad por día<span className="flex-1 h-px bg-white/[0.05]" />
-                      </p>
-                      <div className="flex items-end gap-1.5 h-16">
+                    {/* Gráfico barras por día */}
+                    <div className="px-5 mb-4">
+                      <div className="flex items-center justify-between mb-2.5">
+                        <p className="text-[9px] text-white/25 uppercase tracking-widest font-semibold">ACTIVIDAD POR DÍA</p>
+                        <p className="text-[9px] text-white/25">Pico: <span className="text-white/50 font-bold">{insightData.peakDay}</span></p>
+                      </div>
+                      <div className="flex items-end gap-1.5 h-14">
                         {insightData.dayStats.map((d, i) => (
                           <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
-                            <div className="w-full flex items-end justify-center" style={{ height: '44px' }}>
+                            <div className="w-full flex items-end justify-center" style={{ height: '36px' }}>
                               <motion.div
                                 initial={{ height: 0 }}
-                                animate={{ height: `${Math.max((d.pct / 100) * 44, 3)}px` }}
+                                animate={{ height: `${Math.max((d.pct / 100) * 36, 3)}px` }}
                                 transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.04 }}
                                 style={{ width: '100%' }}
-                                className={`rounded-t-md ${d.day === insightData.peakDay ? 'bg-teal-400' : 'bg-white/10'}`}
+                                className={`rounded-t-[3px] ${d.day === insightData.peakDay ? 'bg-emerald-400' : 'bg-white/[0.08]'}`}
                               />
                             </div>
-                            <span className={`text-[8px] font-semibold ${d.day === insightData.peakDay ? 'text-teal-400' : 'text-white/25'}`}>{d.day}</span>
+                            <span className={`text-[8px] font-semibold ${d.day === insightData.peakDay ? 'text-emerald-400' : 'text-white/20'}`}>{d.day.slice(0,2)}</span>
                           </div>
                         ))}
                       </div>
                     </div>
-
-                    {/* Top 5 productos */}
+                    {/* Top productos */}
                     {insightData.topProducts.length > 0 && (
-                      <div>
-                        <p className="text-[9px] text-white/20 uppercase tracking-widest font-semibold mb-2.5 flex items-center gap-2">
-                          <span className="flex-1 h-px bg-white/[0.05]" />Top 5 Productos<span className="flex-1 h-px bg-white/[0.05]" />
-                        </p>
+                      <div className="px-5 mb-4">
+                        <p className="text-[9px] text-white/25 uppercase tracking-widest font-semibold mb-2.5">TOP PRODUCTOS</p>
                         <div className="space-y-2">
-                          {insightData.topProducts.slice(0, 5).map((p, i) => {
+                          {insightData.topProducts.slice(0, 4).map((p, i) => {
                             const maxT = insightData.topProducts[0]?.total || 1;
                             return (
-                              <div key={i} className="flex items-center gap-3 bg-white/[0.03] border border-white/[0.04] rounded-xl px-3 py-2.5">
-                                <span className="text-[9px] text-white/20 font-mono w-4 shrink-0">{i+1}</span>
+                              <div key={i} className="flex items-center gap-2.5">
+                                <span className="text-[9px] text-white/20 font-mono w-3 shrink-0">{i+1}</span>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-[11px] text-white/70 font-semibold truncate">{p.name}</p>
-                                  <div className="h-1 bg-white/[0.05] rounded-full mt-1.5 overflow-hidden">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <p className="text-[11px] text-white/65 font-semibold truncate">{p.name}</p>
+                                    <p className="text-[10px] font-bold text-white/75 shrink-0 ml-2">{insightData.fmt(p.total)}</p>
+                                  </div>
+                                  <div className="h-1 bg-white/[0.05] rounded-full overflow-hidden">
                                     <motion.div
                                       initial={{ width: 0 }}
                                       animate={{ width: `${(p.total / maxT) * 100}%` }}
                                       transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.06 }}
-                                      className="h-full bg-gradient-to-r from-teal-500 to-emerald-400 rounded-full"
+                                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
                                     />
                                   </div>
-                                </div>
-                                <div className="text-right shrink-0">
-                                  <p className="text-[10px] font-black text-white/80">{insightData.fmt(p.total)}</p>
-                                  <p className="text-[8px] text-white/25">{p.units} uds</p>
                                 </div>
                               </div>
                             );
@@ -1297,40 +1338,43 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     )}
-
                     {/* Estado de pedidos */}
-                    <div>
-                      <p className="text-[9px] text-white/20 uppercase tracking-widest font-semibold mb-2.5 flex items-center gap-2">
-                        <span className="flex-1 h-px bg-white/[0.05]" />Estado de pedidos<span className="flex-1 h-px bg-white/[0.05]" />
-                      </p>
-                      <div className="flex flex-wrap gap-2">
+                    <div className="px-5 mb-4">
+                      <p className="text-[9px] text-white/25 uppercase tracking-widest font-semibold mb-2.5">ESTADO DE PEDIDOS</p>
+                      <div className="flex flex-wrap gap-1.5">
                         {Object.entries(insightData.statusCount).map(([status, count]) => {
                           const st: Record<string, string> = { pending: 'bg-amber-500/15 border-amber-500/25 text-amber-400', paid: 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400', shipped: 'bg-blue-500/15 border-blue-500/25 text-blue-400', delivered: 'bg-green-500/15 border-green-500/25 text-green-400', cancelled: 'bg-rose-500/15 border-rose-500/25 text-rose-400' };
                           const lb: Record<string, string> = { pending: 'Pendiente', paid: 'Pagado', shipped: 'Enviado', delivered: 'Entregado', cancelled: 'Cancelado' };
                           return (
-                            <div key={status} className={`border rounded-full px-3 py-1 flex items-center gap-1.5 ${st[status] || 'bg-white/[0.05] border-white/10 text-white/40'}`}>
+                            <div key={status} className={`border rounded-full px-2.5 py-1 flex items-center gap-1.5 ${st[status] || 'bg-white/[0.05] border-white/10 text-white/40'}`}>
                               <span className="text-[9px] font-semibold">{lb[status] || status}</span>
                               <span className="text-[10px] font-black">{count}</span>
                             </div>
                           );
                         })}
-                        {Object.keys(insightData.statusCount).length === 0 && <p className="text-[11px] text-white/20">Sin pedidos registrados</p>}
+                        {Object.keys(insightData.statusCount).length === 0 && <p className="text-[11px] text-white/20">Sin pedidos</p>}
                       </div>
                     </div>
-
-                    {/* Insight automático */}
+                    {/* Insight box */}
                     {orders.length > 0 && (
-                      <div className="bg-teal-500/[0.08] border border-teal-500/15 rounded-2xl p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Lightbulb size={13} className="text-teal-400 shrink-0" />
-                          <p className="text-[9px] text-teal-400 font-semibold uppercase tracking-widest">Insight automático</p>
-                        </div>
-                        <p className="text-[11px] text-white/50 leading-relaxed">
-                          Tu día más fuerte históricamente es el <span className="text-teal-400 font-semibold">{insightData.peakDay}</span>.{' '}
-                          {insightData.successRate >= 70 ? `Con una tasa de éxito del ${insightData.successRate}%, tu operación está en excelente estado.` : insightData.successRate >= 40 ? `Tu tasa de éxito actual es del ${insightData.successRate}% — revisar pedidos cancelados puede mejorar tus métricas.` : 'Sigue registrando ventas para obtener patrones e insights más precisos.'}
+                      <div className="mx-5 mb-4 bg-emerald-500/[0.07] border border-emerald-500/15 rounded-2xl px-4 py-3 flex items-start gap-2.5">
+                        <Lightbulb size={13} className="text-emerald-400 shrink-0 mt-0.5" />
+                        <p className="text-[11px] text-white/40 leading-relaxed">
+                          Tu día más activo es <span className="text-emerald-400 font-semibold">{insightData.peakDay}</span>.{' '}
+                          {insightData.successRate >= 70 ? `Tasa de éxito ${insightData.successRate}% — operación excelente.` : insightData.successRate >= 40 ? `Tasa de éxito ${insightData.successRate}% — revisa pedidos cancelados.` : 'Registra más ventas para ver patrones.'}
                         </p>
                       </div>
                     )}
+                  </div>
+                  {/* CTA */}
+                  <div className="px-4 py-4 shrink-0">
+                    <button
+                      onClick={() => showToast('Reporte PDF en desarrollo', 'info')}
+                      className="w-full h-12 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[13px] font-black flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-lg shadow-emerald-500/20"
+                    >
+                      <Download size={15} />
+                      Descargar reporte PDF
+                    </button>
                   </div>
                 </div>
               </motion.div>
