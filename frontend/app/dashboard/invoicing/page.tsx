@@ -202,20 +202,19 @@ export default function InvoicingPage() {
     return () => document.body.classList.remove('sidebar-hide');
   }, [isPOSActive]);
 
-  // ── KPIs ──
+  // ── KPIs ── (solo ventas POS, no pedidos web)
   const invoicingKpis = useMemo(() => {
+    const posOrders    = history.filter(inv => inv.source === 'pos' || inv.source === 'Tienda Física' || !inv.source);
     const today        = new Date().toISOString().split('T')[0];
-    const todayOrders  = history.filter(inv => inv.date?.split('T')[0] === today);
+    const todayOrders  = posOrders.filter(inv => inv.date?.split('T')[0] === today);
     const salesToday   = todayOrders.reduce((a, b) => a + Number(b.total), 0);
-    const cashToday    = todayOrders.filter(o => o.payment_method === 'cash').reduce((a, b) => a + Number(b.total), 0);
-    const transToday   = todayOrders.filter(o => o.payment_method === 'transfer').reduce((a, b) => a + Number(b.total), 0);
-    const totalRev     = history.reduce((a, b) => a + Number(b.total), 0);
-    const avgTicket    = history.length > 0 ? totalRev / history.length : 0;
+    const totalRev     = posOrders.reduce((a, b) => a + Number(b.total), 0);
+    const avgTicket    = posOrders.length > 0 ? totalRev / posOrders.length : 0;
     return [
-      { icon: <Activity/>, label: 'Ventas de hoy', value: fmtCOP(salesToday),         sub: 'En vivo',  accent: '#10b981', progress: Math.min((salesToday / 1000000) * 100, 100) },
-      { icon: <ShoppingBag/>, label: 'Operaciones', value: String(history.length),     sub: 'Total',    accent: '#0891b2', progress: Math.min((history.length / 50) * 100, 100) },
-      { icon: <Target/>, label: 'Ticket promedio', value: fmtCOP(avgTicket),           sub: 'Market',   accent: '#7c3aed', progress: 60 },
-      { icon: <Wallet/>, label: 'Flujo de caja',   value: fmtCOP(totalRev),            sub: 'Balance',  accent: '#004d4d', progress: 75 },
+      { icon: <Activity/>, label: 'Ventas de hoy', value: fmtCOP(salesToday),          sub: 'En vivo',  accent: '#10b981', progress: Math.min((salesToday / 1000000) * 100, 100) },
+      { icon: <ShoppingBag/>, label: 'Operaciones', value: String(posOrders.length),    sub: 'Total',    accent: '#0891b2', progress: Math.min((posOrders.length / 50) * 100, 100) },
+      { icon: <Target/>, label: 'Ticket promedio', value: fmtCOP(avgTicket),            sub: 'Market',   accent: '#7c3aed', progress: 60 },
+      { icon: <Wallet/>, label: 'Flujo de caja',   value: fmtCOP(totalRev),             sub: 'Balance',  accent: '#004d4d', progress: 75 },
     ];
   }, [history]);
 
