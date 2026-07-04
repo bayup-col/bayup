@@ -32,6 +32,7 @@ def register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_a
         try:
             user = await _authenticate(request, db)
             tid = _tenant_id(user)
+            import traceback as _tb
 
             last_paid = (
                 db.query(models.Liquidation)
@@ -100,6 +101,9 @@ def register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_a
                     for o in pending_orders[:50]
                 ],
             }
+        except Exception as _e:
+            import traceback as _tb
+            return {"debug_error": str(_e), "trace": _tb.format_exc()[-1000:]}
         finally:
             db.close()
 
