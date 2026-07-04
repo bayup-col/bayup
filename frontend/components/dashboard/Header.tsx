@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Bot, Moon, Sun, DollarSign, Truck, AlertCircle, UserPlus, Headset } from 'lucide-react';
+import { Bell, Bot, Moon, Sun, DollarSign, Truck, AlertCircle, UserPlus, Headset, Building2, Wallet } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/context/theme-context';
 import { useSuperAdminTheme } from '@/context/super-admin-theme-context';
@@ -86,26 +86,30 @@ export const DashboardHeader = ({
         return () => { if (intervalId) clearInterval(intervalId); };
     }, [token, logout, isSuperAdminZone]);
 
-    // Polling de Notificaciones para super admin — registros pendientes + tickets abiertos
+    // Polling de Notificaciones para super admin
     useEffect(() => {
         if (!isSuperAdminZone || !token) return;
         let intervalId: any = null;
         const fetchAdminNotifications = async () => {
             try {
-                const [regs, tickets] = await Promise.all([
+                const [regs, tickets, stats] = await Promise.all([
                     apiRequest<any[]>('/super-admin/registrations', { token }).catch(() => []),
                     apiRequest<any[]>('/super-admin/support/tickets', { token }).catch(() => []),
+                    apiRequest<any>('/super-admin/stats', { token }).catch(() => null),
                 ]);
                 const built: any[] = [];
+
+                // Registros: cada pendiente es una notificación accionable
                 (regs || []).forEach((r: any) => built.push({
                     id: `reg-${r.id}`,
-                    title: 'Nuevo registro pendiente',
-                    message: `${r.full_name || r.email} está esperando aprobación`,
+                    title: 'Registro pendiente de aprobación',
+                    message: `${r.full_name || r.email} está esperando activación`,
                     type: 'registration',
                     is_read: false,
                     href: '/dashboard/super-admin/registros',
-                    created_at: r.created_at,
                 }));
+
+                // Soporte: tickets sin resolver
                 (tickets || []).filter((t: any) => t.status !== 'resolved').forEach((t: any) => built.push({
                     id: `ticket-${t.id}`,
                     title: 'Ticket de soporte abierto',
@@ -113,8 +117,34 @@ export const DashboardHeader = ({
                     type: 'support',
                     is_read: false,
                     href: '/dashboard/super-admin/soporte',
-                    created_at: t.created_at,
                 }));
+
+                // Tesorería: comisión del día si hay actividad
+                if (stats?.commission_today > 0) {
+                    const fmt = (n: number) => '$' + Math.round(n).toLocaleString('es-CO');
+                    built.push({
+                        id: 'treasury-today',
+                        title: 'Comisión generada hoy',
+                        message: `${fmt(stats.commission_today)} en comisiones · ${fmt(stats.revenue_today)} en ventas`,
+                        type: 'treasury',
+                        is_read: true,
+                        href: '/dashboard/super-admin/tesoreria',
+                    });
+                }
+
+                // Empresas: activas vs total
+                if (stats?.total_companies > 0) {
+                    const inactive = stats.total_companies - (stats.active_companies || 0);
+                    if (inactive > 0) built.push({
+                        id: 'companies-inactive',
+                        title: `${inactive} empresa${inactive > 1 ? 's' : ''} inactiva${inactive > 1 ? 's' : ''}`,
+                        message: `${stats.active_companies} de ${stats.total_companies} empresas activas`,
+                        type: 'company',
+                        is_read: true,
+                        href: '/dashboard/super-admin/empresas',
+                    });
+                }
+
                 setNotifications(built);
             } catch {}
         };
@@ -161,19 +191,23 @@ export const DashboardHeader = ({
         if (isSuperAdminDark) {
             switch (type) {
                 case 'registration': return { icon: <UserPlus size={14} className="text-cyan" />, bg: 'bg-cyan/10' };
-                case 'support': return { icon: <Headset size={14} className="text-amber-400" />, bg: 'bg-amber-400/10' };
-                case 'success': return { icon: <DollarSign size={14} className="text-cyan" />, bg: 'bg-cyan/10' };
-                case 'logistics': return { icon: <Truck size={14} className="text-cyan" />, bg: 'bg-cyan/10' };
-                default: return { icon: <Bell size={14} className="text-white/40" />, bg: 'bg-white/5' };
+                case 'support':      return { icon: <Headset size={14} className="text-amber-400" />, bg: 'bg-amber-400/10' };
+                case 'treasury':     return { icon: <Wallet size={14} className="text-emerald-400" />, bg: 'bg-emerald-400/10' };
+                case 'company':      return { icon: <Building2 size={14} className="text-rose-400" />, bg: 'bg-rose-400/10' };
+                case 'success':      return { icon: <DollarSign size={14} className="text-cyan" />, bg: 'bg-cyan/10' };
+                case 'logistics':    return { icon: <Truck size={14} className="text-cyan" />, bg: 'bg-cyan/10' };
+                default:             return { icon: <Bell size={14} className="text-white/40" />, bg: 'bg-white/5' };
             }
         }
         switch (type) {
             case 'registration': return { icon: <UserPlus size={14} className="text-teal-600" />, bg: 'bg-teal-50' };
-            case 'support': return { icon: <Headset size={14} className="text-amber-600" />, bg: 'bg-amber-50' };
-            case 'success': return { icon: <DollarSign size={14} className="text-emerald-600" />, bg: 'bg-emerald-50' };
-            case 'logistics': return { icon: <Truck size={14} className="text-blue-600" />, bg: 'bg-blue-50' };
-            case 'alert': return { icon: <AlertCircle size={14} className="text-rose-600" />, bg: 'bg-rose-50' };
-            default: return { icon: <Bell size={14} className="text-gray-600" />, bg: 'bg-gray-50' };
+            case 'support':      return { icon: <Headset size={14} className="text-amber-600" />, bg: 'bg-amber-50' };
+            case 'treasury':     return { icon: <Wallet size={14} className="text-emerald-600" />, bg: 'bg-emerald-50' };
+            case 'company':      return { icon: <Building2 size={14} className="text-rose-600" />, bg: 'bg-rose-50' };
+            case 'success':      return { icon: <DollarSign size={14} className="text-emerald-600" />, bg: 'bg-emerald-50' };
+            case 'logistics':    return { icon: <Truck size={14} className="text-blue-600" />, bg: 'bg-blue-50' };
+            case 'alert':        return { icon: <AlertCircle size={14} className="text-rose-600" />, bg: 'bg-rose-50' };
+            default:             return { icon: <Bell size={14} className="text-gray-600" />, bg: 'bg-gray-50' };
         }
     };
 
