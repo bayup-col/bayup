@@ -36,7 +36,7 @@ const nextConfig = {
                         value: [
                             "default-src 'self'",
                             "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://framer.com https://*.framer.com https://*.framerusercontent.com",
-                            "connect-src 'self' https://api.bayup.com.co https://*.bayup.com.co https://framer.com https://*.framer.com https://*.framerusercontent.com https://*.sentry.io https://*.supabase.co wss://*.supabase.co http://localhost:8000 http://localhost:8001",
+                            "connect-src 'self' https://api.bayup.com.co https://*.bayup.com.co https://framer.com https://*.framer.com https://*.framerusercontent.com https://*.sentry.io https://*.supabase.co wss://*.supabase.co http://localhost:8000 http://localhost:8001 https://*.onrender.com",
                             "img-src 'self' data: blob: https: http://localhost:8001",
                             "style-src 'self' 'unsafe-inline'",
                             "font-src 'self' data: https://fonts.gstatic.com",
