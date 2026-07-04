@@ -80,6 +80,27 @@ def _sync_postgres_schema() -> None:
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_confirmation_expires TIMESTAMP",
             # payments
             "ALTER TABLE payments ADD COLUMN IF NOT EXISTS idempotency_key VARCHAR(128)",
+            # liquidations — tabla añadida post-lanzamiento, creada si no existe
+            """CREATE TABLE IF NOT EXISTS liquidations (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                tenant_id UUID NOT NULL REFERENCES users(id),
+                gross_amount DOUBLE PRECISION DEFAULT 0.0,
+                bayup_commission DOUBLE PRECISION DEFAULT 0.0,
+                prix_fee DOUBLE PRECISION DEFAULT 0.0,
+                net_amount DOUBLE PRECISION DEFAULT 0.0,
+                order_count INTEGER DEFAULT 0,
+                period_start TIMESTAMP,
+                period_end TIMESTAMP,
+                status VARCHAR DEFAULT 'pending',
+                scheduled_date TIMESTAMP,
+                paid_date TIMESTAMP,
+                transfer_reference VARCHAR,
+                notes VARCHAR,
+                created_at TIMESTAMP DEFAULT NOW()
+            )""",
+            "CREATE INDEX IF NOT EXISTS ix_liquidations_tenant_id ON liquidations (tenant_id)",
+            "CREATE INDEX IF NOT EXISTS ix_liquidations_status ON liquidations (status)",
+            "CREATE INDEX IF NOT EXISTS ix_liquidations_created_at ON liquidations (created_at)",
         ]
         with engine.begin() as conn:
             for stmt in stmts:
