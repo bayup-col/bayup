@@ -37,9 +37,11 @@ export default function UsersPage() {
       const base = process.env.NEXT_PUBLIC_API_URL||'https://api.bayup.com.co';
       const res  = await fetch(`${base}/super-admin/users`, { headers:{ Authorization:`Bearer ${token}` } });
       if (res.ok) { const d = await res.json(); setUsers(Array.isArray(d) ? d : []); }
-    } catch {}
+      else if (res.status === 401 || res.status === 403) { showToast('Sesión expirada — vuelve a iniciar sesión', 'error'); }
+      else { showToast(`Error al cargar usuarios (${res.status})`, 'error'); }
+    } catch { showToast('Error de conexión al cargar usuarios', 'error'); }
     setLoading(false);
-  }, [token]);
+  }, [token, showToast]);
 
   useEffect(() => { load(); }, [load]);
 

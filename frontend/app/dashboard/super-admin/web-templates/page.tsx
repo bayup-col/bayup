@@ -207,9 +207,11 @@ export default function WebTemplatesPage() {
       const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const res = await fetch(`${base}/super-admin/web-templates`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) { const d = await res.json(); setTemplates(Array.isArray(d) ? d : []); }
-    } catch { }
+      else if (res.status === 401 || res.status === 403) { showToast('Sesión expirada — vuelve a iniciar sesión', 'error'); }
+      else { showToast(`Error al cargar plantillas (${res.status})`, 'error'); }
+    } catch { showToast('Error de conexión al cargar plantillas', 'error'); }
     setLoading(false);
-  }, [token]);
+  }, [token, showToast]);
 
   useEffect(() => { load(); }, [load]);
 
