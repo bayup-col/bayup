@@ -127,7 +127,7 @@ export default function SuperAdminLiquidacionesPage() {
             <RefreshCw size={12}/> Actualizar
           </button>
           <button onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 h-9 px-4 rounded-xl bg-[#004d4d] hover:bg-[#003838] text-white text-[10px] font-black uppercase tracking-widest transition-all">
+            className="flex items-center gap-2 h-9 px-4 rounded-xl bg-[#004d4d] hover:bg-[#003838] text-[#ffffff] text-[10px] font-black uppercase tracking-widest transition-all">
             <Plus size={12}/> Nueva liquidación
           </button>
         </div>
@@ -196,7 +196,7 @@ export default function SuperAdminLiquidacionesPage() {
                     <p className="text-[13px] font-black text-emerald-600">{fmtCOP(b.net)}</p>
                     <button
                       onClick={() => { setForm(f => ({ ...f, tenant_id: b.tenant_id })); setShowCreate(true); }}
-                      className="flex items-center gap-1.5 h-8 px-3 rounded-xl bg-[#004d4d] hover:bg-[#003838] text-white text-[9px] font-black uppercase tracking-widest transition-all w-fit">
+                      className="flex items-center gap-1.5 h-8 px-3 rounded-xl bg-[#004d4d] hover:bg-[#003838] text-[#ffffff] text-[9px] font-black uppercase tracking-widest transition-all w-fit">
                       <Send size={10}/> Liquidar
                     </button>
                   </div>
@@ -239,7 +239,7 @@ export default function SuperAdminLiquidacionesPage() {
                     <div className="flex items-center gap-1.5">
                       {l.status !== 'paid' && (
                         <button onClick={() => { setShowPay(l); setPayForm({ transfer_reference: '', notes: '' }); }}
-                          className="h-7 px-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] font-black transition-all flex items-center gap-1">
+                          className="h-7 px-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-[#ffffff] text-[9px] font-black transition-all flex items-center gap-1">
                           <CheckCircle2 size={10}/> Pagar
                         </button>
                       )}
@@ -312,7 +312,7 @@ export default function SuperAdminLiquidacionesPage() {
               <div className="flex gap-3 pt-2">
                 <button onClick={() => setShowCreate(false)} className="flex-1 h-10 rounded-xl border border-gray-200 text-[9px] font-bold text-gray-500">Cancelar</button>
                 <button onClick={handleCreate} disabled={!form.tenant_id || saving}
-                  className="flex-[2] h-10 rounded-xl bg-[#004d4d] hover:bg-[#003838] text-white text-[9px] font-black uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2">
+                  className="flex-[2] h-10 rounded-xl bg-[#004d4d] hover:bg-[#003838] text-[#ffffff] text-[9px] font-black uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2">
                   {saving ? <Loader2 size={13} className="animate-spin"/> : <Send size={13}/>}
                   {saving ? 'Guardando…' : 'Crear liquidación'}
                 </button>
@@ -358,7 +358,7 @@ export default function SuperAdminLiquidacionesPage() {
               <div className="flex gap-3">
                 <button onClick={() => setShowPay(null)} className="flex-1 h-10 rounded-xl border border-gray-200 text-[9px] font-bold text-gray-500">Cancelar</button>
                 <button onClick={handlePay} disabled={!payForm.transfer_reference || saving}
-                  className="flex-[2] h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2">
+                  className="flex-[2] h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-[#ffffff] text-[9px] font-black uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2">
                   {saving ? <Loader2 size={13} className="animate-spin"/> : <CheckCircle2 size={13}/>}
                   {saving ? 'Procesando…' : 'Marcar como pagado'}
                 </button>
