@@ -33,7 +33,7 @@ interface InvoicingItem {
 interface PastInvoice {
   id: string; invoice_num: string; date: string; customer: string;
   customer_email?: string; customer_phone?: string; customer_city?: string;
-  source: string; payment_method: string; total: number;
+  source: string; payment_method: string; total: number; status?: string;
 }
 
 // ── KPI CARD ──────────────────────────────────────────────────────────────
@@ -113,7 +113,7 @@ export default function InvoicingPage() {
   const [history,                  setHistory]                  = useState<PastInvoice[]>([]);
   const [historySearch,            setHistorySearch]            = useState('');
   const [dateRange,                setDateRange]                = useState({ start: '', end: '' });
-  const [extraFilters,             setExtraFilters]             = useState({ source: 'pos', payment: 'Todos' });
+  const [extraFilters,             setExtraFilters]             = useState({ source: 'Todos', payment: 'Todos' });
   const [isFilterOpen,             setIsFilterOpen]             = useState(false);
   const [showExportMenu,           setShowExportMenu]           = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
@@ -179,7 +179,8 @@ export default function InvoicingPage() {
         customer_city: o.customer_city,
         source: o.source || 'pos',
         payment_method: o.payment_method || 'cash',
-        total: o.total_price || 0
+        total: o.total_price || 0,
+        status: o.status
       })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setHistory(mapped);
     }
@@ -202,24 +203,33 @@ export default function InvoicingPage() {
     return () => document.body.classList.remove('sidebar-hide');
   }, [isPOSActive]);
 
-  // ── KPIs ── (solo ventas POS, no pedidos web)
+  // Ventas visibles en facturación: POS (cualquier estado) + web solo si completado
+  const isFacturable = (inv: PastInvoice) => {
+    const src = (inv.source || '').toLowerCase();
+    const isWeb = src === 'web' || src === 'página web';
+    return !isWeb || inv.status === 'completed';
+  };
+
+  // ── KPIs ── (POS + pedidos web completados)
   const invoicingKpis = useMemo(() => {
-    const posOrders    = history.filter(inv => inv.source === 'pos' || inv.source === 'Tienda Física' || !inv.source);
-    const today        = new Date().toISOString().split('T')[0];
-    const todayOrders  = posOrders.filter(inv => inv.date?.split('T')[0] === today);
-    const salesToday   = todayOrders.reduce((a, b) => a + Number(b.total), 0);
-    const totalRev     = posOrders.reduce((a, b) => a + Number(b.total), 0);
-    const avgTicket    = posOrders.length > 0 ? totalRev / posOrders.length : 0;
+    const billed    = history.filter(isFacturable);
+    const today     = new Date().toISOString().split('T')[0];
+    const todayOrds = billed.filter(inv => inv.date?.split('T')[0] === today);
+    const salesToday = todayOrds.reduce((a, b) => a + Number(b.total), 0);
+    const totalRev   = billed.reduce((a, b) => a + Number(b.total), 0);
+    const avgTicket  = billed.length > 0 ? totalRev / billed.length : 0;
     return [
-      { icon: <Activity/>, label: 'Ventas de hoy', value: fmtCOP(salesToday),          sub: 'En vivo',  accent: '#10b981', progress: Math.min((salesToday / 1000000) * 100, 100) },
-      { icon: <ShoppingBag/>, label: 'Operaciones', value: String(posOrders.length),    sub: 'Total',    accent: '#0891b2', progress: Math.min((posOrders.length / 50) * 100, 100) },
-      { icon: <Target/>, label: 'Ticket promedio', value: fmtCOP(avgTicket),            sub: 'Market',   accent: '#7c3aed', progress: 60 },
-      { icon: <Wallet/>, label: 'Flujo de caja',   value: fmtCOP(totalRev),             sub: 'Balance',  accent: '#004d4d', progress: 75 },
+      { icon: <Activity/>, label: 'Ventas de hoy', value: fmtCOP(salesToday),        sub: 'En vivo',  accent: '#10b981', progress: Math.min((salesToday / 1000000) * 100, 100) },
+      { icon: <ShoppingBag/>, label: 'Operaciones', value: String(billed.length),     sub: 'Total',    accent: '#0891b2', progress: Math.min((billed.length / 50) * 100, 100) },
+      { icon: <Target/>, label: 'Ticket promedio', value: fmtCOP(avgTicket),          sub: 'Market',   accent: '#7c3aed', progress: 60 },
+      { icon: <Wallet/>, label: 'Flujo de caja',   value: fmtCOP(totalRev),           sub: 'Balance',  accent: '#004d4d', progress: 75 },
     ];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [history]);
 
   // ── Filtered history ──
   const filteredHistory = useMemo(() => history.filter(inv => {
+    if (!isFacturable(inv)) return false;        // excluir web no completados
     const q = historySearch.toLowerCase();
     const matchSearch  = !q || inv.customer?.toLowerCase().includes(q) || inv.invoice_num?.toLowerCase().includes(q);
     const d = new Date(inv.date);
@@ -229,6 +239,7 @@ export default function InvoicingPage() {
     const matchPayment = extraFilters.payment === 'Todos' ||
       inv.payment_method === (extraFilters.payment === 'Efectivo' ? 'cash' : 'transfer');
     return matchSearch && matchStart && matchEnd && matchSource && matchPayment;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [history, historySearch, dateRange, extraFilters]);
 
   // ── EXPORT ──
