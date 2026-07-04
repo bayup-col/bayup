@@ -90,8 +90,8 @@ export default function LiquidacionPage() {
       <div className="flex items-start gap-3 p-4 bg-[#004d4d]/5 border border-[#004d4d]/15 rounded-2xl">
         <Info size={15} className="text-[#004d4d] mt-0.5 shrink-0"/>
         <p className="text-[11px] text-[#004d4d]/80 leading-relaxed">
-          Bayup gestiona el recaudo de tus ventas online y te transfiere el valor neto a tu cuenta bancaria registrada
-          los <strong>martes y viernes</strong>, descontando la comisión de servicio (2.5%).
+          Bayup aplica una comisión del <strong>2.5%</strong> sobre todas tus ventas (punto físico y tienda online).
+          El valor neto se transfiere a tu cuenta bancaria los <strong>martes y viernes</strong>.
         </p>
       </div>
 
@@ -127,7 +127,7 @@ export default function LiquidacionPage() {
               <p className="text-base font-black text-white/80">{fmtCOP(pending.gross)}</p>
             </div>
             <div className="bg-white/5 rounded-xl p-3">
-              <p className="text-[8px] text-white/30 uppercase tracking-widest mb-1">Órdenes web</p>
+              <p className="text-[8px] text-white/30 uppercase tracking-widest mb-1">Ventas</p>
               <p className="text-base font-black text-white/80">{pending.order_count || 0}</p>
             </div>
             <div className="bg-[#00f2ff]/10 border border-[#00f2ff]/20 rounded-xl p-3">
