@@ -132,8 +132,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   // Sincronización total con el contexto global
   useEffect(() => {
-      if (!isLoading && !isAuthenticated) router.replace('/login');
-  }, [isAuthenticated, isLoading, router]);
+      if (!isLoading && !isAuthenticated) router.replace(isSuperAdminZone ? '/bayup-admin' : '/login');
+  }, [isAuthenticated, isLoading, router, isSuperAdminZone]);
 
   // Onboarding obligatorio: si el vendedor (no staff) aun no publico su tienda,
   // lo primero que ve es el asistente de plantilla + datos, no el panel.
