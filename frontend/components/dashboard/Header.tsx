@@ -57,8 +57,9 @@ export const DashboardHeader = ({
         return () => main.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Polling de Notificaciones
+    // Polling de Notificaciones — solo para tenants, no para el super admin
     useEffect(() => {
+        if (isSuperAdminZone) return;
         let intervalId: any = null;
         const fetchNotifications = async () => {
             if (!token) { if (intervalId) clearInterval(intervalId); return; }
@@ -78,9 +79,6 @@ export const DashboardHeader = ({
                 });
                 if (data && Array.isArray(data)) {
                     const unread = data.filter((n: any) => !n.is_read).length;
-                    if (unread > lastCountRef.current) {
-                        try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch (e) {}
-                    }
                     lastCountRef.current = unread;
                     setNotifications(data);
                 }
@@ -89,7 +87,7 @@ export const DashboardHeader = ({
         fetchNotifications();
         intervalId = setInterval(fetchNotifications, 30000);
         return () => { if (intervalId) clearInterval(intervalId); };
-    }, [token, logout]);
+    }, [token, logout, isSuperAdminZone]);
 
     // Ocultar al abrir modal
     useEffect(() => {
@@ -169,8 +167,8 @@ export const DashboardHeader = ({
                         </button>
                     )}
 
-                    {/* Campana */}
-                    <div className="relative">
+                    {/* Campana — solo para tenants; el super admin no recibe estas notificaciones */}
+                    {!isSuperAdminZone && <div className="relative">
                         <button
                             onClick={() => setNotificationsOpen(!notificationsOpen)}
                             className={`h-10 w-10 rounded-2xl flex items-center justify-center shadow-lg border transition-all duration-200 hover:scale-105 active:scale-95 relative ${
@@ -243,7 +241,7 @@ export const DashboardHeader = ({
                                 </>
                             )}
                         </AnimatePresence>
-                    </div>
+                    </div>}
                 </div>
             </motion.div>
 

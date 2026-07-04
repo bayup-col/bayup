@@ -204,6 +204,7 @@ ALLOWED_ORIGINS = [
     "https://bayup.com.co",
     "https://www.bayup.com.co",
     "https://bayup.vercel.app",
+    "https://bayup-git-development-bayups-projects-7400e74e.vercel.app",
 ]
 
 app.add_middleware(
