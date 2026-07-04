@@ -136,17 +136,17 @@ export default function SuperAdminLiquidacionesPage() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Por pagar (neto)',  value: fmtCOP(totalPending), sub: `${balances.length} empresas`, color: 'text-[#004d4d]', icon: <Wallet size={18}/>, bg: 'bg-[#004d4d]/5' },
-          { label: 'Ventas brutas pendientes', value: fmtCOP(totalGross), sub: 'total acumulado', color: 'text-violet-600', icon: <TrendingUp size={18}/>, bg: 'bg-violet-50' },
-          { label: 'Pagos realizados', value: countPaid.toString(), sub: 'historial total', color: 'text-blue-600', icon: <BadgeCheck size={18}/>, bg: 'bg-blue-50' },
-          { label: 'Total transferido', value: fmtCOP(totalPaidNet), sub: 'a empresas', color: 'text-emerald-600', icon: <CheckCircle2 size={18}/>, bg: 'bg-emerald-50' },
+          { label: 'Por pagar (neto)',  value: fmtCOP(totalPending), sub: `${balances.length} empresas`, bgCard: 'bg-[#004d4d]', icon: <Wallet size={18}/> },
+          { label: 'Ventas brutas pendientes', value: fmtCOP(totalGross), sub: 'total acumulado', bgCard: 'bg-violet-600', icon: <TrendingUp size={18}/> },
+          { label: 'Pagos realizados', value: countPaid.toString(), sub: 'historial total', bgCard: 'bg-blue-600', icon: <BadgeCheck size={18}/> },
+          { label: 'Total transferido', value: fmtCOP(totalPaidNet), sub: 'a empresas', bgCard: 'bg-emerald-600', icon: <CheckCircle2 size={18}/> },
         ].map(c => (
-          <div key={c.label} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-3">
-            <div className={`h-10 w-10 rounded-xl ${c.bg} flex items-center justify-center shrink-0 ${c.color}`}>{c.icon}</div>
+          <div key={c.label} className={`${c.bgCard} rounded-2xl p-4 shadow-sm flex items-start gap-3`}>
+            <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 text-white">{c.icon}</div>
             <div>
-              <p className="text-xl font-black text-gray-900">{c.value}</p>
-              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{c.label}</p>
-              <p className="text-[9px] text-gray-300 mt-0.5">{c.sub}</p>
+              <p className="text-xl font-black text-white">{c.value}</p>
+              <p className="text-[9px] font-bold text-white/70 uppercase tracking-widest">{c.label}</p>
+              <p className="text-[9px] text-white/50 mt-0.5">{c.sub}</p>
             </div>
           </div>
         ))}

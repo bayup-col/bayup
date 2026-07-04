@@ -1,5 +1,6 @@
 """
 Endpoints de Liquidación — se importan en main.py al final.
+v2: comisión sobre todas las ventas (POS + web), sin filtro de source.
 """
 import datetime as dt
 import uuid as uuid_lib
