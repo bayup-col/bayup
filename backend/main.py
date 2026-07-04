@@ -806,6 +806,7 @@ async def create_product_route(payload: ProductCreateRequest, request: Request):
         db.close()
 
 @app.post("/products/bulk-upload")
+@limiter.limit("10/minute")
 async def bulk_upload_products(
     request: Request,
     file: UploadFile = File(...),
@@ -815,6 +816,16 @@ async def bulk_upload_products(
     esperadas (insensible a mayúsculas/acentos): nombre*, precio*,
     descripcion, categoria, sku. Filas inválidas se omiten y se reportan
     en `errors` en vez de abortar toda la carga."""
+    ALLOWED_MIME = {
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel",
+    }
+    if file.content_type not in ALLOWED_MIME:
+        raise HTTPException(status_code=400, detail="Solo se aceptan archivos .xlsx o .xls")
+    MAX_SIZE = 5 * 1024 * 1024
+    raw = await file.read(MAX_SIZE + 1)
+    if len(raw) > MAX_SIZE:
+        raise HTTPException(status_code=413, detail="El archivo supera el límite de 5 MB")
     import crud, schemas, pandas as pd, io
     from database import SessionLocal
     db = SessionLocal()
@@ -1554,6 +1565,7 @@ async def create_admin_user(request: Request):
     db = SessionLocal()
     try:
         user = await _authenticate(request, db)
+        _require_admin_role(user)
         tenant_id = _tenant_id(user)
         body = await request.json()
         email = (body.get("email") or "").strip().lower()
@@ -1594,6 +1606,7 @@ async def update_admin_user(user_id: str, request: Request):
     db = SessionLocal()
     try:
         user = await _authenticate(request, db)
+        _require_admin_role(user)
         tenant_id = _tenant_id(user)
         try:
             target_uuid = uuid_lib.UUID(user_id)
@@ -2223,6 +2236,7 @@ async def complete_onboarding(request: Request, payload: OnboardingCompleteReque
         db.close()
 
 @app.post("/admin/upload-image")
+@limiter.limit("20/minute")
 async def upload_image(request: Request, file: UploadFile = File(...)):
     import s3_service
     from database import SessionLocal
@@ -2650,7 +2664,11 @@ async def get_super_admin_treasury(request: Request):
         user = await _authenticate(request, db)
         _require_super_admin(user)
 
-        orders = db.query(models.Order).order_by(models.Order.created_at.desc()).all()
+        from datetime import timezone, timedelta
+        cutoff = datetime.now(timezone.utc) - timedelta(days=365)
+        orders = db.query(models.Order).filter(
+            models.Order.created_at >= cutoff
+        ).order_by(models.Order.created_at.desc()).all()
         tenants = {
             t.id: t for t in db.query(models.User).filter(
                 models.User.role == "admin_tienda", models.User.owner_id.is_(None)
@@ -3991,7 +4009,9 @@ _BAYUP_SDK = """
           } else {
             var li = document.createElement('div');
             li.className = 'bayup-cart-item';
-            li.innerHTML = '<span>' + item.name + ' x' + item.qty + '</span><span>' + formatCOP(item.unit_price * item.qty) + '</span>';
+            var _s1=document.createElement('span');_s1.textContent=item.name+' x'+item.qty;
+            var _s2=document.createElement('span');_s2.textContent=formatCOP(item.unit_price*item.qty);
+            li.appendChild(_s1);li.appendChild(_s2);
             cartList.appendChild(li);
           }
         });
@@ -4329,6 +4349,7 @@ class RoadmapVoteIn(BaseModel):
     session_key: str = ""
 
 @app.post("/public/roadmap/{item_id}/vote")
+@limiter.limit("10/minute")
 async def vote_roadmap_item(item_id: str, request: Request, body: RoadmapVoteIn):
     import models as _rm
     from database import SessionLocal

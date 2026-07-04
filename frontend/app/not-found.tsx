@@ -15,9 +15,15 @@ export default function NotFound() {
           Lo sentimos, la página que buscas no existe o ha sido movida. 
           Verifica la URL o regresa al panel principal.
         </p>
-        <Link 
-          href="/dashboard" 
+        <Link
+          href="/dashboard"
           className="inline-block w-full bg-gray-900 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all active:scale-95"
+        >
+          Ir al Panel
+        </Link>
+        <Link
+          href="/"
+          className="inline-block w-full mt-3 border border-gray-200 text-gray-600 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:border-gray-400 transition-all active:scale-95"
         >
           Volver al Inicio
         </Link>

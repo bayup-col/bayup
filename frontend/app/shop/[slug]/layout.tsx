@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  const storeName = data.store_name || 'Mi Tienda';
+  const storeName = data.full_name || data.store_name || 'Mi Tienda';
   const productsCount = data.products?.length || 0;
   const description = `Explora la colección exclusiva de ${storeName} en Bayup. Tenemos ${productsCount} productos disponibles para envío inmediato. ¡Compra inteligente!`;
 
