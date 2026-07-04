@@ -140,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setReviewerNotes(null);
         localStorage.clear();
         const onSuperAdmin = typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard/super-admin');
-        router.push(onSuperAdmin ? '/bayup-admin' : '/login');
+        router.push(onSuperAdmin ? '/bayup-family' : '/login');
       }
       // Cualquier otro error (red, timeout) se ignora: mantenemos datos locales para estabilidad
       }

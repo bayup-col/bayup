@@ -132,7 +132,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   // Sincronización total con el contexto global
   useEffect(() => {
-      if (!isLoading && !isAuthenticated) router.replace(isSuperAdminZone ? '/bayup-admin' : '/login');
+      if (!isLoading && !isAuthenticated) router.replace(isSuperAdminZone ? '/bayup-family' : '/login');
   }, [isAuthenticated, isLoading, router, isSuperAdminZone]);
 
   // Onboarding obligatorio: si el vendedor (no staff) aun no publico su tienda,
