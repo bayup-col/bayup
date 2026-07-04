@@ -12,10 +12,10 @@ const nextConfig = {
         ],
     },
     eslint: {
-        ignoreDuringBuilds: true,
+        ignoreDuringBuilds: false,
     },
     typescript: {
-        ignoreBuildErrors: true,
+        ignoreBuildErrors: false,
     },
     webpack: (config, { isServer }) => {
         if (!isServer) {
@@ -56,8 +56,6 @@ const sentryConfig = withSentryConfig(nextConfig, {
     tunnelRoute: undefined,
 });
 
-// Re-aplicar explícitamente después del wrap de Sentry
-sentryConfig.eslint = { ignoreDuringBuilds: true };
-sentryConfig.typescript = { ignoreBuildErrors: true };
+// TypeScript y ESLint activos en CI — 0 errores verificados al activar
 
 export default sentryConfig;
