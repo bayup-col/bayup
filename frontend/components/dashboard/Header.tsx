@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Bot, Moon, Sun, DollarSign, Truck, AlertCircle } from 'lucide-react';
+import { Bell, Bot, Moon, Sun, DollarSign, Truck, AlertCircle, UserPlus, Headset } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/context/theme-context';
 import { useSuperAdminTheme } from '@/context/super-admin-theme-context';
@@ -57,7 +57,7 @@ export const DashboardHeader = ({
         return () => main.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Polling de Notificaciones — solo para tenants, no para el super admin
+    // Polling de Notificaciones para tenants
     useEffect(() => {
         if (isSuperAdminZone) return;
         let intervalId: any = null;
@@ -66,8 +66,6 @@ export const DashboardHeader = ({
             try {
                 const isProduction = window.location.hostname.includes('railway.app') || window.location.hostname.includes('bayup.com');
                 const data = await apiRequest<any[]>('/notifications', { token }).catch((err: any) => {
-                    // La cuenta fue eliminada/desactivada mientras la pestaña estaba abierta:
-                    // el backend rechaza el token porque el usuario ya no existe.
                     if (err?.message === 'Could not validate credentials') {
                         if (intervalId) clearInterval(intervalId);
                         sessionStorage.setItem('bayup_logout_reason', 'account_removed');
@@ -78,8 +76,7 @@ export const DashboardHeader = ({
                     return null;
                 });
                 if (data && Array.isArray(data)) {
-                    const unread = data.filter((n: any) => !n.is_read).length;
-                    lastCountRef.current = unread;
+                    lastCountRef.current = data.filter((n: any) => !n.is_read).length;
                     setNotifications(data);
                 }
             } catch (err: any) {}
@@ -88,6 +85,43 @@ export const DashboardHeader = ({
         intervalId = setInterval(fetchNotifications, 30000);
         return () => { if (intervalId) clearInterval(intervalId); };
     }, [token, logout, isSuperAdminZone]);
+
+    // Polling de Notificaciones para super admin — registros pendientes + tickets abiertos
+    useEffect(() => {
+        if (!isSuperAdminZone || !token) return;
+        let intervalId: any = null;
+        const fetchAdminNotifications = async () => {
+            try {
+                const [regs, tickets] = await Promise.all([
+                    apiRequest<any[]>('/super-admin/registrations', { token }).catch(() => []),
+                    apiRequest<any[]>('/super-admin/support/tickets', { token }).catch(() => []),
+                ]);
+                const built: any[] = [];
+                (regs || []).forEach((r: any) => built.push({
+                    id: `reg-${r.id}`,
+                    title: 'Nuevo registro pendiente',
+                    message: `${r.full_name || r.email} está esperando aprobación`,
+                    type: 'registration',
+                    is_read: false,
+                    href: '/dashboard/super-admin/registros',
+                    created_at: r.created_at,
+                }));
+                (tickets || []).filter((t: any) => t.status !== 'resolved').forEach((t: any) => built.push({
+                    id: `ticket-${t.id}`,
+                    title: 'Ticket de soporte abierto',
+                    message: t.subject || 'Sin asunto',
+                    type: 'support',
+                    is_read: false,
+                    href: '/dashboard/super-admin/soporte',
+                    created_at: t.created_at,
+                }));
+                setNotifications(built);
+            } catch {}
+        };
+        fetchAdminNotifications();
+        intervalId = setInterval(fetchAdminNotifications, 60000);
+        return () => { if (intervalId) clearInterval(intervalId); };
+    }, [token, isSuperAdminZone]);
 
     // Ocultar al abrir modal
     useEffect(() => {
@@ -126,12 +160,16 @@ export const DashboardHeader = ({
     const getNotificationStyles = (type: string) => {
         if (isSuperAdminDark) {
             switch (type) {
+                case 'registration': return { icon: <UserPlus size={14} className="text-cyan" />, bg: 'bg-cyan/10' };
+                case 'support': return { icon: <Headset size={14} className="text-amber-400" />, bg: 'bg-amber-400/10' };
                 case 'success': return { icon: <DollarSign size={14} className="text-cyan" />, bg: 'bg-cyan/10' };
                 case 'logistics': return { icon: <Truck size={14} className="text-cyan" />, bg: 'bg-cyan/10' };
                 default: return { icon: <Bell size={14} className="text-white/40" />, bg: 'bg-white/5' };
             }
         }
         switch (type) {
+            case 'registration': return { icon: <UserPlus size={14} className="text-teal-600" />, bg: 'bg-teal-50' };
+            case 'support': return { icon: <Headset size={14} className="text-amber-600" />, bg: 'bg-amber-50' };
             case 'success': return { icon: <DollarSign size={14} className="text-emerald-600" />, bg: 'bg-emerald-50' };
             case 'logistics': return { icon: <Truck size={14} className="text-blue-600" />, bg: 'bg-blue-50' };
             case 'alert': return { icon: <AlertCircle size={14} className="text-rose-600" />, bg: 'bg-rose-50' };
@@ -167,8 +205,8 @@ export const DashboardHeader = ({
                         </button>
                     )}
 
-                    {/* Campana — solo para tenants; el super admin no recibe estas notificaciones */}
-                    {!isSuperAdminZone && <div className="relative">
+                    {/* Campana */}
+                    <div className="relative">
                         <button
                             onClick={() => setNotificationsOpen(!notificationsOpen)}
                             className={`h-10 w-10 rounded-2xl flex items-center justify-center shadow-lg border transition-all duration-200 hover:scale-105 active:scale-95 relative ${
@@ -205,7 +243,7 @@ export const DashboardHeader = ({
                                                     <span className={`text-white text-[8px] font-bold px-2 py-0.5 rounded-full ${isSuperAdminDark ? 'bg-[#00f2ff]/80' : 'bg-emerald-500'}`}>{unreadCount}</span>
                                                 )}
                                             </div>
-                                            {unreadCount > 0 && (
+                                            {unreadCount > 0 && !isSuperAdminZone && (
                                                 <button
                                                     onClick={markAllAsRead}
                                                     className={`text-[9px] font-semibold px-2.5 py-1 rounded-xl transition-colors shrink-0 ${isSuperAdminDark ? 'text-[#00f2ff]/60 hover:text-[#00f2ff] hover:bg-white/5' : 'text-[#004d4d]/60 hover:text-[#004d4d] hover:bg-[#004d4d]/5'}`}
@@ -222,7 +260,14 @@ export const DashboardHeader = ({
                                                 return (
                                                     <button
                                                         key={n.id}
-                                                        onClick={() => { if (!n.is_read) markAsRead(n.id); }}
+                                                        onClick={() => {
+                                                            if (isSuperAdminZone && n.href) {
+                                                                window.location.href = n.href;
+                                                            } else if (!n.is_read) {
+                                                                markAsRead(n.id);
+                                                            }
+                                                            setNotificationsOpen(false);
+                                                        }}
                                                         className={`w-full px-5 py-4 border-b flex gap-3 transition-colors text-left ${isSuperAdminDark ? 'border-white/5 hover:bg-white/5' : 'border-gray-50 hover:bg-gray-50/80'} ${!n.is_read ? '' : 'opacity-40'}`}
                                                     >
                                                         <div className={`h-8 w-8 shrink-0 rounded-xl flex items-center justify-center ${styles.bg}`}>{styles.icon}</div>
@@ -241,7 +286,7 @@ export const DashboardHeader = ({
                                 </>
                             )}
                         </AnimatePresence>
-                    </div>}
+                    </div>
                 </div>
             </motion.div>
 
