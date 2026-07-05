@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Bell, Bot, Moon, Sun, DollarSign, Truck, AlertCircle, UserPlus, Headset, Building2, Wallet } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/context/theme-context';
@@ -31,6 +32,7 @@ export const DashboardHeader = ({
     isBaytOpen,
     setIsBaytOpen
 }: HeaderProps) => {
+    const router = useRouter();
     const { theme, toggleTheme } = useTheme();
     const { saTheme, toggleSaTheme } = useSuperAdminTheme();
     const { token, userPlan, isGlobalStaff } = useAuth();
@@ -296,7 +298,7 @@ export const DashboardHeader = ({
                                                         key={n.id}
                                                         onClick={() => {
                                                             if (isSuperAdminZone && n.href) {
-                                                                window.location.href = n.href;
+                                                                router.push(n.href);
                                                             } else if (!n.is_read) {
                                                                 markAsRead(n.id);
                                                             }
