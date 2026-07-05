@@ -378,8 +378,8 @@ def login(request: Request, form_data: UserLoginRequest):
             key="bayup_access_token",
             value=access_token,
             httponly=True,
-            secure=is_prod,
-            samesite="lax",
+            secure=True,
+            samesite="none",
             max_age=3600,  # 1 hora
             path="/",
         )
@@ -387,8 +387,8 @@ def login(request: Request, form_data: UserLoginRequest):
             key="bayup_refresh_token",
             value=_create_refresh_token(user.email),
             httponly=True,
-            secure=is_prod,
-            samesite="lax",
+            secure=True,
+            samesite="none",
             max_age=30 * 24 * 3600,  # 30 días
             path="/",
         )
@@ -468,8 +468,8 @@ async def refresh_token_endpoint(request: Request):
             key="bayup_access_token",
             value=new_access_token,
             httponly=True,
-            secure=is_prod,
-            samesite="lax",
+            secure=True,
+            samesite="none",
             max_age=3600,
             path="/",
         )
