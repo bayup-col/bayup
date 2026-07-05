@@ -85,10 +85,11 @@ function StatusBadge({ status }: { status: string }) {
 function SourceBadge({ source }: { source: string }) {
   const src = (source || '').toLowerCase();
   const cfg =
-    src === 'pos'       ? { label: 'Tienda física', color: '#7c3aed', bg: '#7c3aed15' } :
-    src === 'whatsapp'  ? { label: 'WhatsApp',       color: '#16a34a', bg: '#16a34a15' } :
-    src === 'instagram' ? { label: 'Instagram',      color: '#db2777', bg: '#db277715' } :
-                          { label: 'Web',             color: '#0891b2', bg: '#0891b215' };
+    src === 'pos' || src === 'tienda física' ? { label: 'Tienda física', color: '#7c3aed', bg: '#7c3aed15' } :
+    src === 'whatsapp'                       ? { label: 'WhatsApp',       color: '#16a34a', bg: '#16a34a15' } :
+    src === 'instagram'                      ? { label: 'Instagram',      color: '#db2777', bg: '#db277715' } :
+    src === 'social' || src === 'redes sociales' ? { label: 'Redes Sociales', color: '#f59e0b', bg: '#f59e0b15' } :
+                                               { label: 'Web',             color: '#0891b2', bg: '#0891b215' };
   return (
     <span className="text-[8px] font-black px-2 py-0.5 rounded-full"
       style={{ backgroundColor: cfg.bg, color: cfg.color }}>

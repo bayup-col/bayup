@@ -73,10 +73,11 @@ function KpiCard({ icon, label, value, sub, accent, progress }: {
 function SourceBadge({ source }: { source: string }) {
   const s = (source || '').toLowerCase();
   const cfg =
-    s === 'pos' || s === 'tienda física' ? { label: 'Tienda',    color: '#7c3aed', bg: '#7c3aed15' } :
-    s === 'whatsapp'                      ? { label: 'WhatsApp',  color: '#16a34a', bg: '#16a34a15' } :
-    s === 'página web'                    ? { label: 'Web',       color: '#0891b2', bg: '#0891b215' } :
-                                            { label: source || 'Otros', color: '#6b7280', bg: '#6b728015' };
+    s === 'pos' || s === 'tienda física'      ? { label: 'Tienda',        color: '#7c3aed', bg: '#7c3aed15' } :
+    s === 'whatsapp'                          ? { label: 'WhatsApp',      color: '#16a34a', bg: '#16a34a15' } :
+    s === 'social' || s === 'redes sociales' ? { label: 'Redes Sociales', color: '#f59e0b', bg: '#f59e0b15' } :
+    s === 'web' || s === 'página web'         ? { label: 'Web',           color: '#0891b2', bg: '#0891b215' } :
+                                               { label: source || 'Otros', color: '#6b7280', bg: '#6b728015' };
   return (
     <span className="text-[8px] font-black px-2 py-0.5 rounded-full"
       style={{ backgroundColor: cfg.bg, color: cfg.color }}>
@@ -407,7 +408,10 @@ export default function InvoicingPage() {
         commission_amount: 0,
         commission_rate_snapshot: 0,
         payment_method: paymentMethod === 'cash' ? 'cash' : 'transfer',
-        source: customerInfo.source || 'pos',
+        source: customerInfo.source === 'Tienda Física' ? 'pos'
+               : customerInfo.source === 'WhatsApp'    ? 'whatsapp'
+               : customerInfo.source === 'Redes Sociales' ? 'social'
+               : customerInfo.source || 'pos',
         items: invoiceItems.map(i => ({
           product_variant_id: i.variant_id,
           quantity: i.quantity,
