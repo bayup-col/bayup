@@ -2860,8 +2860,10 @@ async def get_super_admin_users(
             models.User.owner_id.is_(None),
         ).all()
         tenants_by_id = {u.id: u for u in tenants_all}
-        # MED-001: paginar la consulta principal
-        all_users = db.query(models.User).offset(skip).limit(limit).all()
+        # MED-001: paginar la consulta principal (excluir clientes finales de tiendas)
+        all_users = db.query(models.User).filter(
+            models.User.role != "cliente"
+        ).offset(skip).limit(limit).all()
 
         result = []
         for u in all_users:
