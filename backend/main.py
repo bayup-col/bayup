@@ -2962,6 +2962,8 @@ async def reply_super_admin_ticket(ticket_id: str, payload: dict, request: Reque
             ticket.status = "En proceso"
         db.commit()
         tenant = db.query(models.User).filter(models.User.id == ticket.tenant_id).first()
+        # Notificar al tenant que Bayup respondió su ticket
+        _push_notification(db, ticket.tenant_id, "💬 Soporte Bayup respondió", f"Ticket: {ticket.title}")
         return _serialize_ticket(ticket, tenant)
     finally:
         db.close()
@@ -3008,7 +3010,13 @@ async def create_support_ticket(payload: dict, request: Request):
         )
         db.add(ticket)
         db.commit()
-        return _serialize_ticket(ticket, db.query(models.User).filter(models.User.id == tenant_id).first())
+        # Notificar a todos los super admins que hay un ticket nuevo
+        super_admins = db.query(models.User).filter(models.User.is_global_staff == True).all()
+        tenant_user = db.query(models.User).filter(models.User.id == tenant_id).first()
+        tenant_name = (tenant_user.full_name or tenant_user.email) if tenant_user else "Un tenant"
+        for sa in super_admins:
+            _push_notification(db, sa.id, f"🎫 Nuevo ticket de soporte", f"{tenant_name}: {title}")
+        return _serialize_ticket(ticket, tenant_user)
     finally:
         db.close()
 
@@ -3052,6 +3060,11 @@ async def reply_my_support_ticket(ticket_id: str, payload: dict, request: Reques
             ticket.status = "Abierto"
         db.commit()
         tenant = db.query(models.User).filter(models.User.id == tenant_id).first()
+        tenant_name = (tenant.full_name or tenant.email) if tenant else "Un tenant"
+        # Notificar a todos los super admins que el tenant respondió
+        super_admins = db.query(models.User).filter(models.User.is_global_staff == True).all()
+        for sa in super_admins:
+            _push_notification(db, sa.id, f"💬 Respuesta en ticket de soporte", f"{tenant_name}: {text[:80]}")
         return _serialize_ticket(ticket, tenant)
     finally:
         db.close()
