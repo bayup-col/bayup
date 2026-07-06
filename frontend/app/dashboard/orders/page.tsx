@@ -85,10 +85,11 @@ function StatusBadge({ status }: { status: string }) {
 function SourceBadge({ source }: { source: string }) {
   const src = (source || '').toLowerCase();
   const cfg =
-    src === 'pos'       ? { label: 'Tienda física', color: '#7c3aed', bg: '#7c3aed15' } :
-    src === 'whatsapp'  ? { label: 'WhatsApp',       color: '#16a34a', bg: '#16a34a15' } :
-    src === 'instagram' ? { label: 'Instagram',      color: '#db2777', bg: '#db277715' } :
-                          { label: 'Web',             color: '#0891b2', bg: '#0891b215' };
+    src === 'pos' || src === 'tienda física' ? { label: 'Tienda física', color: '#7c3aed', bg: '#7c3aed15' } :
+    src === 'whatsapp'                       ? { label: 'WhatsApp',       color: '#16a34a', bg: '#16a34a15' } :
+    src === 'instagram'                      ? { label: 'Instagram',      color: '#db2777', bg: '#db277715' } :
+    src === 'social' || src === 'redes sociales' ? { label: 'Redes Sociales', color: '#f59e0b', bg: '#f59e0b15' } :
+                                               { label: 'Web',             color: '#0891b2', bg: '#0891b215' };
   return (
     <span className="text-[8px] font-black px-2 py-0.5 rounded-full"
       style={{ backgroundColor: cfg.bg, color: cfg.color }}>
@@ -124,7 +125,7 @@ export default function OrdersPage() {
         apiRequest<any[]>('/orders',   { token }),
         apiRequest<any[]>('/products', { token }),
       ]);
-      if (ord)  setOrders(ord);
+      if (ord)  setOrders(ord.filter((o: any) => (o.source || '').toLowerCase() !== 'pos'));
       if (prod) setProducts(prod);
     } catch { showToast('Error al cargar datos', 'error'); }
     finally   { setLoading(false); }
@@ -365,12 +366,12 @@ export default function OrdersPage() {
                 <div className="space-y-1.5 col-span-2">
                   <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Canal</label>
                   <div className="flex flex-wrap gap-1.5">
-                    {['Todos', 'web', 'WhatsApp', 'Instagram', 'pos'].map(s => (
+                    {['Todos', 'web', 'WhatsApp', 'Instagram', 'social'].map(s => (
                       <button key={s} onClick={() => setSrcFilter(s)}
                         className={`h-8 px-3 rounded-xl text-[9px] font-black uppercase tracking-wide transition-all ${
                           srcFilter === s ? 'bg-[#004d4d] text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
                         }`}>
-                        {s === 'pos' ? 'Tienda' : s}
+                        {s === 'social' ? 'Redes' : s}
                       </button>
                     ))}
                     <button onClick={() => { setDateRange({ start:'', end:'' }); setSrcFilter('Todos'); }}

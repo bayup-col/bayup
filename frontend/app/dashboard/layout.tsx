@@ -335,7 +335,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <MenuItem href="/dashboard/products" label="Productos" icon={<Store size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/products')} />
               <MenuItem href="/dashboard/shipping" label="Envíos" icon={<Truck size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/shipping')} />
               <MenuItem href="/dashboard/customers" label="Clientes" icon={<UserCheck size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/customers')} />
-              <MenuItem href="/dashboard/paginas" label="Páginas Web" icon={<Globe size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/paginas')} />
+              {/* <MenuItem href="/dashboard/paginas" label="Páginas Web" icon={<Globe size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/paginas')} /> */}
               <MenuItem href="/dashboard/web-analytics" label="Estadísticas" icon={<BarChart3 size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/web-analytics')} />
               <MenuItem href="/dashboard/reports/gastos" label="Gastos" icon={<Coins size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/reports/gastos')} />
               <MenuItem href="/dashboard/liquidacion" label="Liquidación" icon={<Wallet size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/liquidacion')} />

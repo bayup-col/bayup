@@ -547,41 +547,40 @@ export default function GastosPage() {
     const monthName = new Date(periodYear, periodMonth).toLocaleString('es-CO', { month: 'long' });
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const W = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
     const teal: [number, number, number] = [0, 77, 77];
     const tealMid: [number, number, number] = [0, 178, 189];
     const white: [number, number, number] = [255, 255, 255];
     const gray50: [number, number, number] = [248, 250, 250];
-    const gray700: [number, number, number] = [55, 65, 81];
 
-    // ── Cabecera ──────────────────────────────────────────────────────────
-    doc.setFillColor(...teal);
-    doc.rect(0, 0, W, 38, 'F');
-    doc.setFillColor(...tealMid);
-    doc.rect(0, 35, W, 3, 'F');
+    const addPageHeader = (title: string, subtitle?: string) => {
+      doc.setFillColor(...teal);
+      doc.rect(0, 0, W, 38, 'F');
+      doc.setFillColor(...tealMid);
+      doc.rect(0, 35, W, 3, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.setTextColor(...white);
+      doc.text(title, 14, 16);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(180, 220, 220);
+      doc.text(`Período: ${monthName.toUpperCase()} ${periodYear}`, 14, 24);
+      if (subtitle) doc.text(subtitle, 14, 30);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(...white);
+      doc.text('BayUP.', W - 14, 22, { align: 'right' });
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(180, 220, 220);
+      doc.text('bayup.com.co', W - 14, 28, { align: 'right' });
+    };
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(22);
-    doc.setTextColor(...white);
-    doc.text('CONTROL DE GASTOS', 14, 16);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(180, 220, 220);
-    doc.text(`Período: ${monthName.toUpperCase()} ${periodYear}`, 14, 24);
-    doc.text(`Generado: ${new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}`, 14, 30);
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.setTextColor(...white);
-    doc.text('BayUP.', W - 14, 22, { align: 'right' });
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(180, 220, 220);
-    doc.text('bayup.com.co', W - 14, 28, { align: 'right' });
-
+    // ── PÁGINA 1: RESUMEN ─────────────────────────────────────────────────
+    addPageHeader('CONTROL DE GASTOS', `Generado: ${new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}`);
     let y = 48;
 
-    // ── KPIs ──────────────────────────────────────────────────────────────
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     doc.setTextColor(...teal);
@@ -621,21 +620,50 @@ export default function GastosPage() {
         doc.text(k.note, x + 3, yy + 16.5);
       }
     });
-    y += Math.ceil(kpis.length / 3) * 22 + 6;
+    y += Math.ceil(kpis.length / 3) * 22 + 10;
 
-    // ── Tabla de gastos ───────────────────────────────────────────────────
+    // Distribución por estado en resumen
+    const estadoData = [
+      { label: 'Pagado',   value: paidExpenses,    count: filteredExpenses.filter(e => e.status === 'pagado').length },
+      { label: 'Pendiente',value: pendingExpenses,  count: filteredExpenses.filter(e => e.status === 'pendiente').length },
+      { label: 'Vencido',  value: overdueExpenses,  count: filteredExpenses.filter(e => e.status === 'vencido').length },
+    ];
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     doc.setTextColor(...teal);
-    doc.text(`DETALLE DE GASTOS — ${monthName.toUpperCase()} ${periodYear}`, 14, y);
+    doc.text('ESTADO DE GASTOS', 14, y);
     y += 4;
+    autoTable(doc, {
+      startY: y,
+      head: [['ESTADO', 'REGISTROS', 'MONTO (COP)', '% DEL TOTAL']],
+      body: estadoData.map(e => [
+        e.label,
+        String(e.count),
+        fmt(e.value),
+        totalExpenses > 0 ? `${((e.value / totalExpenses) * 100).toFixed(1)}%` : '0.0%',
+      ]),
+      styles: { fontSize: 9, cellPadding: 3.5 },
+      headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 8, halign: 'center' },
+      alternateRowStyles: { fillColor: gray50 },
+      columnStyles: {
+        0: { cellWidth: 40 },
+        1: { cellWidth: 30, halign: 'center' },
+        2: { halign: 'right', fontStyle: 'bold' },
+        3: { cellWidth: 30, halign: 'center' },
+      },
+      margin: { left: 14, right: 14 },
+    });
+
+    // ── PÁGINA 2: DETALLE DE GASTOS ───────────────────────────────────────
+    doc.addPage();
+    addPageHeader('DETALLE DE GASTOS');
+    y = 48;
 
     if (filteredExpenses.length === 0) {
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(9);
       doc.setTextColor(180, 180, 180);
       doc.text('Sin gastos registrados en este período.', 14, y + 8);
-      y += 20;
     } else {
       autoTable(doc, {
         startY: y,
@@ -672,42 +700,49 @@ export default function GastosPage() {
         },
         margin: { left: 14, right: 14 },
       });
-      y = (doc as any).lastAutoTable.finalY + 8;
     }
 
-    // ── Resumen por categoría ─────────────────────────────────────────────
-    if (byCategory.length > 0) {
-      if (y > 230) { doc.addPage(); y = 20; }
+    // ── PÁGINA 3: GASTOS POR CATEGORÍA ────────────────────────────────────
+    doc.addPage();
+    addPageHeader('GASTOS POR CATEGORÍA');
+    y = 48;
+
+    if (byCategory.length === 0) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(9);
+      doc.setTextColor(180, 180, 180);
+      doc.text('Sin datos de categoría para este período.', 14, y + 8);
+    } else {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
       doc.setTextColor(...teal);
-      doc.text('GASTOS POR CATEGORÍA', 14, y);
+      doc.text('DISTRIBUCIÓN POR CATEGORÍA', 14, y);
       y += 4;
       autoTable(doc, {
         startY: y,
-        head: [['CATEGORÍA', 'TOTAL (COP)', '% DEL TOTAL']],
-        body: byCategory.map(b => {
+        head: [['#', 'CATEGORÍA', 'TOTAL (COP)', '% DEL TOTAL']],
+        body: byCategory.map((b, idx) => {
           const label = CATEGORIES.find(c => c.id === b.cat)?.label || b.cat;
           const pct = totalExpenses > 0 ? ((b.total / totalExpenses) * 100).toFixed(1) : '0.0';
-          return [label, fmt(b.total), `${pct}%`];
+          return [`${idx + 1}`, label, fmt(b.total), `${pct}%`];
         }),
-        styles: { fontSize: 8.5, cellPadding: 3.5 },
+        styles: { fontSize: 9, cellPadding: 4 },
         headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 8, halign: 'center' },
         alternateRowStyles: { fillColor: gray50 },
         columnStyles: {
-          0: { cellWidth: 70 },
-          1: { cellWidth: 55, halign: 'right', fontStyle: 'bold' },
-          2: { cellWidth: 35, halign: 'center' },
+          0: { cellWidth: 12, halign: 'center' },
+          1: { cellWidth: 80 },
+          2: { halign: 'right', fontStyle: 'bold' },
+          3: { cellWidth: 35, halign: 'center' },
         },
         margin: { left: 14, right: 14 },
       });
     }
 
-    // ── Footer ────────────────────────────────────────────────────────────
+    // ── Footer en todas las páginas ───────────────────────────────────────
     const pageCount = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
-      const H = doc.internal.pageSize.getHeight();
       doc.setFillColor(...teal);
       doc.rect(0, H - 10, W, 10, 'F');
       doc.setFont('helvetica', 'normal');

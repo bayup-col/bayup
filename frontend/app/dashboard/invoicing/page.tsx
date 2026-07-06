@@ -73,10 +73,11 @@ function KpiCard({ icon, label, value, sub, accent, progress }: {
 function SourceBadge({ source }: { source: string }) {
   const s = (source || '').toLowerCase();
   const cfg =
-    s === 'pos' || s === 'tienda física' ? { label: 'Tienda',    color: '#7c3aed', bg: '#7c3aed15' } :
-    s === 'whatsapp'                      ? { label: 'WhatsApp',  color: '#16a34a', bg: '#16a34a15' } :
-    s === 'página web'                    ? { label: 'Web',       color: '#0891b2', bg: '#0891b215' } :
-                                            { label: source || 'Otros', color: '#6b7280', bg: '#6b728015' };
+    s === 'pos' || s === 'tienda física'      ? { label: 'Tienda',        color: '#7c3aed', bg: '#7c3aed15' } :
+    s === 'whatsapp'                          ? { label: 'WhatsApp',      color: '#16a34a', bg: '#16a34a15' } :
+    s === 'social' || s === 'redes sociales' ? { label: 'Redes Sociales', color: '#f59e0b', bg: '#f59e0b15' } :
+    s === 'web' || s === 'página web'         ? { label: 'Web',           color: '#0891b2', bg: '#0891b215' } :
+                                               { label: source || 'Otros', color: '#6b7280', bg: '#6b728015' };
   return (
     <span className="text-[8px] font-black px-2 py-0.5 rounded-full"
       style={{ backgroundColor: cfg.bg, color: cfg.color }}>
@@ -404,10 +405,13 @@ export default function InvoicingPage() {
         customer_type: customerInfo.type || 'final',
         seller_name: customerInfo.seller || null,
         total_price: subtotal,
-        commission_amount: 0,
-        commission_rate_snapshot: 0,
+        commission_amount: Math.round(subtotal * 0.025),
+        commission_rate_snapshot: 0.025,
         payment_method: paymentMethod === 'cash' ? 'cash' : 'transfer',
-        source: customerInfo.source || 'pos',
+        source: customerInfo.source === 'Tienda Física' ? 'pos'
+               : customerInfo.source === 'WhatsApp'    ? 'whatsapp'
+               : customerInfo.source === 'Redes Sociales' ? 'social'
+               : customerInfo.source || 'pos',
         items: invoiceItems.map(i => ({
           product_variant_id: i.variant_id,
           quantity: i.quantity,
@@ -1021,13 +1025,9 @@ export default function InvoicingPage() {
                         <span className="text-[8px] font-black text-gray-400 uppercase">Impuesto IVA (0%)</span>
                         <span className="text-[9px] font-black text-gray-800">$0</span>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-[8px] font-black text-gray-400 uppercase">Comisión Bayup (2.5%)</span>
-                        <span className="text-[9px] font-black text-red-500">-{fmtCOP(calculateSubtotal() * 0.025)}</span>
-                      </div>
                       <div className="bg-[#001a1a] rounded-xl px-3 py-2.5 flex items-center justify-between mt-1">
                         <span className="text-[8px] font-black text-white uppercase tracking-widest">Total Neto</span>
-                        <span className="text-base font-black text-white">{fmtCOP(calculateSubtotal() * 0.975)}</span>
+                        <span className="text-base font-black text-white">{fmtCOP(calculateSubtotal())}</span>
                       </div>
                     </div>
                   </div>
