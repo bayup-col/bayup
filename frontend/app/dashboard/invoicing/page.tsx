@@ -423,7 +423,22 @@ export default function InvoicingPage() {
       if (res) {
         showToast("Venta exitosa 🚀", "success");
         const { generateInvoicePDF } = await import('@/lib/report-generator');
+        // Genera y descarga el PDF localmente
         await generateInvoicePDF({ company: companyData, order: res, customer: customerInfo });
+        // Si hay email, genera base64 y envía al cliente por correo
+        if (customerInfo.email) {
+          try {
+            const pdfBase64 = await generateInvoicePDF({
+              company: companyData, order: res, customer: customerInfo, returnBase64: true,
+            }) as string;
+            if (pdfBase64) {
+              await apiRequest(`/orders/${res.id}/attach-invoice`, {
+                method: 'POST', token,
+                body: JSON.stringify({ pdf_base64: pdfBase64, customer_email: customerInfo.email }),
+              });
+            }
+          } catch { /* silencioso — el PDF local ya se descargó */ }
+        }
         if (customerInfo.phone)
           window.open(`https://wa.me/57${customerInfo.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Factura #${String(res.id).slice(-4).toUpperCase()} de ${companyData?.full_name}: $${calculateSubtotal().toLocaleString()}`)}`, '_blank');
         setInvoiceItems([]); setIsPOSActive(false); loadData();

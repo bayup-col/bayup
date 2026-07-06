@@ -46,6 +46,48 @@ def _send_raw(to: str, subject: str, html: str) -> bool:
         logger.error("Email ERROR: %s", e)
         return False
 
+def _send_with_attachment(to: str, subject: str, html: str, filename: str, pdf_base64: str) -> bool:
+    if not _RESEND_API_KEY:
+        logger.warning("Email MOCK (sin RESEND_API_KEY) — To: %s | %s", to, subject)
+        return False
+    try:
+        r = _requests.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {_RESEND_API_KEY}", "Content-Type": "application/json"},
+            json={
+                "from": _FROM, "to": [to], "subject": subject, "html": html,
+                "attachments": [{"filename": filename, "content": pdf_base64}],
+            },
+            timeout=15,
+        )
+        if not r.ok:
+            logger.error("Email ERROR %s: %s", r.status_code, r.text)
+        return r.ok
+    except Exception as e:
+        logger.error("Email ERROR: %s", e)
+        return False
+
+def send_invoice_attachment(email: str, name: str, order_id: str, shop_name: str, pdf_base64: str) -> bool:
+    short_id   = str(order_id)[:8].upper()
+    first_name = name.split()[0] if name else name
+    html = (
+        f'<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"></head>'
+        f'<body style="margin:0;padding:24px 16px;background:#f0f0f0;font-family:Arial,Helvetica,sans-serif">'
+        f'<div style="max-width:580px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">'
+        f'{_order_header(shop_name)}'
+        f'<div style="padding:28px 32px">'
+        f'<div style="font-size:18px;font-weight:800;color:#111827;margin-bottom:6px">&#128196; Tu factura #{short_id}</div>'
+        f'<div style="font-size:13px;color:#4b5563;margin-bottom:20px">Hola {first_name}, adjuntamos la factura de tu compra en <strong>{shop_name}</strong>.</div>'
+        f'<div style="background:#f0fefe;border:1px solid #b3ecec;border-radius:8px;padding:14px 18px;font-size:13px;color:#4b5563">&#128247; Encuentra el PDF adjunto a este correo. Gu&#225;rdalo como respaldo de tu compra.</div>'
+        f'</div>'
+        f'<div style="border-top:1px solid #f3f4f6;padding:16px 32px;text-align:center;font-size:11px;color:#9ca3af">&#169; 2026 Bayup &#8212; La plataforma de ventas inteligente</div>'
+        f'</div></body></html>'
+    )
+    return _send_with_attachment(
+        email, f"📄 Tu factura #{short_id} — {shop_name}",
+        html, f"Factura_{short_id}_{shop_name.replace(' ','_')}.pdf", pdf_base64,
+    )
+
 def _send(to: str, subject: str, content: str) -> bool:
     html = _BASE_STYLE.format(content=content)
     if not _RESEND_API_KEY:

@@ -313,7 +313,7 @@ export const generateInvoicesAuditPDF = async (data: { userName: string, invoice
     doc.save(`Auditoria_Ventas_${userName}_${new Date().getTime()}.pdf`);
 };
 
-export const generateInvoicePDF = async (data: { company: any, order: any, customer: any }) => {
+export const generateInvoicePDF = async (data: { company: any, order: any, customer: any, returnBase64?: boolean }): Promise<string | void> => {
     const { company, order, customer } = data;
     const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
     
@@ -408,5 +408,8 @@ export const generateInvoicePDF = async (data: { company: any, order: any, custo
     doc.text("Gracias por su compra. Este documento es un soporte válido de la operación comercial.", 20, 285);
     doc.text("Generado por Bayup Interactive UP", 190, 285, { align: 'right' });
 
+    if (data.returnBase64) {
+        return doc.output('datauristring').split(',')[1];
+    }
     doc.save(`Factura_${String(order.id).slice(-4).toUpperCase()}_${customer.name.replace(/\s+/g, '_')}.pdf`);
 };

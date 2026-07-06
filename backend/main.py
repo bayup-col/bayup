@@ -1115,6 +1115,45 @@ async def update_order_route(order_id: str, payload: OrderUpdateRequest, request
     finally:
         db.close()
 
+@app.post("/orders/{order_id}/attach-invoice")
+async def send_invoice_by_email(order_id: str, payload: dict, request: Request):
+    import models, uuid as uuid_lib, email_service as _es, threading
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        try:
+            oid = uuid_lib.UUID(order_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="order_id inválido")
+        order = db.query(models.Order).filter(
+            models.Order.id == oid,
+            models.Order.tenant_id == tenant_id,
+        ).first()
+        if not order:
+            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+        customer_email = payload.get("customer_email") or order.customer_email
+        pdf_base64     = payload.get("pdf_base64", "")
+        if not customer_email or not pdf_base64:
+            raise HTTPException(status_code=400, detail="customer_email y pdf_base64 requeridos")
+        tenant_user = db.query(models.User).filter(models.User.id == tenant_id).first()
+        shop_name   = (tenant_user.full_name or tenant_user.shop_slug or "Tu tienda") if tenant_user else "Tu tienda"
+        threading.Thread(
+            target=_es.send_invoice_attachment,
+            kwargs=dict(
+                email=customer_email,
+                name=order.customer_name or "Cliente",
+                order_id=str(order.id),
+                shop_name=shop_name,
+                pdf_base64=pdf_base64,
+            ),
+            daemon=True,
+        ).start()
+        return {"ok": True}
+    finally:
+        db.close()
+
 @app.get("/public/orders/{order_id}")
 async def public_order_tracking(order_id: str):
     import models, uuid as uuid_lib
