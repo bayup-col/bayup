@@ -429,7 +429,12 @@ export default function InvoicingPage() {
         setInvoiceItems([]); setIsPOSActive(false); loadData();
       }
     } catch (err: any) {
-      showToast(err?.message || 'Error al crear la factura', 'error');
+      const raw = err?.message || '';
+      const stockMatch = raw.match(/Stock insuficiente para (.+?)\. Disponible: (\d+)/i);
+      const friendly = stockMatch
+        ? `Sin stock para "${stockMatch[1]}". Actualiza el inventario en Productos antes de facturar.`
+        : (raw || 'Error al crear la factura');
+      showToast(friendly, 'error');
     } finally { setIsProcessing(false); }
   };
 
