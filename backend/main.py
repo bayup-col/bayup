@@ -1628,7 +1628,47 @@ def create_public_order(request: Request, payload: PublicOrderCreateRequest):
             except Exception:
                 pass
 
-        # 2. Notificación al dueño de la tienda
+        # 2. Factura PDF al cliente
+        if payload.customer_email:
+            try:
+                import invoice_generator as _ig
+                tenant_user_inv = db.query(_m.User).filter(_m.User.id == tenant_uuid).first()
+                _shop_name_inv  = (tenant_user_inv.full_name or tenant_user_inv.shop_slug or "Tu tienda") if tenant_user_inv else "Tu tienda"
+                _shop_email_inv = (tenant_user_inv.email or "") if tenant_user_inv else ""
+                _shop_phone_inv = (tenant_user_inv.phone or "") if tenant_user_inv else ""
+
+                def _send_invoice_pdf():
+                    try:
+                        pdf_b64 = _ig.generate_invoice_base64(
+                            order_id       = str(db_order.id),
+                            shop_name      = _shop_name_inv,
+                            shop_email     = _shop_email_inv,
+                            shop_phone     = _shop_phone_inv,
+                            shop_city      = "",
+                            customer_name  = payload.customer_name or "Cliente",
+                            customer_email = payload.customer_email,
+                            customer_phone = payload.customer_phone or "",
+                            customer_city  = payload.customer_city or "",
+                            items          = items_info,
+                            total          = float(db_order.total_price),
+                            payment_method = payload.payment_method or "Online",
+                            created_at     = db_order.created_at,
+                        )
+                        _es.send_invoice_attachment(
+                            email      = payload.customer_email,
+                            name       = payload.customer_name or "Cliente",
+                            order_id   = str(db_order.id),
+                            shop_name  = _shop_name_inv,
+                            pdf_base64 = pdf_b64,
+                        )
+                    except Exception as _inv_err:
+                        logger.warning("Error enviando factura PDF web: %s", _inv_err)
+
+                threading.Thread(target=_send_invoice_pdf, daemon=True).start()
+            except Exception:
+                pass
+
+        # 3. Notificación al dueño de la tienda
         try:
             tenant_user = db.query(_m.User).filter(_m.User.id == tenant_uuid).first()
             if tenant_user and tenant_user.email:
