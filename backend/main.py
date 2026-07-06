@@ -993,7 +993,8 @@ async def create_order_route(payload: OrderCreateRequest, request: Request):
         order_in = schemas.OrderCreate(tenant_id=tenant_id, **payload.model_dump())
         db_order = crud.create_order(db, order=order_in, customer_id=user.id, tenant_id=tenant_id)
         total_fmt = f"${db_order.total_price:,.0f}".replace(",", ".")
-        _create_shipment_for_order(db, db_order, tenant_id)
+        if (payload.source or 'pos') != 'pos':
+            _create_shipment_for_order(db, db_order, tenant_id)
         _push_notification(db, tenant_id,
             "💰 Nuevo pedido creado",
             f"Pedido #{str(db_order.id)[:8].upper()} por {total_fmt}",

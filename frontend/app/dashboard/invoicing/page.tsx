@@ -405,8 +405,8 @@ export default function InvoicingPage() {
         customer_type: customerInfo.type || 'final',
         seller_name: customerInfo.seller || null,
         total_price: subtotal,
-        commission_amount: 0,
-        commission_rate_snapshot: 0,
+        commission_amount: Math.round(subtotal * 0.025),
+        commission_rate_snapshot: 0.025,
         payment_method: paymentMethod === 'cash' ? 'cash' : 'transfer',
         source: customerInfo.source === 'Tienda Física' ? 'pos'
                : customerInfo.source === 'WhatsApp'    ? 'whatsapp'
@@ -1025,13 +1025,9 @@ export default function InvoicingPage() {
                         <span className="text-[8px] font-black text-gray-400 uppercase">Impuesto IVA (0%)</span>
                         <span className="text-[9px] font-black text-gray-800">$0</span>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-[8px] font-black text-gray-400 uppercase">Comisión Bayup (2.5%)</span>
-                        <span className="text-[9px] font-black text-red-500">-{fmtCOP(calculateSubtotal() * 0.025)}</span>
-                      </div>
                       <div className="bg-[#001a1a] rounded-xl px-3 py-2.5 flex items-center justify-between mt-1">
                         <span className="text-[8px] font-black text-white uppercase tracking-widest">Total Neto</span>
-                        <span className="text-base font-black text-white">{fmtCOP(calculateSubtotal() * 0.975)}</span>
+                        <span className="text-base font-black text-white">{fmtCOP(calculateSubtotal())}</span>
                       </div>
                     </div>
                   </div>

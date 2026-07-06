@@ -353,39 +353,47 @@ export default function WebAnalyticsPage() {
     const companyName = userName || userEmail || '';
     const dateStr = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
 
-    // ── Header band ──────────────────────────────────────────────────────
-    doc.setFillColor(...teal);
-    doc.rect(0, 0, W, 26, 'F');
-    // Acento inferior
-    doc.setFillColor(...tealMid);
-    doc.rect(0, 24, W, 2, 'F');
-
-    // Logo BayUP a la izquierda
-    doc.setTextColor(...white);
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text('BayUP.', 14, 16);
-
-    // Título centrado
-    doc.setFontSize(13);
-    doc.setFont('helvetica', 'bold');
-    doc.text('ESTADÍSTICAS', W / 2, 11, { align: 'center' });
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Reporte de analítica e inteligencia comercial', W / 2, 17, { align: 'center' });
-    if (companyName) {
+    const addPageHeader = (title: string) => {
+      doc.setFillColor(...teal);
+      doc.rect(0, 0, W, 26, 'F');
+      doc.setFillColor(...tealMid);
+      doc.rect(0, 24, W, 2, 'F');
+      doc.setTextColor(...white);
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.text('BayUP.', 14, 16);
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.text(title, W / 2, 11, { align: 'center' });
       doc.setFontSize(8);
-      doc.text(companyName, W / 2, 22, { align: 'center' });
-    }
+      doc.setFont('helvetica', 'normal');
+      doc.text('Reporte de analítica e inteligencia comercial', W / 2, 17, { align: 'center' });
+      if (companyName) doc.text(companyName, W / 2, 22, { align: 'center' });
+      doc.setFontSize(8);
+      doc.text(`Generado: ${dateStr}`, W - 14, 16, { align: 'right' });
+      doc.setFontSize(7);
+      doc.text(periodLabel, W - 14, 22, { align: 'right' });
+    };
 
-    // Fecha a la derecha
-    doc.setFontSize(8);
-    doc.text(`Generado: ${dateStr}`, W - 14, 16, { align: 'right' });
-    doc.setFontSize(7);
-    doc.text(periodLabel, W - 14, 22, { align: 'right' });
+    const now2 = new Date();
+    const monthlyForPDF = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now2.getFullYear(), now2.getMonth() - 5 + i, 1);
+      const m = d.getMonth();
+      const monthOrders = orders.filter(o => {
+        const od = new Date(o.created_at);
+        return od.getMonth() === m && od.getFullYear() === d.getFullYear();
+      });
+      return {
+        mes: MONTHS_LABELS[m],
+        pedidos: monthOrders.length,
+        ventas: monthOrders.reduce((a, o) => a + (o.total_price || 0), 0),
+      };
+    });
 
-    // ── KPIs ─────────────────────────────────────────────────────────────
+    // ── PÁGINA 1: RESUMEN ─────────────────────────────────────────────────
+    addPageHeader('ESTADÍSTICAS — RESUMEN');
     let y = 34;
+
     doc.setTextColor(...teal);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
@@ -416,68 +424,176 @@ export default function WebAnalyticsPage() {
     });
     y += 25;
 
-    // ── Ventas mensuales ─────────────────────────────────────────────────
-    const now2 = new Date();
-    const monthlyForPDF = Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(now2.getFullYear(), now2.getMonth() - 5 + i, 1);
-      const m = d.getMonth();
-      const yr = d.getFullYear();
-      const monthOrders = orders.filter(o => {
-        const od = new Date(o.created_at);
-        return od.getMonth() === m && od.getFullYear() === yr;
-      });
-      return {
-        mes: MONTHS_LABELS[m],
-        pedidos: monthOrders.length,
-        ventas: monthOrders.reduce((a, o) => a + (o.total_price || 0), 0),
-      };
-    });
-
-    const midX = W / 2 + 2;
-
     doc.setTextColor(...teal);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.text('VENTAS MENSUALES — ÚLTIMOS 6 MESES', 14, y);
-
-    if (realData.topProducts.length > 0) {
-      doc.text('TOP PRODUCTOS POR INGRESOS', midX, y);
-    }
     y += 4;
-
     autoTable(doc, {
       startY: y,
       head: [['MES', 'PEDIDOS', 'INGRESOS (COP)']],
       body: monthlyForPDF.map(m => [m.mes, fmtN(m.pedidos), fmt(m.ventas)]),
+      styles: { fontSize: 9, cellPadding: 3.5 },
+      headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 8, halign: 'center' },
+      alternateRowStyles: { fillColor: gray50 },
+      columnStyles: {
+        0: { cellWidth: 28, halign: 'center' },
+        1: { cellWidth: 28, halign: 'center' },
+        2: { halign: 'right', fontStyle: 'bold' },
+      },
+      margin: { left: 14, right: W / 2 },
+    });
+
+    // ── PÁGINA 2: TRÁFICO ─────────────────────────────────────────────────
+    doc.addPage();
+    addPageHeader('ESTADÍSTICAS — TRÁFICO');
+    y = 34;
+
+    doc.setTextColor(...teal);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DISTRIBUCIÓN HORARIA DE PEDIDOS', 14, y);
+    y += 4;
+    autoTable(doc, {
+      startY: y,
+      head: [['HORA', 'PEDIDOS', 'INGRESOS (COP)']],
+      body: realData.hourlyData.map(h => [h.hour, fmtN(h.sessions), fmt(h.ventas)]),
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 7.5, halign: 'center' },
+      alternateRowStyles: { fillColor: gray50 },
+      columnStyles: {
+        0: { cellWidth: 25, halign: 'center' },
+        1: { cellWidth: 25, halign: 'center' },
+        2: { halign: 'right', fontStyle: 'bold' },
+      },
+      margin: { left: 14, right: W / 2 },
+    });
+
+    doc.setTextColor(...teal);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DISTRIBUCIÓN POR DÍA DE LA SEMANA', W / 2 + 4, 34);
+    autoTable(doc, {
+      startY: 38,
+      head: [['DÍA', 'PEDIDOS', 'INGRESOS (COP)']],
+      body: realData.weeklyData.map(d => [d.day, fmtN(d.sessions), fmt(d.ventas)]),
       styles: { fontSize: 8.5, cellPadding: 3.5 },
       headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 8, halign: 'center' },
       alternateRowStyles: { fillColor: gray50 },
       columnStyles: {
-        0: { cellWidth: 22, halign: 'center' },
-        1: { cellWidth: 22, halign: 'center' },
+        0: { cellWidth: 28, halign: 'center' },
+        1: { cellWidth: 28, halign: 'center' },
         2: { halign: 'right', fontStyle: 'bold' },
       },
-      margin: { left: 14, right: midX },
+      margin: { left: W / 2 + 4, right: 14 },
     });
 
-    if (realData.topProducts.length > 0) {
+    // ── PÁGINA 3: AUDIENCIA ───────────────────────────────────────────────
+    doc.addPage();
+    addPageHeader('ESTADÍSTICAS — AUDIENCIA');
+    y = 34;
+
+    doc.setTextColor(...teal);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('INSIGHTS DE AUDIENCIA', 14, y);
+    y += 4;
+
+    const audienceRows: [string, string][] = [
+      ['Total de pedidos registrados', fmtN(totalOrders)],
+      ['Ingresos totales generados', totalRevenue > 0 ? fmt(totalRevenue) : '$0'],
+      ['Ticket promedio por pedido', avgTicket > 0 ? fmt(avgTicket) : '$0'],
+      ['Hora pico de ventas', peakHour.hour || '—'],
+      ['Día más activo', peakDayName || '—'],
+      ['Segundo día más activo', secondDayName || '—'],
+      ['Top 2 días vs total semanal', `${topTwoDaysPct}%`],
+    ];
+    autoTable(doc, {
+      startY: y,
+      head: [['MÉTRICA', 'VALOR']],
+      body: audienceRows,
+      styles: { fontSize: 10, cellPadding: 4 },
+      headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 9, halign: 'center' },
+      alternateRowStyles: { fillColor: gray50 },
+      columnStyles: {
+        0: { cellWidth: 120 },
+        1: { fontStyle: 'bold', halign: 'right' },
+      },
+      margin: { left: 14, right: 14 },
+    });
+
+    // ── PÁGINA 4: PRODUCTOS ───────────────────────────────────────────────
+    doc.addPage();
+    addPageHeader('ESTADÍSTICAS — PRODUCTOS');
+    y = 34;
+
+    doc.setTextColor(...teal);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOP PRODUCTOS POR INGRESOS', 14, y);
+    y += 4;
+
+    if (realData.topProducts.length === 0) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(9);
+      doc.setTextColor(180, 180, 180);
+      doc.text('Sin datos de productos para el período seleccionado.', 14, y + 8);
+    } else {
       autoTable(doc, {
         startY: y,
-        head: [['PRODUCTO', 'UNIDADES', 'INGRESOS (COP)']],
-        body: realData.topProducts.slice(0, 8).map((p, i) => [`#${i + 1} ${p.name}`, fmtN(p.units), fmt(p.revenue)]),
-        styles: { fontSize: 8.5, cellPadding: 3.5 },
-        headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 8, halign: 'center' },
+        head: [['#', 'PRODUCTO', 'UNIDADES VENDIDAS', 'INGRESOS (COP)']],
+        body: realData.topProducts.map((p, i) => [`${i + 1}`, p.name, fmtN(p.units), fmt(p.revenue)]),
+        styles: { fontSize: 9, cellPadding: 4 },
+        headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 8.5, halign: 'center' },
         alternateRowStyles: { fillColor: gray50 },
         columnStyles: {
-          0: { overflow: 'ellipsize' },
-          1: { cellWidth: 24, halign: 'center' },
-          2: { cellWidth: 42, halign: 'right', fontStyle: 'bold' },
+          0: { cellWidth: 15, halign: 'center' },
+          1: {},
+          2: { cellWidth: 45, halign: 'center' },
+          3: { cellWidth: 55, halign: 'right', fontStyle: 'bold' },
         },
-        margin: { left: midX, right: 14 },
+        margin: { left: 14, right: 14 },
       });
     }
 
-    // ── Footer en cada página ────────────────────────────────────────────
+    // ── PÁGINA 5: GEOGRÁFICO ──────────────────────────────────────────────
+    doc.addPage();
+    addPageHeader('ESTADÍSTICAS — GEOGRÁFICO');
+    y = 34;
+
+    doc.setTextColor(...teal);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('PEDIDOS POR CIUDAD / REGIÓN', 14, y);
+    y += 4;
+
+    if (realData.cities.length === 0) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(9);
+      doc.setTextColor(180, 180, 180);
+      doc.text('Sin datos geográficos para el período seleccionado.', 14, y + 8);
+    } else {
+      autoTable(doc, {
+        startY: y,
+        head: [['#', 'CIUDAD', 'PEDIDOS', 'INGRESOS (COP)', 'TICKET PROMEDIO']],
+        body: realData.cities.map((c, i) => [
+          `${i + 1}`, c.city, fmtN(c.orders), fmt(c.revenue), fmt(c.avg),
+        ]),
+        styles: { fontSize: 9.5, cellPadding: 4.5 },
+        headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 9, halign: 'center' },
+        alternateRowStyles: { fillColor: gray50 },
+        columnStyles: {
+          0: { cellWidth: 14, halign: 'center' },
+          1: {},
+          2: { cellWidth: 35, halign: 'center' },
+          3: { cellWidth: 55, halign: 'right', fontStyle: 'bold' },
+          4: { cellWidth: 55, halign: 'right' },
+        },
+        margin: { left: 14, right: 14 },
+      });
+    }
+
+    // ── Footer en todas las páginas ───────────────────────────────────────
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
