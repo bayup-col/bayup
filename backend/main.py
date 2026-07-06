@@ -985,8 +985,9 @@ async def get_orders(request: Request, skip: int = Query(default=0, ge=0), limit
 
 @app.post("/orders")
 async def create_order_route(payload: OrderCreateRequest, request: Request):
-    import crud, schemas
+    import crud, schemas, email_service as _es, threading
     from database import SessionLocal
+    import models as _m
     db = SessionLocal()
     try:
         user = await _authenticate(request, db)
@@ -996,6 +997,55 @@ async def create_order_route(payload: OrderCreateRequest, request: Request):
         total_fmt = f"${db_order.total_price:,.0f}".replace(",", ".")
         if (payload.source or 'pos') != 'pos':
             _create_shipment_for_order(db, db_order, tenant_id)
+
+        # Emails en hilo aparte para no bloquear la respuesta
+        tenant_user = db.query(_m.User).filter(_m.User.id == tenant_id).first()
+        shop_name = (tenant_user.full_name or tenant_user.shop_slug or "Tu tienda") if tenant_user else "Tu tienda"
+
+        items_info = []
+        for _item in db_order.items:
+            _variant = db.query(_m.ProductVariant).filter(_m.ProductVariant.id == _item.product_variant_id).first()
+            _product = db.query(_m.Product).filter(_m.Product.id == _variant.product_id).first() if _variant else None
+            _iname = (_product.name if _product else "Producto") + (f" — {_variant.name}" if _variant and _variant.name else "")
+            items_info.append({"name": _iname, "qty": _item.quantity, "price": float(_item.price_at_purchase)})
+
+        # 1. Confirmación al comprador (solo si hay email)
+        if payload.customer_email:
+            threading.Thread(
+                target=_es.send_order_confirmation,
+                kwargs=dict(
+                    email=payload.customer_email,
+                    name=payload.customer_name or "Cliente",
+                    order_id=str(db_order.id),
+                    items=items_info,
+                    total=float(db_order.total_price),
+                    payment_method=payload.payment_method or "Efectivo",
+                    customer_city=payload.customer_city or "",
+                    customer_phone=payload.customer_phone or "",
+                    shop_name=shop_name,
+                ),
+                daemon=True,
+            ).start()
+
+        # 2. Notificación de nueva venta al tenant
+        if tenant_user and tenant_user.email:
+            threading.Thread(
+                target=_es.send_new_sale_notification,
+                kwargs=dict(
+                    owner_email=tenant_user.email,
+                    shop_name=shop_name,
+                    order_id=str(db_order.id),
+                    customer_name=payload.customer_name or "Cliente",
+                    customer_email=payload.customer_email or "",
+                    customer_phone=payload.customer_phone or "",
+                    customer_city=payload.customer_city or "",
+                    items=items_info,
+                    total=float(db_order.total_price),
+                    payment_method=payload.payment_method or "Efectivo",
+                ),
+                daemon=True,
+            ).start()
+
         _push_notification(db, tenant_id,
             "💰 Nuevo pedido creado",
             f"Pedido #{str(db_order.id)[:8].upper()} por {total_fmt}",
