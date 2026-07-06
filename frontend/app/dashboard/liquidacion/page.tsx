@@ -182,18 +182,19 @@ export default function LiquidacionPage() {
         </div>
       </div>
 
-      {/* ── Stats históricas ── */}
+      {/* ── Stats acumuladas (históricas + pendientes) ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'Total recibido', value: fmtCOP(hist.total_paid_net),  icon: <TrendingUp size={14}/>, color: 'text-emerald-600' },
-          { label: 'Pagos realizados',value: `${hist.payment_count || 0}`, icon: <BadgeCheck size={14}/>, color: 'text-blue-600' },
-          { label: 'Ventas totales', value: fmtCOP(hist.total_paid_gross), icon: <DollarSign size={14}/>, color: 'text-violet-600' },
-          { label: 'Comisión Bayup', value: fmtCOP(hist.total_bayup_earned), icon: <Building2 size={14}/>, color: 'text-gray-500' },
-        ].map(({ label, value, icon, color }) => (
+          { label: 'Total recibido',   value: fmtCOP(hist.total_paid_net),  icon: <TrendingUp size={14}/>, color: 'text-emerald-600', sub: 'liquidaciones pagadas' },
+          { label: 'Pagos realizados', value: `${hist.payment_count || 0}`,  icon: <BadgeCheck size={14}/>, color: 'text-blue-600',    sub: 'dispersiones completas' },
+          { label: 'Ventas totales',   value: fmtCOP((hist.total_paid_gross || 0) + (pending.web_gross || 0) + (pending.pos_gross || 0)), icon: <DollarSign size={14}/>, color: 'text-violet-600', sub: 'pagadas + pendientes' },
+          { label: 'Comisión Bayup',   value: fmtCOP((hist.total_bayup_earned || 0) + ((pending.web_gross || 0) - (pending.web_net || 0)) + (pending.pos_commission || 0)), icon: <Building2 size={14}/>, color: 'text-gray-500', sub: 'acumulada total' },
+        ].map(({ label, value, icon, color, sub }) => (
           <div key={label} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
             <div className={`${color} mb-2`}>{icon}</div>
             <p className="text-xl font-black text-gray-900">{value}</p>
             <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{label}</p>
+            <p className="text-[8px] text-gray-300 mt-0.5">{sub}</p>
           </div>
         ))}
       </div>
