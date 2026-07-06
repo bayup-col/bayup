@@ -22,7 +22,7 @@ def _next_payment_dates():
     return dates
 
 
-def register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_admin):
+def register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_admin, _push_notification):
     import models
     from database import SessionLocal
 
@@ -147,6 +147,20 @@ def register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_a
             db.add(rec)
             db.commit()
             db.refresh(rec)
+
+            fmt_cop = lambda v: f"${int(v):,}".replace(",", ".")
+            _push_notification(
+                db, tid,
+                title   = "💳 Cargo Bayup registrado",
+                message = (
+                    f"Bayup cobró {fmt_cop(commission)} de comisión "
+                    f"sobre {pos_count} venta{'s' if pos_count != 1 else ''} "
+                    f"en punto físico (bruto {fmt_cop(gross_pos)}). "
+                    f"Ref: {payload.get('reference') or 'sin referencia'}."
+                ),
+                type_   = "warning",
+            )
+
             return {
                 "id":         str(rec.id),
                 "commission": commission,

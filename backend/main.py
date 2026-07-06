@@ -4264,7 +4264,7 @@ async def get_public_shop_products(
 
 # ── Registrar rutas de Liquidación ───────────────────────────────────────
 from liquidation_endpoints import register_liquidation_routes
-register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_admin)
+register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_admin, _push_notification)
 
 # ── Roadmap / Novedades ───────────────────────────────────────────────────
 class RoadmapItemIn(BaseModel):
