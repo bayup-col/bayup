@@ -382,11 +382,8 @@ export const generateInvoicePDF = async (data: { company: any, order: any, custo
     // --- RESUMEN FINAL ---
     const finalY = (doc as any).lastAutoTable.finalY + 15;
     
-    const commission = Math.round(order.total_price * 0.025);
-    const netTotal   = order.total_price - commission;
-
     doc.setFillColor(245, 245, 245);
-    doc.rect(120, finalY, 70, 43, 'F');
+    doc.rect(120, finalY, 70, 28, 'F');
 
     doc.setTextColor(100, 100, 100);
     doc.setFontSize(9);
@@ -396,18 +393,14 @@ export const generateInvoicePDF = async (data: { company: any, order: any, custo
     doc.text("IMPUESTOS (0%):", 125, finalY + 18);
     doc.text("$ 0", 185, finalY + 18, { align: 'right' });
 
-    doc.setTextColor(180, 30, 30);
-    doc.text("COMISIÓN BAYUP (2.5%):", 125, finalY + 26);
-    doc.text(`-$ ${commission.toLocaleString()}`, 185, finalY + 26, { align: 'right' });
-
     doc.setDrawColor(200, 200, 200);
-    doc.line(125, finalY + 30, 185, finalY + 30);
+    doc.line(125, finalY + 22, 185, finalY + 22);
 
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("TOTAL NETO:", 125, finalY + 38);
-    doc.text(`$ ${netTotal.toLocaleString()}`, 185, finalY + 38, { align: 'right' });
+    doc.text("TOTAL NETO:", 125, finalY + 30);
+    doc.text(`$ ${order.total_price.toLocaleString()}`, 185, finalY + 30, { align: 'right' });
 
     // Pie de página
     doc.setFontSize(8);
