@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Wallet, TrendingUp, Clock, CheckCircle2, AlertCircle, Calendar,
   ChevronDown, ChevronRight, RefreshCw, Package, DollarSign,
-  ArrowUpRight, Building2, Info, X, ShieldCheck, Loader2, BadgeCheck
+  ArrowUpRight, Building2, Info, X, ShieldCheck, Loader2, BadgeCheck, Store
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
@@ -40,19 +40,23 @@ export default function LiquidacionPage() {
   const [loading, setLoading]     = useState(true);
   const [summary, setSummary]     = useState<any>(null);
   const [history, setHistory]     = useState<any[]>([]);
+  const [posHistory, setPosHistory] = useState<any[]>([]);
   const [showOrders, setShowOrders] = useState(false);
+  const [showPosHistory, setShowPosHistory] = useState(false);
   const [activeHistId, setActiveHistId] = useState<string | null>(null);
 
   const load = async () => {
     if (!token) return;
     setLoading(true);
     try {
-      const [sum, hist] = await Promise.all([
+      const [sum, hist, posHist] = await Promise.all([
         apiRequest<any>('/admin/liquidations/summary', { token }),
         apiRequest<any[]>('/admin/liquidations', { token }),
+        apiRequest<any[]>('/admin/pos-commissions', { token }),
       ]);
       setSummary(sum);
       setHistory(hist || []);
+      setPosHistory(posHist || []);
     } catch { /* silencioso */ }
     finally { setLoading(false); }
   };
@@ -324,6 +328,66 @@ export default function LiquidacionPage() {
           </>
         )}
       </div>
+
+      {/* ── Historial de comisiones POS cobradas ── */}
+      {(posHistory.length > 0 || pending.pos_count > 0) && (
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+          <button
+            onClick={() => setShowPosHistory(!showPosHistory)}
+            className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
+            <div className="flex items-center gap-2">
+              <Store size={15} className="text-amber-500"/>
+              <p className="text-[11px] font-black text-gray-800 uppercase tracking-widest">Comisión POS</p>
+              {pending.pos_count > 0 && (
+                <span className="text-[9px] font-black text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                  {pending.pos_count} ventas sin cobrar · {fmtCOP(pending.pos_commission)}
+                </span>
+              )}
+            </div>
+            {showPosHistory ? <ChevronDown size={14} className="text-gray-400"/> : <ChevronRight size={14} className="text-gray-400"/>}
+          </button>
+          <AnimatePresence>
+            {showPosHistory && (
+              <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
+                <div className="border-t border-gray-100">
+                  {pending.pos_count > 0 && (
+                    <div className="px-5 py-3 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
+                      <Store size={12} className="text-amber-600"/>
+                      <p className="text-[10px] text-amber-700">
+                        Tienes <strong>{pending.pos_count}</strong> ventas POS con comisión pendiente de cobro por Bayup ({fmtCOP(pending.pos_commission)}).
+                        Bayup la cobrará directamente o la descontará de tu próxima dispersión web.
+                      </p>
+                    </div>
+                  )}
+                  {posHistory.length === 0 ? (
+                    <div className="flex items-center justify-center py-8 text-[11px] text-gray-300">
+                      Sin cobros de comisión POS registrados aún
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-4 px-5 py-2 bg-gray-50 border-b border-gray-100">
+                        {['Fecha cobro', 'Ventas POS', 'Pedidos', 'Comisión cobrada'].map(h => (
+                          <p key={h} className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{h}</p>
+                        ))}
+                      </div>
+                      <div className="divide-y divide-gray-50">
+                        {posHistory.map((r: any) => (
+                          <div key={r.id} className="grid grid-cols-4 px-5 py-3 hover:bg-gray-50 transition-colors">
+                            <p className="text-[11px] text-gray-600">{fmtDate(r.paid_date)}</p>
+                            <p className="text-[11px] font-bold text-gray-700">{fmtCOP(r.gross_amount)}</p>
+                            <p className="text-[11px] text-gray-500">{r.order_count}</p>
+                            <p className="text-[11px] font-black text-amber-600">{fmtCOP(r.bayup_commission)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 }

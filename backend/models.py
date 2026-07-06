@@ -205,6 +205,7 @@ class Liquidation(Base):
     prix_fee        = Column(Float, default=0.0)   # Comisión Prix  (2.5 %)
     net_amount      = Column(Float, default=0.0)   # Lo que recibe el cliente
     order_count     = Column(Integer, default=0)   # Órdenes incluidas
+    liq_type        = Column(String, default="web")  # 'web' | 'pos_commission'
     # Período cubierto
     period_start    = Column(DateTime, nullable=True)
     period_end      = Column(DateTime, nullable=True)

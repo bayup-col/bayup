@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Wallet, TrendingUp, CheckCircle2, Calendar, RefreshCw, X,
   Building2, ChevronDown, Loader2, Send, Plus, Eye, DollarSign,
-  AlertCircle, BadgeCheck, Clock, ArrowUpRight
+  AlertCircle, BadgeCheck, Clock, ArrowUpRight, Store, Receipt
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
@@ -33,12 +33,14 @@ function Dot({ status }: { status: string }) {
 
 export default function SuperAdminLiquidacionesPage() {
   const { token } = useAuth();
-  const [tab, setTab]               = useState<'pending' | 'history'>('pending');
+  const [tab, setTab]               = useState<'pending' | 'pos' | 'history'>('pending');
   const [loading, setLoading]       = useState(true);
   const [balances, setBalances]     = useState<any[]>([]);
   const [allLiqs, setAllLiqs]       = useState<any[]>([]);
+  const [posBalances, setPosBalances] = useState<any[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [showPay, setShowPay]       = useState<any | null>(null);
+  const [showCollectPos, setShowCollectPos] = useState<any | null>(null);
   const [saving, setSaving]         = useState(false);
 
   // Form crear liquidación
@@ -47,26 +49,31 @@ export default function SuperAdminLiquidacionesPage() {
   });
   // Form marcar como pagado
   const [payForm, setPayForm] = useState({ transfer_reference: '', notes: '' });
+  // Form cobrar comisión POS
+  const [posForm, setPosForm] = useState({ reference: '', notes: '' });
 
   const load = async () => {
     setLoading(true);
     try {
-      const [bal, hist] = await Promise.all([
+      const [bal, hist, pos] = await Promise.all([
         apiRequest<any[]>('/super-admin/liquidations/pending-balances', { token }),
         apiRequest<any[]>('/super-admin/liquidations', { token }),
+        apiRequest<any[]>('/super-admin/pos-commissions/pending', { token }),
       ]);
       setBalances(bal || []);
       setAllLiqs(hist || []);
+      setPosBalances(pos || []);
     } catch { /* silencioso */ }
     finally { setLoading(false); }
   };
 
   useEffect(() => { load(); }, [token]);
 
-  const totalPending = balances.reduce((a, b) => a + b.net, 0);
-  const totalGross   = balances.reduce((a, b) => a + b.gross, 0);
-  const countPaid    = allLiqs.filter(l => l.status === 'paid').length;
-  const totalPaidNet = allLiqs.filter(l => l.status === 'paid').reduce((a, l) => a + l.net_amount, 0);
+  const totalPending    = balances.reduce((a, b) => a + b.net, 0);
+  const totalGross      = balances.reduce((a, b) => a + b.gross, 0);
+  const countPaid       = allLiqs.filter(l => l.status === 'paid').length;
+  const totalPaidNet    = allLiqs.filter(l => l.status === 'paid').reduce((a, l) => a + l.net_amount, 0);
+  const totalPosCommission = posBalances.reduce((a, b) => a + b.commission, 0);
 
   const handleCreate = async () => {
     if (!form.tenant_id) return;
@@ -107,6 +114,27 @@ export default function SuperAdminLiquidacionesPage() {
     finally { setSaving(false); }
   };
 
+  const handleCollectPos = async () => {
+    if (!showCollectPos) return;
+    setSaving(true);
+    try {
+      await apiRequest('/super-admin/pos-commissions/collect', {
+        method: 'POST', token,
+        body: JSON.stringify({
+          tenant_id: showCollectPos.tenant_id,
+          pos_gross: showCollectPos.pos_gross,
+          pos_count: showCollectPos.pos_count,
+          reference: posForm.reference,
+          notes:     posForm.notes,
+        }),
+      });
+      setShowCollectPos(null);
+      setPosForm({ reference: '', notes: '' });
+      await load();
+    } catch { /* silencioso */ }
+    finally { setSaving(false); }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('¿Eliminar esta liquidación?')) return;
     await apiRequest(`/super-admin/liquidations/${id}`, { method: 'DELETE', token });
@@ -136,9 +164,9 @@ export default function SuperAdminLiquidacionesPage() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Por pagar (neto)',  value: fmtCOP(totalPending), sub: `${balances.length} empresas`, color: 'text-[#004d4d]', icon: <Wallet size={18}/>, bg: 'bg-[#004d4d]/5' },
-          { label: 'Ventas brutas pendientes', value: fmtCOP(totalGross), sub: 'total acumulado', color: 'text-violet-600', icon: <TrendingUp size={18}/>, bg: 'bg-violet-50' },
-          { label: 'Pagos realizados', value: countPaid.toString(), sub: 'historial total', color: 'text-blue-600', icon: <BadgeCheck size={18}/>, bg: 'bg-blue-50' },
+          { label: 'Por dispersar (web)', value: fmtCOP(totalPending), sub: `${balances.length} empresas`, color: 'text-[#004d4d]', icon: <Wallet size={18}/>, bg: 'bg-[#004d4d]/5' },
+          { label: 'Comisión POS por cobrar', value: fmtCOP(totalPosCommission), sub: `${posBalances.length} empresas con POS`, color: 'text-amber-600', icon: <Store size={18}/>, bg: 'bg-amber-50' },
+          { label: 'Dispersiones realizadas', value: countPaid.toString(), sub: 'historial total', color: 'text-blue-600', icon: <BadgeCheck size={18}/>, bg: 'bg-blue-50' },
           { label: 'Total transferido', value: fmtCOP(totalPaidNet), sub: 'a empresas', color: 'text-emerald-600', icon: <CheckCircle2 size={18}/>, bg: 'bg-emerald-50' },
         ].map(c => (
           <div key={c.label} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-3">
@@ -154,10 +182,17 @@ export default function SuperAdminLiquidacionesPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 p-1 bg-gray-100 rounded-2xl w-fit">
-        {([['pending', 'Saldos pendientes'], ['history', 'Historial']] as const).map(([k, l]) => (
+        {([
+          ['pending', 'Dispersiones web'],
+          ['pos',     'Comisión POS'],
+          ['history', 'Historial'],
+        ] as const).map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)}
             className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${tab === k ? 'bg-white shadow-sm text-[#004d4d]' : 'text-gray-400 hover:text-gray-600'}`}>
             {l}
+            {k === 'pos' && posBalances.length > 0 && (
+              <span className="ml-1.5 text-[8px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full">{posBalances.length}</span>
+            )}
           </button>
         ))}
       </div>
@@ -198,6 +233,52 @@ export default function SuperAdminLiquidacionesPage() {
                       onClick={() => { setForm(f => ({ ...f, tenant_id: b.tenant_id })); setShowCreate(true); }}
                       className="flex items-center gap-1.5 h-8 px-3 rounded-xl bg-[#004d4d] hover:bg-[#003838] text-[#ffffff] text-[9px] font-black uppercase tracking-widest transition-all w-fit">
                       <Send size={10}/> Liquidar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+      ) : tab === 'pos' ? (
+
+        /* ── Comisión POS ── */
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+          {posBalances.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              <Store size={32} className="text-amber-200 mb-2"/>
+              <p className="font-bold text-gray-400">Sin comisiones POS pendientes</p>
+              <p className="text-[11px] text-gray-300 mt-1">Todas las empresas están al día con sus ventas en punto físico</p>
+            </div>
+          ) : (
+            <>
+              <div className="px-5 py-3 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
+                <Receipt size={13} className="text-amber-600"/>
+                <p className="text-[10px] font-bold text-amber-700">
+                  Comisiones de ventas POS que ya cobró el tenant. Bayup debe cobrar su 2.5% por cuenta aparte.
+                </p>
+              </div>
+              <div className="grid grid-cols-6 px-5 py-3 bg-gray-50 border-b border-gray-100">
+                {['Empresa','Ventas POS','Pedidos','Últ. cobro','Comisión a cobrar','Acción'].map(h => (
+                  <p key={h} className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{h}</p>
+                ))}
+              </div>
+              <div className="divide-y divide-gray-50">
+                {posBalances.map((b: any) => (
+                  <div key={b.tenant_id} className="grid grid-cols-6 px-5 py-4 hover:bg-gray-50 transition-colors items-center">
+                    <div>
+                      <p className="text-[11px] font-bold text-gray-800 truncate">{b.tenant_name}</p>
+                      <p className="text-[9px] text-gray-400 truncate">{b.tenant_email}</p>
+                    </div>
+                    <p className="text-[11px] font-bold text-gray-700">{fmtCOP(b.pos_gross)}</p>
+                    <p className="text-[11px] font-bold text-gray-600">{b.pos_count}</p>
+                    <p className="text-[10px] text-gray-400">{b.last_collected ? fmtDate(b.last_collected) : 'Nunca'}</p>
+                    <p className="text-[13px] font-black text-amber-600">{fmtCOP(b.commission)}</p>
+                    <button
+                      onClick={() => { setShowCollectPos(b); setPosForm({ reference: '', notes: '' }); }}
+                      className="flex items-center gap-1.5 h-8 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-[9px] font-black uppercase tracking-widest transition-all w-fit">
+                      <Receipt size={10}/> Cobrar
                     </button>
                   </div>
                 ))}
@@ -361,6 +442,54 @@ export default function SuperAdminLiquidacionesPage() {
                   className="flex-[2] h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-[#ffffff] text-[9px] font-black uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2">
                   {saving ? <Loader2 size={13} className="animate-spin"/> : <CheckCircle2 size={13}/>}
                   {saving ? 'Procesando…' : 'Marcar como pagado'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Modal cobrar comisión POS ── */}
+      <AnimatePresence>
+        {showCollectPos && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowCollectPos(null)} className="fixed inset-0 bg-black/50 backdrop-blur-sm"/>
+            <motion.div initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }}
+              className="relative w-full max-w-sm bg-white rounded-[2rem] p-8 space-y-5 shadow-2xl z-10" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-black text-gray-900">Cobrar Comisión POS</h3>
+                <button onClick={() => setShowCollectPos(null)} className="h-8 w-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400"><X size={14}/></button>
+              </div>
+
+              <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl space-y-1">
+                <p className="text-[9px] font-bold text-amber-700 uppercase tracking-widest">{showCollectPos.tenant_name}</p>
+                <p className="text-2xl font-black text-amber-700">{fmtCOP(showCollectPos.commission)}</p>
+                <p className="text-[10px] text-amber-600">{showCollectPos.pos_count} ventas POS · bruto {fmtCOP(showCollectPos.pos_gross)}</p>
+                <p className="text-[9px] text-amber-500 mt-1">Esta comisión ya fue cobrada por el tenant al cliente. Registra aquí el cobro de Bayup.</p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Referencia (transferencia / comprobante)</label>
+                  <input value={posForm.reference} onChange={e => setPosForm(f => ({ ...f, reference: e.target.value }))}
+                    placeholder="Ej: TXN20260706-NEQUI o 'efectivo'"
+                    className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 placeholder:text-gray-300 focus:outline-none focus:border-amber-400"/>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Notas (opcional)</label>
+                  <textarea value={posForm.notes} onChange={e => setPosForm(f => ({ ...f, notes: e.target.value }))} rows={2}
+                    placeholder="Ej: Cobrado vía Nequi 6-jul-2026"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 placeholder:text-gray-300 focus:outline-none focus:border-amber-400 resize-none"/>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button onClick={() => setShowCollectPos(null)} className="flex-1 h-10 rounded-xl border border-gray-200 text-[9px] font-bold text-gray-500">Cancelar</button>
+                <button onClick={handleCollectPos} disabled={saving}
+                  className="flex-[2] h-10 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-[9px] font-black uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2">
+                  {saving ? <Loader2 size={13} className="animate-spin"/> : <Receipt size={13}/>}
+                  {saving ? 'Registrando…' : 'Registrar cobro'}
                 </button>
               </div>
             </motion.div>

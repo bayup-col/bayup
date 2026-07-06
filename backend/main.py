@@ -98,6 +98,7 @@ def _sync_postgres_schema() -> None:
                 notes VARCHAR,
                 created_at TIMESTAMP DEFAULT NOW()
             )""",
+            "ALTER TABLE liquidations ADD COLUMN IF NOT EXISTS liq_type VARCHAR(20) DEFAULT 'web'",
             "CREATE INDEX IF NOT EXISTS ix_liquidations_tenant_id ON liquidations (tenant_id)",
             "CREATE INDEX IF NOT EXISTS ix_liquidations_status ON liquidations (status)",
             "CREATE INDEX IF NOT EXISTS ix_liquidations_created_at ON liquidations (created_at)",
