@@ -90,8 +90,9 @@ export default function LiquidacionPage() {
       <div className="flex items-start gap-3 p-4 bg-[#004d4d]/5 border border-[#004d4d]/15 rounded-2xl">
         <Info size={15} className="text-[#004d4d] mt-0.5 shrink-0"/>
         <p className="text-[11px] text-[#004d4d]/80 leading-relaxed">
-          Bayup aplica una comisión del <strong>2.5%</strong> sobre todas tus ventas (punto físico y tienda online).
-          El valor neto se transfiere a tu cuenta bancaria los <strong>martes y viernes</strong>.
+          Bayup aplica una comisión del <strong>2.5%</strong> sobre todas tus ventas.
+          Las ventas <strong>web</strong> se dispersan martes y viernes (neto = venta − comisión).
+          Las ventas <strong>POS</strong> ya las cobraste tú — Bayup descuenta su comisión de la próxima dispersión web.
         </p>
       </div>
 
@@ -109,31 +110,40 @@ export default function LiquidacionPage() {
           <div className="flex items-center gap-2 mb-4">
             <span className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] font-bold text-white/50 uppercase tracking-widest">
               <span className="h-1.5 w-1.5 rounded-full bg-[#00f2ff] animate-pulse"/>
-              Acumulado pendiente
+              Próxima transferencia
             </span>
           </div>
 
           {/* Monto principal */}
-          <h2 className="text-5xl font-black tracking-tight text-[#00f2ff] leading-none">{fmtCOP(pending.net)}</h2>
-          <p className="text-[10px] text-white/25 mt-1.5 mb-5">Valor neto a transferir a tu cuenta bancaria</p>
+          <h2 className="text-5xl font-black tracking-tight text-[#00f2ff] leading-none">{fmtCOP(Math.max(0, pending.net))}</h2>
+          <p className="text-[10px] text-white/25 mt-1.5 mb-5">
+            {pending.net >= 0
+              ? 'Lo que Bayup te transferirá (ventas web neto − comisión POS)'
+              : 'Comisión POS acumulada — se cobrará en la próxima dispersión'}
+          </p>
 
           {/* Divider */}
           <div className="h-px bg-gradient-to-r from-white/10 via-white/5 to-transparent mb-5"/>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-4">
+          {/* Stats desglosados */}
+          <div className="grid grid-cols-2 gap-3 mb-3">
             <div className="bg-white/5 rounded-xl p-3">
-              <p className="text-[8px] text-white/30 uppercase tracking-widest mb-1">Total vendido</p>
-              <p className="text-base font-black text-white/80">{fmtCOP(pending.gross)}</p>
+              <p className="text-[8px] text-white/30 uppercase tracking-widest mb-1">Ventas web pendientes</p>
+              <p className="text-base font-black text-white/80">{fmtCOP(pending.web_gross || 0)}</p>
+              <p className="text-[9px] text-white/20">{pending.web_count || 0} pedidos · neto {fmtCOP(pending.web_net || 0)}</p>
             </div>
-            <div className="bg-white/5 rounded-xl p-3">
-              <p className="text-[8px] text-white/30 uppercase tracking-widest mb-1">Ventas</p>
-              <p className="text-base font-black text-white/80">{pending.order_count || 0}</p>
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
+              <p className="text-[8px] text-amber-300/60 uppercase tracking-widest mb-1">Comisión POS por cobrar</p>
+              <p className="text-base font-black text-amber-300">{fmtCOP(pending.pos_commission || 0)}</p>
+              <p className="text-[9px] text-amber-300/30">{pending.pos_count || 0} ventas · bruto {fmtCOP(pending.pos_gross || 0)}</p>
             </div>
-            <div className="bg-[#00f2ff]/10 border border-[#00f2ff]/20 rounded-xl p-3">
-              <p className="text-[8px] text-[#00f2ff]/50 uppercase tracking-widest mb-1">Te transferimos</p>
-              <p className="text-base font-black text-[#00f2ff]">{fmtCOP(pending.net)}</p>
+          </div>
+          <div className="bg-[#00f2ff]/10 border border-[#00f2ff]/20 rounded-xl p-3 flex items-center justify-between">
+            <div>
+              <p className="text-[8px] text-[#00f2ff]/50 uppercase tracking-widest mb-0.5">Te transferimos</p>
+              <p className="text-[9px] text-white/30">Web neto − comisión POS</p>
             </div>
+            <p className="text-xl font-black text-[#00f2ff]">{fmtCOP(Math.max(0, pending.net))}</p>
           </div>
         </div>
 
@@ -201,24 +211,40 @@ export default function LiquidacionPage() {
             {showOrders && (
               <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
                 <div className="border-t border-gray-100">
-                  <div className="grid grid-cols-4 px-5 py-2 bg-gray-50 border-b border-gray-100">
-                    {['Cliente', 'Fecha', 'Venta bruta', 'Recibes'].map(h => (
+                  <div className="grid grid-cols-5 px-5 py-2 bg-gray-50 border-b border-gray-100">
+                    {['Cliente', 'Canal', 'Fecha', 'Venta bruta', 'Efecto'].map(h => (
                       <p key={h} className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{h}</p>
                     ))}
                   </div>
                   <div className="divide-y divide-gray-50 max-h-72 overflow-y-auto">
-                    {orders.map((o: any) => (
-                      <div key={o.id} className="grid grid-cols-4 px-5 py-3 hover:bg-gray-50 transition-colors">
-                        <p className="text-[11px] font-semibold text-gray-700 truncate">{o.customer_name || '—'}</p>
-                        <p className="text-[11px] text-gray-400">{fmtDate(o.created_at)}</p>
-                        <p className="text-[11px] font-bold text-gray-700">{fmtCOP(o.total_price)}</p>
-                        <p className="text-[11px] font-black text-emerald-600">{fmtCOP(o.net)}</p>
-                      </div>
-                    ))}
+                    {orders.map((o: any) => {
+                      const isPos = (o.source || '').toLowerCase() === 'pos';
+                      return (
+                        <div key={o.id} className="grid grid-cols-5 px-5 py-3 hover:bg-gray-50 transition-colors">
+                          <p className="text-[11px] font-semibold text-gray-700 truncate">{o.customer_name || '—'}</p>
+                          <span className={`text-[9px] font-black px-2 py-0.5 rounded-full self-center w-fit ${isPos ? 'bg-violet-50 text-violet-600' : 'bg-blue-50 text-blue-600'}`}>
+                            {isPos ? 'POS' : 'Web'}
+                          </span>
+                          <p className="text-[11px] text-gray-400">{fmtDate(o.created_at)}</p>
+                          <p className="text-[11px] font-bold text-gray-700">{fmtCOP(o.total_price)}</p>
+                          {isPos ? (
+                            <div>
+                              <p className="text-[10px] font-black text-amber-600">−{fmtCOP(o.commission)}</p>
+                              <p className="text-[8px] text-gray-300">comisión Bayup</p>
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="text-[10px] font-black text-emerald-600">+{fmtCOP(o.net)}</p>
+                              <p className="text-[8px] text-gray-300">recibes este neto</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                   <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex justify-between">
-                    <p className="text-[10px] font-bold text-gray-500">Total pendiente neto</p>
-                    <p className="text-[10px] font-black text-[#004d4d]">{fmtCOP(pending.net)}</p>
+                    <p className="text-[10px] font-bold text-gray-500">Próxima transferencia neta</p>
+                    <p className="text-[10px] font-black text-[#004d4d]">{fmtCOP(Math.max(0, pending.net))}</p>
                   </div>
                 </div>
               </motion.div>

@@ -49,10 +49,20 @@ def register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_a
                 q = q.filter(models.Order.created_at > cutoff)
             pending_orders = q.all()
 
-            gross_pending = sum(o.total_price for o in pending_orders)
-            bayup_fee     = round(gross_pending * BAYUP_RATE, 2)
-            prix_fee      = round(gross_pending * PRIX_RATE, 2)
-            net_pending   = round(gross_pending - bayup_fee - prix_fee, 2)
+            # Separar órdenes web (Bayup cobra al cliente y transfiere neto)
+            # vs POS (tenant cobra directo, Bayup solo cobra su comisión)
+            web_orders = [o for o in pending_orders if (o.source or 'web').lower() != 'pos']
+            pos_orders = [o for o in pending_orders if (o.source or 'web').lower() == 'pos']
+
+            gross_web      = sum(o.total_price for o in web_orders)
+            bayup_fee_web  = round(gross_web * BAYUP_RATE, 2)
+            net_web        = round(gross_web - bayup_fee_web, 2)
+
+            gross_pos      = sum(o.total_price for o in pos_orders)
+            pos_commission = round(gross_pos * BAYUP_RATE, 2)  # lo que el tenant le debe a Bayup
+
+            # Lo que Bayup realmente transfiere = neto web - comisión POS pendiente
+            net_transfer   = round(net_web - pos_commission, 2)
 
             next_dates = _next_payment_dates()
 
@@ -69,11 +79,19 @@ def register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_a
 
             return {
                 "pending": {
-                    "gross":       gross_pending,
-                    "bayup_fee":   bayup_fee,
-                    "prix_fee":    prix_fee,
-                    "net":         net_pending,
-                    "order_count": len(pending_orders),
+                    # Totales generales (para backward-compat y stats cards)
+                    "gross":          round(gross_web + gross_pos, 2),
+                    "bayup_fee":      round(bayup_fee_web + pos_commission, 2),
+                    "prix_fee":       0.0,
+                    "net":            net_transfer,
+                    "order_count":    len(pending_orders),
+                    # Desglose por canal
+                    "web_gross":      gross_web,
+                    "web_net":        net_web,
+                    "web_count":      len(web_orders),
+                    "pos_gross":      gross_pos,
+                    "pos_commission": pos_commission,
+                    "pos_count":      len(pos_orders),
                 },
                 "next_payment_dates": [str(d) for d in next_dates],
                 "scheduled_liquidation": {
@@ -93,7 +111,11 @@ def register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_a
                         "id":           str(o.id),
                         "customer_name":o.customer_name,
                         "total_price":  o.total_price,
-                        "net":          round(o.total_price * (1 - BAYUP_RATE - PRIX_RATE), 2),
+                        "source":       o.source or 'web',
+                        # Para POS: el tenant ya cobró, Bayup solo toma comisión
+                        # Para web: Bayup transfiere el neto
+                        "net":          round(o.total_price * (1 - BAYUP_RATE), 2) if (o.source or 'web').lower() != 'pos' else 0,
+                        "commission":   round(o.total_price * BAYUP_RATE, 2),
                         "created_at":   o.created_at.isoformat(),
                         "status":       o.status,
                     }
