@@ -1023,6 +1023,7 @@ async def create_order_route(payload: OrderCreateRequest, request: Request):
                     customer_city=payload.customer_city or "",
                     customer_phone=payload.customer_phone or "",
                     shop_name=shop_name,
+                    source=payload.source or "pos",
                 ),
                 daemon=True,
             ).start()
@@ -1093,7 +1094,62 @@ async def update_order_route(order_id: str, payload: OrderUpdateRequest, request
                     "❌ Pedido cancelado",
                     f"Pedido #{order_id[:8].upper()} fue cancelado",
                     "alert")
+            # Email al cliente en pedidos web cuando el estado cambia
+            is_web = (db_order.source or "pos") != "pos"
+            if is_web and db_order.customer_email and payload.status in ("processing", "completed", "cancelled"):
+                import email_service as _es_upd, threading as _th_upd
+                tenant_u = db.query(models.User).filter(models.User.id == tenant_id).first()
+                _shop = (tenant_u.full_name or tenant_u.shop_slug or "Tu tienda") if tenant_u else "Tu tienda"
+                _th_upd.Thread(
+                    target=_es_upd.send_order_status_update,
+                    kwargs=dict(
+                        email=db_order.customer_email,
+                        name=db_order.customer_name or "Cliente",
+                        order_id=str(db_order.id),
+                        new_status=payload.status,
+                        shop_name=_shop,
+                    ),
+                    daemon=True,
+                ).start()
         return {"id": str(db_order.id), "status": db_order.status}
+    finally:
+        db.close()
+
+@app.get("/public/orders/{order_id}")
+async def public_order_tracking(order_id: str):
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        try:
+            oid = uuid_lib.UUID(order_id)
+        except ValueError:
+            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+        order = db.query(models.Order).filter(models.Order.id == oid).first()
+        if not order:
+            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+        tenant = db.query(models.User).filter(models.User.id == order.tenant_id).first()
+        shop_name = (tenant.full_name or tenant.shop_slug or "Tienda") if tenant else "Tienda"
+        items = []
+        for item in order.items:
+            variant = db.query(models.ProductVariant).filter(models.ProductVariant.id == item.product_variant_id).first()
+            product = db.query(models.Product).filter(models.Product.id == variant.product_id).first() if variant else None
+            iname = (product.name if product else "Producto") + (f" — {variant.name}" if variant and variant.name else "")
+            items.append({"name": iname, "qty": item.quantity, "price": float(item.price_at_purchase)})
+        return {
+            "id":              str(order.id),
+            "short_id":        str(order.id)[:8].upper(),
+            "status":          order.status,
+            "source":          order.source or "web",
+            "customer_name":   order.customer_name,
+            "customer_city":   order.customer_city,
+            "total":           float(order.total_price),
+            "payment_method":  order.payment_method,
+            "created_at":      order.created_at.isoformat() if order.created_at else None,
+            "shop_name":       shop_name,
+            "shop_slug":       tenant.shop_slug if tenant else None,
+            "items":           items,
+        }
     finally:
         db.close()
 

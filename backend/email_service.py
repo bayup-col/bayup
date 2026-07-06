@@ -211,6 +211,56 @@ def send_password_reset(email: str, token: str) -> bool:
     )
     return _send_raw(email, "Restablece tu contraseña — Bayup", html)
 
+def _order_header(shop_name: str) -> str:
+    return (
+        f'<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0f0f0f">'
+        f'<tr>'
+        f'<td style="padding:16px 32px"><span style="font-size:20px;font-weight:900;font-style:italic;letter-spacing:-0.5px;color:#ffffff">Bay<span style="color:#00f2ff">UP.</span></span></td>'
+        f'<td align="right" style="padding:16px 32px"><span style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#444444">{shop_name}</span></td>'
+        f'</tr></table>'
+    )
+
+def _order_items_table(items: list, total: float) -> str:
+    rows = "".join(
+        f'<tr>'
+        f'<td style="padding:12px 14px;font-size:13px;color:#111827;font-weight:600;border-top:1px solid #f3f4f6">{it["name"]}</td>'
+        f'<td align="center" style="padding:12px 14px;border-top:1px solid #f3f4f6">'
+        f'<span style="display:inline-block;width:26px;height:26px;border:1.5px solid #b3ecec;border-radius:5px;font-size:12px;font-weight:700;color:#007878;text-align:center;line-height:23px">{it["qty"]}</span>'
+        f'</td>'
+        f'<td align="right" style="padding:12px 14px;font-family:\'Courier New\',monospace;font-size:13px;font-weight:600;color:#111827;border-top:1px solid #f3f4f6">{_cop(it["qty"] * it["price"])}</td>'
+        f'</tr>'
+        for it in items
+    )
+    return (
+        f'<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:20px">'
+        f'<thead><tr style="background:#f9fafb">'
+        f'<th align="left" style="padding:8px 14px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#9ca3af">Producto</th>'
+        f'<th align="center" style="padding:8px 14px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#9ca3af">Cant.</th>'
+        f'<th align="right" style="padding:8px 14px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#9ca3af">Subtotal</th>'
+        f'</tr></thead>'
+        f'<tbody>{rows}</tbody>'
+        f'<tfoot><tr style="background:#0f0f0f">'
+        f'<td colspan="2" style="padding:12px 14px;font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.5)">Total pagado</td>'
+        f'<td align="right" style="padding:12px 14px;font-family:\'Courier New\',monospace;font-size:21px;font-weight:900;color:#00f2ff;letter-spacing:-0.5px">{_cop(total)}</td>'
+        f'</tr></tfoot></table>'
+    )
+
+def _status_bar(active_step: int) -> str:
+    steps = ["Confirmado", "Preparando", "Enviado", "Entregado"]
+    cells = ""
+    for i, step in enumerate(steps):
+        done = i <= active_step
+        dot = (
+            f'<div style="width:22px;height:22px;background:#0f0f0f;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:900;color:#00f2ff;margin:0 auto 6px">&#10003;</div>'
+            if done else
+            f'<div style="width:22px;height:22px;background:#ffffff;border:1.5px solid #e5e7eb;border-radius:50%;margin:0 auto 6px">&nbsp;</div>'
+        )
+        color = "#007878" if done else "#d1d5db"
+        cells += f'<td align="center" width="25%">{dot}<div style="font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:{color}">{step}</div></td>'
+    return f'<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px"><tr>{cells}</tr></table>'
+
+_STATUS_STEP = {"pending": 0, "processing": 1, "shipped": 2, "completed": 3}
+
 def send_order_confirmation(
     email: str,
     name: str,
@@ -221,142 +271,115 @@ def send_order_confirmation(
     customer_city: str = "",
     customer_phone: str = "",
     shop_name: str = "Bayup",
+    source: str = "web",
 ) -> bool:
     short_id   = str(order_id)[:8].upper()
-    total_fmt  = _cop(total)
     items      = items or []
     first_name = name.split()[0] if name else name
-    phone_disp = customer_phone or "—"
-    city_disp  = customer_city  or "—"
-    pay_disp   = payment_method or "—"
+    is_pos     = source == "pos"
 
-    product_rows = "".join(
+    if is_pos:
+        headline  = f"&#128522; Comprobante de compra, {first_name}"
+        subline   = f"Gracias por tu compra en <strong style=\"color:#111827\">{shop_name}</strong>. Guarda este correo como respaldo."
+        footer_note = f"Gracias por comprar en <strong style=\"color:#007878\">{shop_name}</strong>. Este es tu comprobante de venta."
+        status_block = ""
+        cta_block = ""
+        info_label = "Informaci&#243;n de la compra"
+        subject   = f"🧾 Comprobante de compra — {shop_name}"
+    else:
+        headline  = f"&#161;Tu pedido est&#225; confirmado, {first_name}!"
+        subline   = f"Ya recibimos tu compra en <strong style=\"color:#111827\">{shop_name}</strong> y est&#225; siendo preparada con cuidado."
+        footer_note = f"Gracias por tu compra en <strong style=\"color:#007878\">{shop_name}</strong>. En cuanto tu pedido sea despachado recibir&#225;s una actualizaci&#243;n."
+        status_block = _status_bar(0)
+        cta_block = (
+            f'<div style="text-align:center;margin-top:8px">'
+            f'<a href="{_SITE}/pedido/{order_id}" style="display:inline-block;background:#0f0f0f;color:#00f2ff;text-decoration:none;font-size:11px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;padding:14px 36px;border-radius:6px">Ver estado de mi pedido &#8594;</a>'
+            f'</div>'
+        )
+        info_label = "Informaci&#243;n de entrega"
+        subject   = f"✓ Tu pedido #{short_id} está confirmado — {shop_name}"
+
+    info_block = (
+        f'<div style="font-size:9.5px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:#9ca3af;margin-bottom:10px">{info_label}</div>'
+        f'<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:20px">'
         f'<tr>'
-        f'<td style="padding:12px 14px;font-size:13px;color:#111827;font-weight:600;border-top:1px solid #f3f4f6">{it["name"]}</td>'
-        f'<td align="center" style="padding:12px 14px;border-top:1px solid #f3f4f6">'
-        f'<span style="display:inline-block;width:26px;height:26px;border:1.5px solid #b3ecec;border-radius:5px;font-size:12px;font-weight:700;color:#007878;text-align:center;line-height:23px">{it["qty"]}</span>'
-        f'</td>'
-        f'<td align="right" style="padding:12px 14px;font-family:\'Courier New\',monospace;font-size:13px;font-weight:600;color:#111827;border-top:1px solid #f3f4f6">{_cop(it["qty"] * it["price"])}</td>'
-        f'</tr>'
-        for it in items
+        f'<td width="50%" style="padding:14px 18px 8px"><div style="font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#9ca3af;margin-bottom:3px">Nombre</div><div style="font-size:13px;font-weight:500;color:#111827">{name}</div></td>'
+        f'<td width="50%" style="padding:14px 18px 8px"><div style="font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#9ca3af;margin-bottom:3px">Ciudad</div><div style="font-size:13px;font-weight:500;color:#111827">{customer_city or "—"}</div></td>'
+        f'</tr><tr>'
+        f'<td style="padding:8px 18px 14px"><div style="font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#9ca3af;margin-bottom:3px">Tel&#233;fono</div><div style="font-size:13px;font-weight:500;color:#111827">{customer_phone or "—"}</div></td>'
+        f'<td style="padding:8px 18px 14px"><div style="font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#9ca3af;margin-bottom:3px">M&#233;todo de pago</div><div style="font-size:13px;font-weight:500;color:#111827">{payment_method or "—"}</div></td>'
+        f'</tr></table>'
     )
 
-    html = f"""<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:24px 16px;background:#f0f0f0;font-family:Arial,Helvetica,sans-serif">
-<div style="max-width:580px;margin:0 auto;background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+    html = (
+        f'<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
+        f'<body style="margin:0;padding:24px 16px;background:#f0f0f0;font-family:Arial,Helvetica,sans-serif">'
+        f'<div style="max-width:580px;margin:0 auto;background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">'
+        f'{_order_header(shop_name)}'
+        f'<div style="padding:28px 32px">'
+        f'<table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px"><tr>'
+        f'<td valign="top" style="padding-right:16px"><div style="width:44px;height:44px;background:#0f0f0f;border-radius:10px;text-align:center;line-height:44px;font-size:18px;font-weight:900;color:#00f2ff">&#10003;</div></td>'
+        f'<td valign="top"><div style="font-size:18px;font-weight:800;color:#111827;letter-spacing:-0.3px;line-height:1.2">{headline}</div>'
+        f'<div style="font-size:13px;color:#4b5563;margin-top:4px">{subline}</div></td>'
+        f'</tr></table>'
+        f'{status_block}'
+        f'<div style="font-size:9.5px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:#9ca3af;margin-bottom:10px">Resumen de tu pedido &nbsp;<span style="font-family:\'Courier New\',monospace;font-size:10px;background:#f0fefe;border:1px solid #b3ecec;padding:2px 8px;border-radius:4px;color:#007878">#{short_id}</span></div>'
+        f'{_order_items_table(items, total)}'
+        f'{info_block}'
+        f'<div style="background:#f0fefe;border:1px solid #b3ecec;border-radius:8px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#4b5563;line-height:1.6">{footer_note}</div>'
+        f'{cta_block}'
+        f'</div>'
+        f'<div style="border-top:1px solid #f3f4f6;padding:16px 32px;text-align:center;font-size:11px;color:#9ca3af;line-height:1.7">Este correo fue enviado por <strong>{shop_name}</strong> a trav&#233;s de Bayup.<br>&#169; 2026 Bayup &#8212; La plataforma de ventas inteligente</div>'
+        f'</div></body></html>'
+    )
+    return _send_raw(email, subject, html)
 
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0f0f0f">
-    <tr>
-      <td style="padding:16px 32px">
-        <span style="font-size:20px;font-weight:900;font-style:italic;letter-spacing:-0.5px;color:#ffffff">Bay<span style="color:#00f2ff">UP.</span></span>
-      </td>
-      <td align="right" style="padding:16px 32px">
-        <span style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#444444">{shop_name}</span>
-      </td>
-    </tr>
-  </table>
 
-  <div style="padding:28px 32px">
+def send_order_status_update(
+    email: str,
+    name: str,
+    order_id: str,
+    new_status: str,
+    shop_name: str = "Bayup",
+) -> bool:
+    short_id   = str(order_id)[:8].upper()
+    first_name = name.split()[0] if name else name
+    step       = _STATUS_STEP.get(new_status, 0)
 
-    <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px">
-      <tr>
-        <td valign="top" style="padding-right:16px">
-          <div style="width:44px;height:44px;background:#0f0f0f;border-radius:10px;text-align:center;line-height:44px;font-size:18px;font-weight:900;color:#00f2ff">&#10003;</div>
-        </td>
-        <td valign="top">
-          <div style="font-size:18px;font-weight:800;color:#111827;letter-spacing:-0.3px;line-height:1.2">&#161;Tu pedido est&#225; confirmado, {first_name}!</div>
-          <div style="font-size:13px;color:#4b5563;margin-top:4px">Ya recibimos tu compra en <strong style="color:#111827">{shop_name}</strong> y est&#225; siendo preparada con cuidado.</div>
-        </td>
-      </tr>
-    </table>
+    status_labels = {
+        "processing": ("📦 Tu pedido está siendo preparado",  "Estamos alistando tu pedido con cuidado. Te avisaremos cuando sea enviado."),
+        "completed":  ("✅ Tu pedido fue entregado",           "Tu pedido llegó a su destino. ¡Gracias por comprar en " + shop_name + "!"),
+        "cancelled":  ("❌ Tu pedido fue cancelado",           "Lamentamos informarte que tu pedido fue cancelado. Si tienes dudas, responde este correo."),
+    }
+    headline, subline = status_labels.get(new_status, ("Actualización de tu pedido", "El estado de tu pedido ha cambiado."))
 
-    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px">
-      <tr>
-        <td align="center" width="25%">
-          <div style="width:22px;height:22px;background:#0f0f0f;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:900;color:#00f2ff;margin:0 auto 6px">&#10003;</div>
-          <div style="font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#007878">Confirmado</div>
-        </td>
-        <td align="center" width="25%">
-          <div style="width:22px;height:22px;background:#ffffff;border:1.5px solid #e5e7eb;border-radius:50%;margin:0 auto 6px">&nbsp;</div>
-          <div style="font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#d1d5db">Preparando</div>
-        </td>
-        <td align="center" width="25%">
-          <div style="width:22px;height:22px;background:#ffffff;border:1.5px solid #e5e7eb;border-radius:50%;margin:0 auto 6px">&nbsp;</div>
-          <div style="font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#d1d5db">Enviado</div>
-        </td>
-        <td align="center" width="25%">
-          <div style="width:22px;height:22px;background:#ffffff;border:1.5px solid #e5e7eb;border-radius:50%;margin:0 auto 6px">&nbsp;</div>
-          <div style="font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#d1d5db">Entregado</div>
-        </td>
-      </tr>
-    </table>
+    bg_color = {"processing": "#f0fefe", "completed": "#f0fef4", "cancelled": "#fff5f5"}.get(new_status, "#f0fefe")
+    border   = {"processing": "#b3ecec", "completed": "#86efac", "cancelled": "#fecaca"}.get(new_status, "#b3ecec")
 
-    <div style="font-size:9.5px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:#9ca3af;margin-bottom:10px">
-      Resumen de tu pedido &nbsp;<span style="font-family:'Courier New',monospace;font-size:10px;background:#f0fefe;border:1px solid #b3ecec;padding:2px 8px;border-radius:4px;color:#007878">#{short_id}</span>
-    </div>
+    cta = (
+        f'<div style="text-align:center;margin-top:24px">'
+        f'<a href="{_SITE}/pedido/{order_id}" style="display:inline-block;background:#0f0f0f;color:#00f2ff;text-decoration:none;font-size:11px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;padding:14px 36px;border-radius:6px">Ver estado de mi pedido &#8594;</a>'
+        f'</div>'
+    ) if new_status != "cancelled" else ""
 
-    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:20px">
-      <thead>
-        <tr style="background:#f9fafb">
-          <th align="left" style="padding:8px 14px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#9ca3af">Producto</th>
-          <th align="center" style="padding:8px 14px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#9ca3af">Cant.</th>
-          <th align="right" style="padding:8px 14px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#9ca3af">Subtotal</th>
-        </tr>
-      </thead>
-      <tbody>{product_rows}</tbody>
-      <tfoot>
-        <tr style="background:#0f0f0f">
-          <td colspan="2" style="padding:12px 14px;font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.5)">Total pagado</td>
-          <td align="right" style="padding:12px 14px;font-family:'Courier New',monospace;font-size:21px;font-weight:900;color:#00f2ff;letter-spacing:-0.5px">{total_fmt}</td>
-        </tr>
-      </tfoot>
-    </table>
-
-    <div style="font-size:9.5px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:#9ca3af;margin-bottom:10px">Informaci&#243;n de entrega</div>
-    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:20px">
-      <tr>
-        <td width="50%" style="padding:14px 18px 8px">
-          <div style="font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#9ca3af;margin-bottom:3px">Nombre</div>
-          <div style="font-size:13px;font-weight:500;color:#111827">{name}</div>
-        </td>
-        <td width="50%" style="padding:14px 18px 8px">
-          <div style="font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#9ca3af;margin-bottom:3px">Ciudad</div>
-          <div style="font-size:13px;font-weight:500;color:#111827">{city_disp}</div>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:8px 18px 14px">
-          <div style="font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#9ca3af;margin-bottom:3px">Tel&#233;fono</div>
-          <div style="font-size:13px;font-weight:500;color:#111827">{phone_disp}</div>
-        </td>
-        <td style="padding:8px 18px 14px">
-          <div style="font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#9ca3af;margin-bottom:3px">M&#233;todo de pago</div>
-          <div style="font-size:13px;font-weight:500;color:#111827">{pay_disp}</div>
-        </td>
-      </tr>
-    </table>
-
-    <div style="background:#f0fefe;border:1px solid #b3ecec;border-radius:8px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#4b5563;line-height:1.6">
-      Gracias por tu compra en <strong style="color:#007878">{shop_name}</strong>. En cuanto tu pedido sea despachado recibir&#225;s una actualizaci&#243;n. Si tienes alguna duda, responde este correo y con gusto te ayudamos.
-    </div>
-
-    <div style="text-align:center">
-      <a href="{_SITE}/dashboard" style="display:inline-block;background:#0f0f0f;color:#00f2ff;text-decoration:none;font-size:11px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;padding:14px 36px;border-radius:6px">Ver estado de mi pedido &#8594;</a>
-    </div>
-  </div>
-
-  <div style="border-top:1px solid #f3f4f6;padding:16px 32px;text-align:center;font-size:11px;color:#9ca3af;line-height:1.7">
-    Este correo fue enviado por <strong>{shop_name}</strong> a trav&#233;s de Bayup.<br>
-    &#169; 2026 Bayup &#8212; La plataforma de ventas inteligente
-  </div>
-
-</div>
-</body>
-</html>"""
-
-    return _send_raw(email, f"✓ Tu pedido #{short_id} está confirmado — {shop_name}", html)
+    html = (
+        f'<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
+        f'<body style="margin:0;padding:24px 16px;background:#f0f0f0;font-family:Arial,Helvetica,sans-serif">'
+        f'<div style="max-width:580px;margin:0 auto;background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">'
+        f'{_order_header(shop_name)}'
+        f'<div style="padding:28px 32px">'
+        f'<div style="font-size:18px;font-weight:800;color:#111827;letter-spacing:-0.3px;margin-bottom:6px">{headline}</div>'
+        f'<div style="font-size:13px;color:#4b5563;margin-bottom:24px">Hola {first_name}, {subline}</div>'
+        f'{_status_bar(step) if new_status != "cancelled" else ""}'
+        f'<div style="font-size:9.5px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Pedido &nbsp;<span style="font-family:\'Courier New\',monospace;font-size:10px;background:#f0fefe;border:1px solid #b3ecec;padding:2px 8px;border-radius:4px;color:#007878">#{short_id}</span></div>'
+        f'<div style="background:{bg_color};border:1px solid {border};border-radius:8px;padding:14px 18px;font-size:13px;color:#4b5563;line-height:1.6">{subline}</div>'
+        f'{cta}'
+        f'</div>'
+        f'<div style="border-top:1px solid #f3f4f6;padding:16px 32px;text-align:center;font-size:11px;color:#9ca3af;line-height:1.7">Este correo fue enviado por <strong>{shop_name}</strong> a trav&#233;s de Bayup.<br>&#169; 2026 Bayup &#8212; La plataforma de ventas inteligente</div>'
+        f'</div></body></html>'
+    )
+    subject = f"{headline} — {shop_name}"
+    return _send_raw(email, subject, html)
 
 def send_staff_invitation(email: str, name: str, inviter: str) -> bool:
     html = _simple_email_html(
