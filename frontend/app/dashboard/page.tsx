@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, memo, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from "@/context/auth-context";
 import { useTheme } from "@/context/theme-context";
 import { useToast } from "@/context/toast-context";
@@ -11,7 +12,7 @@ import {
   X, ImageIcon, TrendingUp, Globe, Store, MessageSquare, Smartphone, CheckCheck, 
   ChevronRight, Loader2, FilterX, Target, Sparkles, Bot, MousePointer2, Rocket, 
   LayoutGrid, Activity, DollarSign, Clock, ShieldCheck, FileText, Printer, User, 
-  CheckCircle2, Truck, RefreshCw, Lightbulb, Wallet, CreditCard, Calendar
+  CheckCircle2, Truck, RefreshCw, Lightbulb, Wallet, CreditCard, Calendar, TrendingDown
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -94,11 +95,14 @@ const AuroraMetricCard = ({ children, onClick }: { children: React.ReactNode, on
 };
 
 export default function DashboardPage() {
-  const { token, userName, updateUser, shopSlug } = useAuth();
+  const { token, userName, updateUser, shopSlug, isGlobalStaff } = useAuth();
   const { theme } = useTheme();
   const { showToast } = useToast();
   const router = useRouter();
   
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   const [selectedMetric, setSelectedMetric] = useState<any>(null);
   const [isCustomReportModalOpen, setIsCustomReportModalOpen] = useState(false);
   const [chartMode, setChartMode] = useState<'diario' | 'comparativo'>('diario');
@@ -128,6 +132,7 @@ export default function DashboardPage() {
   });
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalInput, setGoalInput] = useState('');
+  const [expenses, setExpenses] = useState<any[]>([]);
   const [realStats, setRealStats] = useState({ 
     revenue: 0, 
     orders_count: 0, 
@@ -208,10 +213,15 @@ export default function DashboardPage() {
   // --- DATOS DE INSIGHTS (compartidos con modales) ---
   const insightData = useMemo(() => {
     const now = new Date();
-    const monthlyTotal = orders.reduce((acc, o) => {
-        const d = new Date(o.created_at);
-        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() ? acc + (o.total_price || 0) : acc;
-    }, 0);
+    const isThisMonth = (o: any) => { const d = new Date(o.created_at); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); };
+    const monthOrders = orders.filter(isThisMonth);
+    const channelTotals = {
+      web:       monthOrders.filter(o => o.source === 'web').reduce((a, o) => a + (o.total_price || 0), 0),
+      pos:       monthOrders.filter(o => !o.source || o.source === 'pos').reduce((a, o) => a + (o.total_price || 0), 0),
+      redes:     monthOrders.filter(o => o.source === 'redes').reduce((a, o) => a + (o.total_price || 0), 0),
+      whatsapp:  monthOrders.filter(o => o.source === 'whatsapp').reduce((a, o) => a + (o.total_price || 0), 0),
+    };
+    const monthlyTotal = Object.values(channelTotals).reduce((a, v) => a + v, 0);
     const goal = monthlyGoal > 0 ? monthlyGoal : Math.max(monthlyTotal * 1.35, 500_000);
     const goalPct = goal > 0 ? Math.min(Math.round((monthlyTotal / goal) * 100), 100) : 0;
     const fmt = (v: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v);
@@ -229,9 +239,7 @@ export default function DashboardPage() {
     const topProducts = Object.values(productMap).sort((a, b) => b.total - a.total);
     const topProduct = topProducts[0];
 
-    const monthOrders = orders
-        .filter(o => { const d = new Date(o.created_at); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); })
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const monthOrdersSorted = [...monthOrders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     const daysLeft = lastDay - now.getDate();
@@ -261,8 +269,16 @@ export default function DashboardPage() {
     }));
     const activeDays = now.getDate();
     const projectedPct = activeDays > 0 && monthlyTotal > 0 ? Math.round((monthlyTotal / activeDays) * lastDay / goal * 100) : 0;
-    return { monthlyTotal, goal, goalPct, fmt, topProducts, topProduct, monthOrders, daysLeft, dailyNeeded, statusCount, peakDay: dayNames[peakDayIdx], totalOrders, totalRevenue, avgTicket, completedOrders, successRate, leaderSharePct, dayStats, activeDays, projectedPct };
+    return { monthlyTotal, goal, goalPct, fmt, topProducts, topProduct, monthOrders: monthOrdersSorted, daysLeft, dailyNeeded, statusCount, peakDay: dayNames[peakDayIdx], totalOrders, totalRevenue, avgTicket, completedOrders, successRate, leaderSharePct, dayStats, activeDays, projectedPct, channelTotals };
   }, [orders, monthlyGoal]);
+
+  // --- GASTOS DEL MES (desde API) ---
+  const monthlyExpensesTotal = useMemo(() => {
+    const now = new Date();
+    return expenses
+      .filter(e => { const d = new Date(e.due_date || e.created_at || 0); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); })
+      .reduce((a, e) => a + (e.amount || 0), 0);
+  }, [expenses]);
 
   // --- INSIGHTS DINÁMICOS ---
   const insights = useMemo(() => {
@@ -304,12 +320,14 @@ export default function DashboardPage() {
     if (!token) return;
     try {
         // Ejecutamos las peticiones con captura de errores individual para no romper el flujo
-        const [pData, oData, lData, uData] = await Promise.all([
+        const [pData, oData, lData, uData, eData] = await Promise.all([
             apiRequest<any[]>('/products', { token }).catch(() => []),
             apiRequest<any[]>('/orders', { token }).catch(() => []),
-            apiRequest<any[]>('/admin/logs', { token }).catch(() => []),
-            apiRequest<any>('/auth/me', { token }).catch(() => null)
+            isGlobalStaff ? apiRequest<any[]>('/admin/logs', { token }).catch(() => []) : Promise.resolve([]),
+            apiRequest<any>('/auth/me', { token }).catch(() => null),
+            apiRequest<any[]>('/expenses', { token }).catch(() => []),
         ]);
+        setExpenses(Array.isArray(eData) ? eData : []);
 
         if (uData?.full_name && (uData.full_name !== userName || uData.shop_slug !== shopSlug)) {
             setCompanyName(uData.full_name);
@@ -506,6 +524,246 @@ export default function DashboardPage() {
     };
     const st = map[s] ?? { label: s, cls: 'bg-gray-50 text-gray-500 border-gray-100' };
     return <span className={`text-[8px] font-semibold tracking-widest uppercase px-2.5 py-0.5 rounded-full border ${st.cls}`}>{st.label}</span>;
+  };
+
+  const exportAnalysisPDF = async () => {
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const W = 210; const H = 297;
+    const fmtCOP = (v: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v);
+    const now = new Date();
+    const monthLabel = now.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+
+    // ── Fondo oscuro header ──
+    doc.setFillColor(10, 26, 26);
+    doc.rect(0, 0, W, 52, 'F');
+
+    // Acento teal izquierdo
+    doc.setFillColor(0, 178, 189);
+    doc.rect(0, 0, 4, 52, 'F');
+
+    // Logo / título
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('BAYUP', 14, 18);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 178, 189);
+    doc.text('Análisis Detallado · Resumen Ejecutivo', 14, 26);
+    doc.setTextColor(180, 200, 200);
+    doc.setFontSize(8);
+    doc.text(monthLabel.toUpperCase(), 14, 33);
+    doc.text(`Generado el ${now.toLocaleDateString('es-CO')} a las ${now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`, 14, 39);
+
+    // Empresa
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(userName || 'Mi Tienda', W - 14, 22, { align: 'right' });
+
+    // ── KPIs principales — 4 cajas ──
+    const kpis = [
+      { label: 'Ingresos Totales', value: fmtCOP(insightData.totalRevenue), sub: 'Todos los tiempos', accent: true },
+      { label: 'Ticket Promedio', value: fmtCOP(insightData.avgTicket), sub: 'Por pedido', accent: false },
+      { label: 'Total Pedidos', value: String(insightData.totalOrders), sub: 'Histórico', accent: false },
+      { label: 'Tasa de Éxito', value: `${insightData.successRate}%`, sub: `${insightData.completedOrders} completados`, accent: false },
+    ];
+    const kpiW = (W - 28 - 9) / 4;
+    kpis.forEach((k, i) => {
+      const x = 14 + i * (kpiW + 3);
+      const y = 58;
+      doc.setFillColor(k.accent ? 0 : 248, k.accent ? 178 : 250, k.accent ? 189 : 250);
+      if (k.accent) doc.setFillColor(232, 250, 249);
+      doc.roundedRect(x, y, kpiW, 24, 2, 2, 'F');
+      doc.setDrawColor(k.accent ? 0 : 220, k.accent ? 178 : 230, k.accent ? 189 : 230);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(x, y, kpiW, 24, 2, 2, 'S');
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 120, 120);
+      doc.text(k.label.toUpperCase(), x + 3, y + 6);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(k.accent ? 0 : 10, k.accent ? 140 : 26, k.accent ? 149 : 26);
+      doc.text(k.value, x + 3, y + 14);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(140, 160, 160);
+      doc.text(k.sub, x + 3, y + 20);
+    });
+
+    // ── Sección: Actividad por día ──
+    let y = 92;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(10, 26, 26);
+    doc.text('ACTIVIDAD POR DÍA', 14, y);
+    doc.setFillColor(0, 178, 189);
+    doc.rect(14, y + 1.5, 28, 0.5, 'F');
+    y += 6;
+
+    const barAreaW = W - 28;
+    const barAreaH = 30;
+    doc.setFillColor(248, 250, 250);
+    doc.setDrawColor(220, 230, 230);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(14, y, barAreaW, barAreaH + 8, 2, 2, 'FD');
+
+    const maxPct = Math.max(...insightData.dayStats.map(d => d.pct), 1);
+    const barW = (barAreaW - 20) / insightData.dayStats.length;
+    insightData.dayStats.forEach((d, i) => {
+      const bx = 14 + 10 + i * barW;
+      const bh = Math.max((d.pct / maxPct) * barAreaH, 1);
+      const by = y + barAreaH - bh + 2;
+      const isPeak = d.day === insightData.peakDay;
+      doc.setFillColor(isPeak ? 0 : 200, isPeak ? 178 : 215, isPeak ? 189 : 215);
+      doc.roundedRect(bx + 1, by, barW - 4, bh, 1, 1, 'F');
+      doc.setFontSize(6.5);
+      doc.setFont('helvetica', isPeak ? 'bold' : 'normal');
+      doc.setTextColor(isPeak ? 0 : 140, isPeak ? 140 : 160, isPeak ? 149 : 160);
+      doc.text(d.day.slice(0, 2), bx + barW / 2 - 2, y + barAreaH + 6);
+    });
+    y += barAreaH + 14;
+
+    // ── 2 columnas: estado pedidos + top productos ──
+    const colW = (W - 28 - 6) / 2;
+
+    // Estado pedidos
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(10, 26, 26);
+    doc.text('ESTADO DE PEDIDOS', 14, y);
+    doc.setFillColor(0, 178, 189);
+    doc.rect(14, y + 1.5, 30, 0.5, 'F');
+    y += 6;
+
+    const statusColors: Record<string, [number,number,number]> = {
+      pending: [251, 191, 36], paid: [16, 185, 129], shipped: [59, 130, 246],
+      delivered: [34, 197, 94], cancelled: [239, 68, 68],
+    };
+    const statusLabels: Record<string, string> = {
+      pending: 'Pendiente', paid: 'Pagado', shipped: 'Enviado', delivered: 'Entregado', cancelled: 'Cancelado',
+    };
+    const totalSt = Object.values(insightData.statusCount).reduce((a, v) => a + v, 0);
+    const entries = Object.entries(insightData.statusCount);
+
+    if (entries.length === 0) {
+      doc.setFontSize(8); doc.setTextColor(160, 170, 170);
+      doc.text('Sin pedidos registrados', 14, y + 5);
+      y += 12;
+    } else {
+      entries.forEach(([status, count], i) => {
+        const [r, g, b] = statusColors[status] || [150, 150, 150];
+        const pct = totalSt > 0 ? Math.round((count / totalSt) * 100) : 0;
+        const rowY = y + i * 10;
+        // dot
+        doc.setFillColor(r, g, b);
+        doc.circle(16, rowY + 2, 1.5, 'F');
+        // label
+        doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(60, 70, 70);
+        doc.text(statusLabels[status] || status, 20, rowY + 3.5);
+        // bar bg
+        doc.setFillColor(230, 235, 235);
+        doc.roundedRect(55, rowY, colW - 46, 5, 1, 1, 'F');
+        // bar fill
+        doc.setFillColor(r, g, b);
+        doc.roundedRect(55, rowY, Math.max(((pct / 100) * (colW - 46)), 1), 5, 1, 1, 'F');
+        // count + pct
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(10, 26, 26);
+        doc.text(`${count}  ${pct}%`, 55 + colW - 42, rowY + 3.8);
+      });
+      y += entries.length * 10 + 4;
+    }
+
+    // Top productos (columna derecha, misma Y de inicio)
+    const rightX = 14 + colW + 6;
+    let ryStart = y - (entries.length > 0 ? entries.length * 10 + 4 : 12);
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(10, 26, 26);
+    doc.text('TOP PRODUCTOS', rightX, ryStart - 6);
+    doc.setFillColor(245, 158, 11);
+    doc.rect(rightX, ryStart - 4.5, 24, 0.5, 'F');
+
+    const medals = ['🥇', '🥈', '🥉'];
+    insightData.topProducts.slice(0, 5).forEach((p, i) => {
+      const ry = ryStart + i * 11;
+      const isTop = i === 0;
+      doc.setFillColor(isTop ? 255 : 248, isTop ? 251 : 250, isTop ? 235 : 250);
+      doc.setDrawColor(isTop ? 253 : 220, isTop ? 230 : 230, isTop ? 138 : 230);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(rightX, ry, colW, 9, 1, 1, 'FD');
+      // rank
+      doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+      doc.setTextColor(isTop ? 180 : 100, isTop ? 120 : 120, isTop ? 0 : 120);
+      doc.text(String(i + 1), rightX + 3, ry + 6);
+      // name
+      doc.setFont('helvetica', 'normal'); doc.setTextColor(10, 26, 26);
+      const truncName = p.name.length > 22 ? p.name.slice(0, 22) + '…' : p.name;
+      doc.text(truncName, rightX + 9, ry + 6);
+      // value
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(isTop ? 146 : 10, isTop ? 100 : 26, isTop ? 0 : 26);
+      doc.text(fmtCOP(p.total), rightX + colW - 3, ry + 6, { align: 'right' });
+    });
+
+    // ── Métricas adicionales ──
+    y += 8;
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(10, 26, 26);
+    doc.text('MÉTRICAS CLAVE', 14, y);
+    doc.setFillColor(0, 178, 189); doc.rect(14, y + 1.5, 25, 0.5, 'F');
+    y += 7;
+
+    const metricRows = [
+      ['Días activos este mes', String(insightData.activeDays)],
+      ['Pedidos completados', String(insightData.completedOrders)],
+      ['Día pico de ventas', insightData.peakDay],
+      ['Productos en catálogo', String(products.length)],
+      ['Productos con stock crítico', String(lowStockProducts.length)],
+    ];
+    const mColW = (W - 28 - 6) / 3;
+    metricRows.forEach((row, i) => {
+      const mx = 14 + (i % 3) * (mColW + 3);
+      const my = y + Math.floor(i / 3) * 14;
+      doc.setFillColor(248, 250, 250); doc.setDrawColor(220, 230, 230); doc.setLineWidth(0.3);
+      doc.roundedRect(mx, my, mColW, 12, 1.5, 1.5, 'FD');
+      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(120, 140, 140);
+      doc.text(row[0], mx + 3, my + 5);
+      doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(10, 26, 26);
+      doc.text(row[1], mx + 3, my + 10.5);
+    });
+    y += Math.ceil(metricRows.length / 3) * 14 + 6;
+
+    // ── Insight ejecutivo ──
+    doc.setFillColor(232, 250, 249);
+    doc.setDrawColor(0, 178, 189);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(14, y, W - 28, 22, 2, 2, 'FD');
+    doc.setFillColor(0, 178, 189);
+    doc.rect(14, y, 3, 22, 'F');
+    doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(0, 140, 149);
+    doc.text('INSIGHT EJECUTIVO', 21, y + 6);
+    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(40, 60, 60);
+    const insightText = insightData.successRate >= 70
+      ? `Tu operación tiene una tasa de éxito del ${insightData.successRate}% — excelente. Tu día más activo es el ${insightData.peakDay} y el ticket promedio es de ${fmtCOP(insightData.avgTicket)}.`
+      : insightData.totalOrders === 0
+      ? 'Aún no hay ventas registradas. Registra tu primera orden para comenzar a ver análisis completos.'
+      : `Tasa de éxito del ${insightData.successRate}%. Tu día más activo es el ${insightData.peakDay}. Revisa los pedidos cancelados para identificar áreas de mejora.`;
+    const lines = doc.splitTextToSize(insightText, W - 40);
+    doc.text(lines, 21, y + 12);
+    y += 28;
+
+    // ── Footer ──
+    doc.setFillColor(10, 26, 26);
+    doc.rect(0, H - 14, W, 14, 'F');
+    doc.setFillColor(0, 178, 189);
+    doc.rect(0, H - 14, 4, 14, 'F');
+    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(150, 180, 180);
+    doc.text('Reporte generado por Bayup · bayup.co', 10, H - 6);
+    doc.setTextColor(100, 130, 130);
+    doc.text(`Página 1 de 1  ·  ${now.toLocaleDateString('es-CO')}`, W - 14, H - 6, { align: 'right' });
+
+    doc.save(`bayup-analisis-${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}.pdf`);
+    showToast('Reporte PDF generado exitosamente', 'success');
   };
 
   return (
@@ -811,14 +1069,27 @@ export default function DashboardPage() {
             </div>
         </PremiumCard>
 
-        {/* ── MODAL 1: META DEL MES ── */}
+        {/* ── MODALES FLOTANTES — renderizados en document.body para evitar problemas de stacking context ── */}
+        {mounted && createPortal(<>
         <AnimatePresence>
-          {openInsight === 'meta' && (
+          {openInsight === 'meta' && (() => {
+            const { channelTotals } = insightData;
+            const totalAllChannels = insightData.monthlyTotal;
+            const goalWithChannels = insightData.goal;
+            const goalPctAll = goalWithChannels > 0 ? Math.min(Math.round((totalAllChannels / goalWithChannels) * 100), 100) : 0;
+            const totalOrders = insightData.monthOrders.length;
+            const avgTicket = totalOrders > 0 ? totalAllChannels / totalOrders : 0;
+            const netMargin = totalAllChannels - monthlyExpensesTotal;
+            const marginPct = totalAllChannels > 0 ? Math.round((netMargin / totalAllChannels) * 100) : 0;
+            const recommendedNext = Math.round(totalAllChannels > 0 ? totalAllChannels * 1.2 : insightData.goal * 1.1);
+            const dailyNeededAll = insightData.daysLeft > 0 ? Math.max(0, (goalWithChannels - totalAllChannels) / insightData.daysLeft) : 0;
+            const fmtCOP = (v: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
+            return (
             <>
               <motion.div
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="fixed inset-0 bg-black/90 backdrop-blur-md z-[300]"
+                className="fixed inset-0 bg-[#0A1A1A]/50 backdrop-blur-sm z-[300]"
                 onClick={() => setOpenInsight(null)}
               />
               <motion.div
@@ -828,559 +1099,957 @@ export default function DashboardPage() {
                 transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
                 className="fixed inset-0 flex items-center justify-center z-[301] p-4 pointer-events-none"
               >
-                <div className="pointer-events-auto w-full max-w-sm bg-[#0e0e0e] border border-white/[0.08] rounded-[1.25rem] shadow-[0_30px_80px_rgba(0,0,0,0.8)] max-h-[88vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
-                  <div className="flex-1 overflow-y-auto">
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-5 pt-5 pb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-11 w-11 rounded-xl bg-rose-500/20 border border-rose-500/20 flex items-center justify-center shrink-0">
-                          <Target size={19} className="text-rose-400" />
+                <div className="pointer-events-auto w-full max-w-2xl bg-white rounded-2xl shadow-[0_24px_80px_rgba(10,26,26,0.22)] max-h-[88vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+
+                  {/* ── HEADER OSCURO — ocupa todo el tope, sin línea suelta ── */}
+                  <div className="bg-gradient-to-br from-[#0A1A1A] to-[#0f2828] px-6 pt-5 pb-5 shrink-0">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <div className="h-6 w-6 rounded-lg bg-[#00b2bd]/20 flex items-center justify-center">
+                            <Target size={13} className="text-[#00b2bd]" />
+                          </div>
+                          <h3 className="text-[18px] font-black text-white leading-none">Meta del mes</h3>
                         </div>
-                        <div>
-                          <h3 className="text-[17px] font-black text-white leading-tight">Meta del mes</h3>
-                          <p className="text-[9px] text-rose-400 font-bold uppercase tracking-widest mt-0.5">
-                            SEGUIMIENTO · {insightData.activeDays} DÍAS ACTIVOS
-                          </p>
-                        </div>
+                        <p className="text-[9px] text-[#00b2bd] font-bold uppercase tracking-widest ml-8">
+                          {new Date().toLocaleDateString('es-CO',{month:'long',year:'numeric'}).toUpperCase()} · {insightData.activeDays} DÍAS ACTIVOS
+                        </p>
                       </div>
-                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/[0.06] hover:bg-white/10 flex items-center justify-center transition-colors shrink-0">
-                        <X size={14} className="text-white/50" />
+                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors shrink-0">
+                        <X size={14} className="text-white/60" />
                       </button>
                     </div>
-                    {/* Ring + Stats */}
-                    <div className="flex items-center gap-4 px-5 pb-4">
-                      <div className="relative h-[105px] w-[105px] shrink-0">
+                    {/* Progress row */}
+                    <div className="flex items-center gap-5">
+                      {/* Arc */}
+                      <div className="relative h-[90px] w-[90px] shrink-0">
                         <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                          <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10"/>
-                          <circle cx="50" cy="50" r="40" fill="none" stroke="url(#roseGM1)" strokeWidth="10" strokeLinecap="round"
-                            strokeDasharray={`${2 * Math.PI * 40 * Math.min(insightData.goalPct, 100) / 100} ${2 * Math.PI * 40}`}
+                          <circle cx="50" cy="50" r="38" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="11"/>
+                          <circle cx="50" cy="50" r="38" fill="none" stroke="url(#tealArcM1)" strokeWidth="11" strokeLinecap="round"
+                            strokeDasharray={`${2 * Math.PI * 38 * goalPctAll / 100} ${2 * Math.PI * 38}`}
                           />
-                          <defs>
-                            <linearGradient id="roseGM1" x1="0" y1="0" x2="1" y2="1">
-                              <stop offset="0%" stopColor="#fb7185"/><stop offset="100%" stopColor="#f43f5e"/>
-                            </linearGradient>
-                          </defs>
+                          <defs><linearGradient id="tealArcM1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#00b2bd"/><stop offset="100%" stopColor="#00e5f0"/></linearGradient></defs>
                         </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-[1.85rem] font-black text-white leading-none">{insightData.goalPct}%</span>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-[1.45rem] font-black text-white leading-none">{goalPctAll}%</span>
+                          <span className="text-[7px] text-white/40 font-bold mt-0.5 uppercase tracking-widest">Meta</span>
                         </div>
                       </div>
-                      <div className="flex-1 space-y-2.5">
-                        {[
-                          { label: 'Acumulado', value: insightData.fmt(insightData.monthlyTotal), color: 'text-white', editable: false },
-                          { label: 'Meta mensual', value: insightData.fmt(insightData.goal), color: 'text-rose-400', editable: true },
-                          { label: 'Días restantes', value: `${insightData.daysLeft}d`, color: 'text-white/55', editable: false },
-                          { label: 'Necesario / día', value: insightData.dailyNeeded > 0 ? insightData.fmt(insightData.dailyNeeded) : '—', color: 'text-amber-400', editable: false },
-                        ].map((s, i) => (
-                          <div key={i} className="flex items-center justify-between">
-                            <span className="text-[11px] text-white/35 font-medium">{s.label}</span>
-                            {s.editable && editingGoal ? (
-                              <div className="flex items-center gap-1.5">
-                                <input
-                                  type="number"
-                                  value={goalInput}
-                                  onChange={e => setGoalInput(e.target.value)}
-                                  className="w-24 bg-rose-500/10 border border-rose-500/30 rounded-lg px-2 py-0.5 text-[12px] font-bold text-rose-300 outline-none text-right"
+                      {/* 4 stats */}
+                      <div className="flex-1 grid grid-cols-4 gap-3">
+                        <div>
+                          <p className="text-[8px] text-white/40 uppercase tracking-widest font-semibold mb-0.5">Total facturado</p>
+                          <p className="text-[1.2rem] font-black text-white leading-tight">{insightData.fmt(totalAllChannels)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[8px] text-white/40 uppercase tracking-widest font-semibold mb-0.5">Meta mensual</p>
+                          <div className="flex items-center gap-1">
+                            {editingGoal ? (
+                              <>
+                                <input type="text" inputMode="numeric" value={goalInput}
+                                  onChange={e => {
+                                    const raw = e.target.value.replace(/\./g,'').replace(/[^\d]/g,'');
+                                    setGoalInput(raw ? Number(raw).toLocaleString('es-CO') : '');
+                                  }}
+                                  className="w-28 bg-white/10 border border-white/20 rounded-lg px-2 py-0.5 text-[11px] font-bold text-white outline-none text-right"
                                   autoFocus
-                                  onKeyDown={e => {
-                                    if (e.key === 'Enter') {
-                                      const val = Number(String(goalInput).replace(/\D/g,''));
-                                      if (val > 0) { setMonthlyGoal(val); localStorage.setItem('bayup_monthly_goal', String(val)); }
-                                      setEditingGoal(false); setGoalInput('');
-                                    }
-                                    if (e.key === 'Escape') { setEditingGoal(false); setGoalInput(''); }
+                                  onKeyDown={e=>{
+                                    if(e.key==='Enter'){const v=Number(String(goalInput).replace(/\./g,'').replace(/[^\d]/g,''));if(v>0){setMonthlyGoal(v);localStorage.setItem('bayup_monthly_goal',String(v));}setEditingGoal(false);setGoalInput('');}
+                                    if(e.key==='Escape'){setEditingGoal(false);setGoalInput('');}
                                   }}
                                 />
-                                <button onClick={() => {
-                                  const val = Number(String(goalInput).replace(/\D/g,''));
-                                  if (val > 0) { setMonthlyGoal(val); localStorage.setItem('bayup_monthly_goal', String(val)); }
-                                  setEditingGoal(false); setGoalInput('');
-                                }} className="text-[10px] font-bold text-rose-400 hover:text-rose-300 shrink-0">OK</button>
-                                <button onClick={() => { setEditingGoal(false); setGoalInput(''); }} className="opacity-40 hover:opacity-80 shrink-0"><X size={11} className="text-white/50" /></button>
-                              </div>
+                                <button onClick={()=>{const v=Number(String(goalInput).replace(/\./g,'').replace(/[^\d]/g,''));if(v>0){setMonthlyGoal(v);localStorage.setItem('bayup_monthly_goal',String(v));}setEditingGoal(false);setGoalInput('');}} className="text-[9px] font-black text-[#00b2bd]">OK</button>
+                              </>
                             ) : (
-                              <div className="flex items-center gap-1.5">
-                                <span className={`text-[13px] font-bold ${s.color}`}>{s.value}</span>
-                                {s.editable && (
-                                  <button onClick={() => { setEditingGoal(true); setGoalInput(String(Math.round(insightData.goal))); }} className="opacity-30 hover:opacity-70 transition-opacity">
-                                    <Edit3 size={10} className="text-rose-400" />
-                                  </button>
-                                )}
-                                {s.editable && monthlyGoal > 0 && !editingGoal && (
-                                  <button onClick={() => { setMonthlyGoal(0); localStorage.removeItem('bayup_monthly_goal'); }} className="opacity-25 hover:opacity-60 transition-opacity">
-                                    <RefreshCw size={9} className="text-white/60" />
-                                  </button>
-                                )}
-                              </div>
+                              <>
+                                <p className="text-[1.2rem] font-black text-[#00b2bd] leading-tight">{insightData.fmt(goalWithChannels)}</p>
+                                <button onClick={()=>{setEditingGoal(true);setGoalInput(Math.round(goalWithChannels).toLocaleString('es-CO'));}} className="opacity-40 hover:opacity-80"><Edit3 size={9} className="text-white"/></button>
+                              </>
                             )}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                    {/* Info box */}
-                    <div className="mx-5 mb-4 bg-white/[0.04] border border-white/[0.06] rounded-2xl px-4 py-3">
-                      <p className="text-[11px] text-white/40 leading-relaxed">
-                        Llevas {insightData.activeDays} días activos y acumulaste el{' '}
-                        <span className="text-white/65 font-semibold">{insightData.goalPct}%</span> de tu meta.
-                        {insightData.projectedPct > 0 && <> A este ritmo cerrarás en ~<span className="text-white/65 font-semibold">{insightData.projectedPct}%</span>.</>}
-                        {insightData.dailyNeeded > 0 && <> Sube tu venta diaria a <span className="text-amber-400 font-semibold">{insightData.fmt(insightData.dailyNeeded)}</span> para llegar a tiempo.</>}
-                      </p>
-                    </div>
-                    {/* Orders */}
-                    <div className="px-5 mb-3">
-                      <p className="text-[9px] text-white/25 uppercase tracking-widest font-semibold mb-2">
-                        PEDIDOS DEL MES · {insightData.monthOrders.length}
-                      </p>
-                      <div className="max-h-40 overflow-y-auto">
-                        {insightData.monthOrders.length === 0 ? (
-                          <p className="text-[11px] text-white/20 py-4 text-center">Sin pedidos este mes</p>
-                        ) : insightData.monthOrders.slice(0, 10).map((o: any, i: number) => {
-                          const dot: Record<string, string> = { pending: 'bg-amber-400', paid: 'bg-emerald-400', shipped: 'bg-blue-400', delivered: 'bg-green-400', cancelled: 'bg-rose-400' };
-                          return (
-                            <div key={i} className="flex items-center gap-2.5 py-2.5 border-b border-white/[0.04]">
-                              <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot[o.status || 'pending'] || 'bg-white/20'}`} />
-                              <span className="text-[11px] text-white/40 font-mono">#{String(o.id || i+1).slice(-7).toUpperCase()}</span>
-                              <span className="text-[11px] text-white/25">· {new Date(o.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}</span>
-                              <span className="flex-1 text-right text-[12px] font-semibold text-white/65">{insightData.fmt(o.total_price || 0)}</span>
-                            </div>
-                          );
-                        })}
+                        </div>
+                        <div>
+                          <p className="text-[8px] text-white/40 uppercase tracking-widest font-semibold mb-0.5">Días restantes</p>
+                          <p className="text-[1.2rem] font-black text-amber-400 leading-tight">{insightData.daysLeft}d</p>
+                        </div>
+                        <div>
+                          <p className="text-[8px] text-white/40 uppercase tracking-widest font-semibold mb-0.5">Necesario/día</p>
+                          <p className="text-[1.2rem] font-black text-amber-400 leading-tight">{dailyNeededAll > 0 ? insightData.fmt(dailyNeededAll) : '—'}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
+
+                  <div className="flex-1 overflow-y-auto">
+                    {/* Canales + Métricas — 2 columnas iguales */}
+                    <div className="px-6 pt-5 pb-4 grid grid-cols-2 gap-5">
+
+                      {/* Canales de venta — solo lectura, datos reales */}
+                      <div>
+                        <p className="text-[9px] text-gray-400 uppercase tracking-widest font-black mb-3">Facturado por canal</p>
+                        <div className="space-y-2">
+                          {([
+                            { icon: <Globe size={13}/>, label: 'Página web', value: channelTotals.web, dot: 'bg-blue-400' },
+                            { icon: <Store size={13}/>, label: 'Tienda física', value: channelTotals.pos, dot: 'bg-emerald-400' },
+                            { icon: <Smartphone size={13}/>, label: 'Redes sociales', value: channelTotals.redes, dot: 'bg-purple-400' },
+                            { icon: <MessageSquare size={13}/>, label: 'WhatsApp', value: channelTotals.whatsapp, dot: 'bg-green-400' },
+                          ]).map((ch, i) => (
+                            <div key={i} className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-xl px-3.5 py-2.5">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className={`h-2 w-2 rounded-full shrink-0 ${ch.dot}`}/>
+                                <span className="text-[11px] text-gray-600 font-medium truncate">{ch.label}</span>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-[12px] font-black text-[#0A1A1A]">{fmtCOP(ch.value)}</span>
+                                {totalAllChannels > 0 && <span className="text-[9px] text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5 font-semibold">{Math.round((ch.value/totalAllChannels)*100)}%</span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Métricas clave */}
+                      <div>
+                        <p className="text-[9px] text-gray-400 uppercase tracking-widest font-black mb-3">Métricas clave</p>
+                        <div className="space-y-2">
+                          <div className="bg-gray-50 border border-gray-100 rounded-xl px-3.5 py-2.5 flex items-center justify-between">
+                            <span className="text-[11px] text-gray-600 font-medium">Ticket promedio</span>
+                            <span className="text-[12px] font-black text-[#0A1A1A]">{avgTicket > 0 ? fmtCOP(avgTicket) : '—'}</span>
+                          </div>
+                          <div className="bg-gray-50 border border-gray-100 rounded-xl px-3.5 py-2.5 flex items-center justify-between">
+                            <span className="text-[11px] text-gray-600 font-medium">Pedidos del mes</span>
+                            <span className="text-[12px] font-black text-[#0A1A1A]">{totalOrders}</span>
+                          </div>
+                          <div className={`border rounded-xl px-3.5 py-2.5 flex items-center justify-between ${monthlyExpensesTotal > 0 ? (netMargin >= 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100') : 'bg-gray-50 border-gray-100'}`}>
+                            <div className="flex items-center gap-1.5">
+                              <Wallet size={11} className={monthlyExpensesTotal > 0 ? (netMargin >= 0 ? 'text-emerald-500' : 'text-red-400') : 'text-gray-400'}/>
+                              <span className="text-[11px] text-gray-600 font-medium">Gastos del mes</span>
+                            </div>
+                            <span className={`text-[12px] font-black ${monthlyExpensesTotal > 0 ? (netMargin >= 0 ? 'text-emerald-600' : 'text-red-500') : 'text-gray-400'}`}>
+                              {monthlyExpensesTotal > 0 ? fmtCOP(monthlyExpensesTotal) : 'Sin gastos'}
+                            </span>
+                          </div>
+                          {monthlyExpensesTotal > 0 && (
+                            <div className={`border rounded-xl px-3.5 py-2.5 flex items-center justify-between ${netMargin >= 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
+                              <span className="text-[11px] text-gray-600 font-medium">Margen neto est.</span>
+                              <div className="text-right">
+                                <p className={`text-[12px] font-black ${netMargin >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{fmtCOP(netMargin)}</p>
+                                <p className={`text-[9px] font-bold ${netMargin >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{marginPct}% s/ ventas</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Recomendación próximo mes */}
+                    <div className="mx-6 mb-5 bg-[#f0fafb] border border-[#00b2bd]/20 rounded-xl px-5 py-4 flex items-start gap-4">
+                      <div className="h-9 w-9 rounded-xl bg-[#00b2bd]/15 flex items-center justify-center shrink-0">
+                        <Sparkles size={15} className="text-[#00b2bd]" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Recomendación para el próximo mes</p>
+                        <p className="text-[1.3rem] font-black text-[#00b2bd] leading-none mb-1.5">{fmtCOP(recommendedNext)}</p>
+                        <p className="text-[11px] text-gray-500 leading-relaxed">
+                          {totalAllChannels > 0
+                            ? `+20% sobre tu facturación actual de ${fmtCOP(totalAllChannels)}.${avgTicket > 0 ? ` Con tu ticket promedio necesitarías ~${Math.ceil(recommendedNext / avgTicket)} pedidos.` : ''}`
+                            : 'Registra ventas este mes para recibir una recomendación personalizada basada en tu historial.'}
+                        </p>
+                        {totalAllChannels > 0 && (
+                          <button onClick={()=>{setMonthlyGoal(recommendedNext);localStorage.setItem('bayup_monthly_goal',String(recommendedNext));}}
+                            className="mt-2 text-[10px] font-black text-[#00b2bd] border border-[#00b2bd]/30 bg-[#00b2bd]/10 hover:bg-[#00b2bd]/20 rounded-full px-3 py-1 transition-colors">
+                            Aplicar esta meta →
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
                   {/* CTAs */}
-                  <div className="px-4 py-4 shrink-0 flex gap-2.5">
-                    <button
-                      onClick={() => { setEditingGoal(true); setGoalInput(String(Math.round(insightData.goal))); }}
-                      className="flex-1 h-12 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 text-white text-[13px] font-black flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-lg shadow-rose-500/20"
-                    >
-                      <Edit3 size={14} />
-                      Ajustar meta
+                  <div className="px-5 py-4 shrink-0 flex gap-3 border-t border-gray-100">
+                    <button onClick={()=>{setEditingGoal(true);setGoalInput(Math.round(goalWithChannels).toLocaleString('es-CO'));}}
+                      className="flex-1 h-11 rounded-xl bg-[#0A1A1A] text-white text-[13px] font-black flex items-center justify-center gap-2 hover:bg-[#1a2e2e] transition-colors">
+                      <Target size={14}/> Ajustar meta
                     </button>
-                    <button
-                      onClick={() => { setOpenInsight(null); router.push('/dashboard/orders'); }}
-                      className="h-12 px-4 rounded-2xl bg-white/[0.06] border border-white/[0.08] text-white/50 text-[13px] font-semibold flex items-center gap-1.5 hover:bg-white/10 transition-colors whitespace-nowrap"
-                    >
-                      Ver pedidos <ChevronRight size={14} />
+                    <button onClick={()=>{setOpenInsight(null);router.push('/dashboard/orders');}}
+                      className="h-11 px-5 rounded-xl bg-gray-100 border border-gray-200 text-gray-600 text-[13px] font-semibold flex items-center gap-1.5 hover:bg-gray-200 transition-colors whitespace-nowrap">
+                      Ver pedidos <ChevronRight size={14}/>
                     </button>
                   </div>
                 </div>
               </motion.div>
             </>
-          )}
+            );
+          })()}
         </AnimatePresence>
 
         {/* ── MODAL 2: PRODUCTO LÍDER DEL MES ── */}
         <AnimatePresence>
-          {openInsight === 'producto' && (
+          {openInsight === 'producto' && (() => {
+            const top = insightData.topProducts[0];
+            const totalRev = insightData.totalRevenue;
+            const avgPricePerUnit = top && top.units > 0 ? top.total / top.units : 0;
+            const fmtCOP = (v: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v);
+
+            // Top productos por canal (usando monthOrders)
+            const buildChannelRanking = (sources: string[]) => {
+              const map: Record<string, { name: string; total: number; units: number }> = {};
+              insightData.monthOrders
+                .filter(o => sources.includes(o.source || 'pos'))
+                .forEach((o: any) => {
+                  (o.items || o.order_items || []).forEach((item: any) => {
+                    const key = item.product_id || item.product_name || 'Unknown';
+                    const name = item.product_name || item.name || 'Producto';
+                    if (!map[key]) map[key] = { name, total: 0, units: 0 };
+                    map[key].total += item.total_price || (item.unit_price * (item.quantity || 1)) || 0;
+                    map[key].units += item.quantity || 1;
+                  });
+                });
+              return Object.values(map).sort((a, b) => b.units - a.units).slice(0, 4);
+            };
+            const webTop = buildChannelRanking(['web']);
+            const posTop = buildChannelRanking(['pos', '']);
+
+            return (
             <>
               <motion.div
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="fixed inset-0 bg-black/90 backdrop-blur-md z-[300]"
+                className="fixed inset-0 bg-[#0A1A1A]/60 backdrop-blur-sm z-[300]"
                 onClick={() => setOpenInsight(null)}
               />
               <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 30 }}
-                transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
+                initial={{ opacity: 0, scale: 0.97, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.97, y: 20 }}
+                transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
                 className="fixed inset-0 flex items-center justify-center z-[301] p-4 pointer-events-none"
               >
-                <div className="pointer-events-auto w-full max-w-sm bg-[#0e0e0e] border border-white/[0.08] rounded-[1.25rem] shadow-[0_30px_80px_rgba(0,0,0,0.8)] max-h-[88vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
-                  <div className="flex-1 overflow-y-auto">
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-5 pt-5 pb-4">
+                <div className="pointer-events-auto w-full max-w-4xl bg-white rounded-3xl shadow-[0_32px_100px_rgba(10,26,26,0.28)] max-h-[92vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+
+                  {/* ── HEADER OSCURO ── */}
+                  <div className="bg-gradient-to-br from-[#0A1A1A] via-[#12100a] to-[#1a1200] px-8 pt-6 pb-6 shrink-0">
+                    <div className="flex items-center justify-between mb-5">
                       <div className="flex items-center gap-3">
-                        <div className="h-11 w-11 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center shrink-0">
-                          <Trophy size={19} className="text-amber-400" />
+                        <div className="h-9 w-9 rounded-xl bg-amber-400/15 border border-amber-400/25 flex items-center justify-center">
+                          <Trophy size={16} className="text-amber-400" />
                         </div>
                         <div>
-                          <h3 className="text-[17px] font-black text-white leading-tight">Producto líder</h3>
-                          <p className="text-[9px] text-amber-400 font-bold uppercase tracking-widest mt-0.5">
-                            DESTACADO · TOP VENTAS
+                          <h3 className="text-[20px] font-black text-white leading-none tracking-tight">Producto líder del mes</h3>
+                          <p className="text-[9px] text-amber-400/80 font-bold uppercase tracking-widest mt-0.5">
+                            {new Date().toLocaleDateString('es-CO',{month:'long',year:'numeric'}).toUpperCase()} · ANÁLISIS DE VENTAS
                           </p>
                         </div>
                       </div>
-                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/[0.06] hover:bg-white/10 flex items-center justify-center transition-colors shrink-0">
-                        <X size={14} className="text-white/50" />
+                      <button onClick={() => setOpenInsight(null)} className="h-9 w-9 rounded-full bg-white/8 hover:bg-white/15 border border-white/10 flex items-center justify-center transition-all shrink-0">
+                        <X size={15} className="text-white/50" />
                       </button>
                     </div>
+
                     {insightData.topProducts.length === 0 ? (
-                      <div className="py-14 text-center px-5">
-                        <Trophy size={36} className="text-amber-400/20 mx-auto mb-3" />
-                        <p className="text-white/30 text-sm font-semibold">Sin ventas registradas aún</p>
-                        <p className="text-white/20 text-xs mt-1">Registra tu primera venta para ver el ranking.</p>
+                      <div className="py-8 text-center">
+                        <Trophy size={32} className="text-amber-400/20 mx-auto mb-3" />
+                        <p className="text-white/40 text-sm font-semibold">Sin ventas registradas aún</p>
+                        <p className="text-white/25 text-xs mt-1">Registra tu primera venta para ver el ranking.</p>
                       </div>
                     ) : (
-                      <>
-                        {/* Hero card */}
-                        <div className="mx-5 mb-4 relative bg-gradient-to-br from-amber-500/10 to-amber-500/[0.04] border border-amber-500/20 rounded-2xl p-4 overflow-hidden">
-                          <div className="absolute top-2 right-3 text-[5rem] font-black text-amber-400/[0.06] leading-none select-none pointer-events-none">1</div>
-                          <div className="relative">
-                            <p className="text-[9px] text-amber-400/60 uppercase tracking-widest font-bold mb-1">Producto estrella</p>
-                            <p className="text-[15px] font-black text-white leading-tight mb-3">{insightData.topProducts[0].name}</p>
-                            <div className="grid grid-cols-3 gap-2">
-                              {[
-                                { label: 'Ingresos', value: insightData.fmt(insightData.topProducts[0].total) },
-                                { label: 'Unidades', value: String(insightData.topProducts[0].units) },
-                                { label: '% del total', value: `${insightData.leaderSharePct}%` },
-                              ].map((s, i) => (
-                                <div key={i} className="bg-black/25 rounded-xl p-2 text-center border border-amber-500/10">
-                                  <p className="text-[8px] text-amber-400/40 uppercase tracking-widest font-semibold mb-0.5">{s.label}</p>
-                                  <p className="text-[11px] font-black text-amber-300">{s.value}</p>
-                                </div>
-                              ))}
-                            </div>
+                      <div className="grid grid-cols-5 gap-4 items-center">
+                        {/* Medalla */}
+                        <div className="relative h-[100px] flex items-center justify-center">
+                          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-amber-400/15 to-amber-600/5 border border-amber-400/20" />
+                          <div className="relative flex flex-col items-center gap-1">
+                            <span className="text-[3.2rem] leading-none">🥇</span>
+                            <span className="text-[7px] text-amber-400/60 font-black uppercase tracking-[0.15em]">#1 LÍDER</span>
                           </div>
                         </div>
-                        {/* Warning si precio $0 */}
-                        {insightData.topProducts[0].total === 0 && (
-                          <div className="mx-5 mb-4 bg-amber-500/[0.08] border border-amber-500/20 rounded-2xl px-4 py-3 flex items-start gap-2.5">
-                            <AlertCircle size={14} className="text-amber-400 shrink-0 mt-0.5" />
-                            <p className="text-[11px] text-amber-300/80 leading-relaxed">
-                              Este producto tiene precio en $0.{' '}
-                              <button onClick={() => { setOpenInsight(null); router.push('/dashboard/products'); }} className="text-amber-400 font-bold underline underline-offset-2">Configúralo</button>
-                              {' '}para que aparezca en tus estadísticas de ingresos.
-                            </p>
+                        {/* Nombre producto */}
+                        <div className="col-span-2 pl-2">
+                          <p className="text-[9px] text-white/35 uppercase tracking-widest font-semibold mb-1">Producto estrella del mes</p>
+                          <p className="text-[1.35rem] font-black text-white leading-tight">{top.name}</p>
+                          <div className="mt-2 flex items-center gap-2">
+                            <div className="h-1.5 flex-1 bg-white/10 rounded-full overflow-hidden">
+                              <div className="h-full bg-gradient-to-r from-amber-400 to-yellow-300 rounded-full" style={{width:`${insightData.leaderSharePct}%`}}/>
+                            </div>
+                            <span className="text-[10px] text-amber-400 font-black">{insightData.leaderSharePct}% del total</span>
                           </div>
-                        )}
-                        {/* Ranking */}
-                        {insightData.topProducts.length > 1 && (
-                          <div className="px-5 mb-4">
-                            <p className="text-[9px] text-white/25 uppercase tracking-widest font-semibold mb-2.5">TOP PRODUCTOS</p>
+                        </div>
+                        {/* Stats */}
+                        <div className="col-span-2 grid grid-cols-3 gap-3">
+                          {[
+                            { label: 'Ingresos', value: fmtCOP(top.total), accent: true },
+                            { label: 'Unidades', value: String(top.units), accent: false },
+                            { label: 'Precio prom.', value: avgPricePerUnit > 0 ? fmtCOP(avgPricePerUnit) : '—', accent: false },
+                          ].map((s, i) => (
+                            <div key={i} className={`rounded-xl p-3 text-center ${s.accent ? 'bg-amber-400/15 border border-amber-400/25' : 'bg-white/6 border border-white/8'}`}>
+                              <p className="text-[8px] text-white/35 uppercase tracking-widest font-semibold mb-1">{s.label}</p>
+                              <p className={`text-[12px] font-black leading-tight ${s.accent ? 'text-amber-300' : 'text-white'}`}>{s.value}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {insightData.topProducts.length > 0 && (
+                    <div className="flex-1 overflow-y-auto">
+
+                      {/* 3 columnas: ranking global + web + tienda */}
+                      <div className="px-8 pt-6 pb-5 grid grid-cols-3 gap-6">
+
+                        {/* Ranking global */}
+                        <div>
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="h-6 w-6 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center">
+                              <Trophy size={11} className="text-amber-500" />
+                            </div>
+                            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Ranking general</p>
+                          </div>
+                          <div className="space-y-2.5">
+                            {insightData.topProducts.slice(0, 5).map((p, i) => {
+                              const pct = top.total > 0 ? (p.total / top.total) * 100 : 0;
+                              const medals = ['🥇','🥈','🥉'];
+                              const barColor = i === 0 ? 'bg-amber-400' : i === 1 ? 'bg-gray-300' : 'bg-gray-200';
+                              return (
+                                <div key={i} className={`rounded-xl px-3.5 py-3 ${i === 0 ? 'bg-amber-50 border border-amber-100' : 'bg-gray-50 border border-gray-100'}`}>
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-base leading-none shrink-0">
+                                      {i < 3 ? medals[i] : <span className="text-[10px] text-gray-400 font-black w-5 inline-block text-center">{i+1}</span>}
+                                    </span>
+                                    <span className={`flex-1 text-[11px] font-semibold truncate ${i === 0 ? 'text-amber-800' : 'text-gray-700'}`}>{p.name}</span>
+                                    <span className="text-[9px] text-gray-400 shrink-0">{p.units}u</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden">
+                                      <motion.div initial={{width:0}} animate={{width:`${pct}%`}} transition={{duration:0.55,ease:'easeOut',delay:i*0.06}}
+                                        className={`h-full rounded-full ${barColor}`}/>
+                                    </div>
+                                    <span className={`text-[11px] font-black shrink-0 ${i === 0 ? 'text-amber-700' : 'text-[#0A1A1A]'}`}>{fmtCOP(p.total)}</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Top Página Web */}
+                        <div>
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="h-6 w-6 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center">
+                              <Globe size={11} className="text-blue-500" />
+                            </div>
+                            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Página web</p>
+                          </div>
+                          {webTop.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-10 rounded-2xl bg-gray-50 border border-dashed border-gray-200">
+                              <Globe size={22} className="text-gray-200 mb-2" />
+                              <p className="text-[11px] text-gray-400 font-medium text-center">Sin ventas web<br/>este mes</p>
+                            </div>
+                          ) : (
                             <div className="space-y-2.5">
-                              {insightData.topProducts.slice(0, 6).map((p, i) => {
-                                const pct = insightData.topProducts[0]?.total > 0 ? (p.total / insightData.topProducts[0].total) * 100 : 0;
+                              {webTop.map((p, i) => {
+                                const pct = webTop[0].units > 0 ? (p.units / webTop[0].units) * 100 : 0;
                                 const medals = ['🥇','🥈','🥉'];
                                 return (
-                                  <div key={i} className="space-y-1">
-                                    <div className="flex items-center gap-2">
-                                      <span className="w-5 shrink-0 text-center text-sm leading-none">{i < 3 ? medals[i] : <span className="text-[10px] text-white/20 font-mono">{i+1}</span>}</span>
-                                      <span className="flex-1 text-[12px] text-white/65 font-semibold truncate">{p.name}</span>
-                                      <span className="text-[11px] font-bold text-white/75 shrink-0">{insightData.fmt(p.total)}</span>
-                                      <span className="text-[9px] text-white/25 shrink-0 w-6 text-right">{p.units}u</span>
+                                  <div key={i} className={`rounded-xl px-3.5 py-3 ${i === 0 ? 'bg-blue-50 border border-blue-100' : 'bg-gray-50 border border-gray-100'}`}>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="text-base leading-none shrink-0">
+                                        {i < 3 ? medals[i] : <span className="text-[10px] text-gray-400 font-black">{i+1}</span>}
+                                      </span>
+                                      <span className={`flex-1 text-[11px] font-semibold truncate ${i === 0 ? 'text-blue-800' : 'text-gray-700'}`}>{p.name}</span>
                                     </div>
-                                    <div className="ml-7 h-1 bg-white/[0.05] rounded-full overflow-hidden">
-                                      <motion.div
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${pct}%` }}
-                                        transition={{ duration: 0.55, ease: 'easeOut', delay: i * 0.05 }}
-                                        className={`h-full rounded-full ${i === 0 ? 'bg-gradient-to-r from-amber-400 to-yellow-400' : i === 1 ? 'bg-white/30' : i === 2 ? 'bg-white/20' : 'bg-white/10'}`}
-                                      />
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden">
+                                        <motion.div initial={{width:0}} animate={{width:`${pct}%`}} transition={{duration:0.55,ease:'easeOut',delay:i*0.06}}
+                                          className={`h-full rounded-full ${i === 0 ? 'bg-blue-400' : 'bg-gray-300'}`}/>
+                                      </div>
+                                      <span className="text-[10px] text-gray-500 shrink-0 font-semibold">{p.units} uds</span>
                                     </div>
                                   </div>
                                 );
                               })}
                             </div>
+                          )}
+                        </div>
+
+                        {/* Top Tienda Física */}
+                        <div>
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="h-6 w-6 rounded-lg bg-[#e8faf9] border border-[#00b2bd]/30 flex items-center justify-center">
+                              <Store size={11} className="text-[#00b2bd]" />
+                            </div>
+                            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Tienda física</p>
                           </div>
-                        )}
-                      </>
-                    )}
-                  </div>
+                          {posTop.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-10 rounded-2xl bg-gray-50 border border-dashed border-gray-200">
+                              <Store size={22} className="text-gray-200 mb-2" />
+                              <p className="text-[11px] text-gray-400 font-medium text-center">Sin ventas POS<br/>este mes</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2.5">
+                              {posTop.map((p, i) => {
+                                const pct = posTop[0].units > 0 ? (p.units / posTop[0].units) * 100 : 0;
+                                const medals = ['🥇','🥈','🥉'];
+                                return (
+                                  <div key={i} className={`rounded-xl px-3.5 py-3 ${i === 0 ? 'bg-[#e8faf9] border border-[#00b2bd]/20' : 'bg-gray-50 border border-gray-100'}`}>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="text-base leading-none shrink-0">
+                                        {i < 3 ? medals[i] : <span className="text-[10px] text-gray-400 font-black">{i+1}</span>}
+                                      </span>
+                                      <span className={`flex-1 text-[11px] font-semibold truncate ${i === 0 ? 'text-[#006d73]' : 'text-gray-700'}`}>{p.name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden">
+                                        <motion.div initial={{width:0}} animate={{width:`${pct}%`}} transition={{duration:0.55,ease:'easeOut',delay:i*0.06}}
+                                          className={`h-full rounded-full ${i === 0 ? 'bg-[#00b2bd]' : 'bg-gray-300'}`}/>
+                                      </div>
+                                      <span className="text-[10px] text-gray-500 shrink-0 font-semibold">{p.units} uds</span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Insight box */}
+                      <div className="mx-8 mb-6 bg-gradient-to-r from-[#fffbf0] to-[#fffdf5] border border-amber-200/70 rounded-2xl px-5 py-4 flex items-start gap-4">
+                        <div className="h-9 w-9 rounded-xl bg-amber-100 border border-amber-200/60 flex items-center justify-center shrink-0">
+                          <Lightbulb size={15} className="text-amber-500" />
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest mb-1.5">Recomendación</p>
+                          <p className="text-[12px] text-gray-600 leading-relaxed">
+                            <span className="font-bold text-[#0A1A1A]">{top.name}</span> lidera con el{' '}
+                            <span className="text-amber-600 font-bold">{insightData.leaderSharePct}%</span> de tus ingresos totales.
+                            {insightData.topProducts.length >= 2 && <> El segundo lugar es <span className="font-semibold text-[#0A1A1A]">{insightData.topProducts[1].name}</span> con {fmtCOP(insightData.topProducts[1].total)}.</>}
+                            {insightData.leaderSharePct > 60
+                              ? ' Alta concentración en un solo producto — considera promocionar otros para diversificar el riesgo.'
+                              : insightData.leaderSharePct > 35
+                              ? ' Distribución saludable. Potencia el líder con bundles o combos para aumentar el ticket promedio.'
+                              : ' Excelente distribución entre productos. Tu catálogo está bien equilibrado.'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* CTAs */}
-                  <div className="px-4 py-4 shrink-0 flex gap-2.5">
-                    <button
-                      onClick={() => { setOpenInsight(null); router.push('/dashboard/products'); }}
-                      className="flex-1 h-12 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 text-[#0e0e0e] text-[13px] font-black flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-lg shadow-amber-500/20"
-                    >
-                      <Edit3 size={14} />
-                      Configurar precio
+                  <div className="px-8 py-5 shrink-0 flex gap-3 border-t border-gray-100">
+                    <button onClick={()=>{setOpenInsight(null);router.push('/dashboard/products');}}
+                      className="flex-1 h-12 rounded-2xl bg-[#0A1A1A] text-white text-[13px] font-black flex items-center justify-center gap-2 hover:bg-[#1a2e2e] transition-colors">
+                      <Package size={15}/> Ver todos los productos
                     </button>
-                    <button
-                      onClick={() => { setOpenInsight(null); router.push('/dashboard/products'); }}
-                      className="h-12 px-4 rounded-2xl bg-white/[0.06] border border-white/[0.08] text-white/50 text-[13px] font-semibold flex items-center gap-1.5 hover:bg-white/10 transition-colors whitespace-nowrap"
-                    >
-                      Promocionar <ChevronRight size={14} />
+                    <button onClick={()=>{setOpenInsight(null);router.push('/dashboard/orders');}}
+                      className="h-12 px-6 rounded-2xl bg-gray-100 border border-gray-200 text-gray-600 text-[13px] font-semibold flex items-center gap-2 hover:bg-gray-200 transition-colors whitespace-nowrap">
+                      Ver pedidos <ChevronRight size={14}/>
                     </button>
                   </div>
                 </div>
               </motion.div>
             </>
-          )}
+            );
+          })()}
         </AnimatePresence>
 
         {/* ── MODAL 3: STOCK CRÍTICO ── */}
         <AnimatePresence>
-          {openInsight === 'stock' && (
+          {openInsight === 'stock' && (() => {
+            const agotados = lowStockProducts.filter(p => p.stockLevel === 0);
+            const bajos = lowStockProducts.filter(p => p.stockLevel > 0 && p.stockLevel <= 3);
+            const totalProductos = products.length;
+            const pctAfectados = totalProductos > 0 ? Math.round((lowStockProducts.length / totalProductos) * 100) : 0;
+            const filtered = lowStockProducts.filter(p =>
+              stockFilter === 'all' ? true : stockFilter === 'urgent' ? p.stockLevel === 0 : p.stockLevel > 0
+            );
+            return (
             <>
               <motion.div
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="fixed inset-0 bg-black/90 backdrop-blur-md z-[300]"
+                className="fixed inset-0 bg-[#0A1A1A]/60 backdrop-blur-sm z-[300]"
                 onClick={() => setOpenInsight(null)}
               />
               <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 30 }}
-                transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
+                initial={{ opacity: 0, scale: 0.97, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.97, y: 20 }}
+                transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
                 className="fixed inset-0 flex items-center justify-center z-[301] p-4 pointer-events-none"
               >
-                <div className="pointer-events-auto w-full max-w-sm bg-[#0e0e0e] border border-white/[0.08] rounded-[1.25rem] shadow-[0_30px_80px_rgba(0,0,0,0.8)] max-h-[88vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
-                  <div className="flex-1 overflow-y-auto">
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-5 pt-5 pb-4">
+                <div className="pointer-events-auto w-full max-w-4xl bg-white rounded-3xl shadow-[0_32px_100px_rgba(10,26,26,0.28)] max-h-[92vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+
+                  {/* ── HEADER OSCURO ── */}
+                  <div className="bg-gradient-to-br from-[#0A1A1A] via-[#140a0a] to-[#1a0808] px-8 pt-6 pb-6 shrink-0">
+                    <div className="flex items-center justify-between mb-5">
                       <div className="flex items-center gap-3">
-                        <div className="h-11 w-11 rounded-xl bg-rose-500/15 border border-rose-500/20 flex items-center justify-center shrink-0">
-                          <AlertCircle size={19} className="text-rose-400" />
+                        <div className="h-9 w-9 rounded-xl bg-red-500/20 border border-red-400/30 flex items-center justify-center">
+                          <AlertCircle size={16} className="text-red-400" />
                         </div>
                         <div>
-                          <h3 className="text-[17px] font-black text-white leading-tight">Alerta de stock</h3>
-                          <p className="text-[9px] text-rose-400 font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1.5">
-                            <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse inline-block" />
-                            URGENTE · ACCIÓN REQUERIDA
+                          <h3 className="text-[20px] font-black text-white leading-none tracking-tight">Alerta de inventario</h3>
+                          <p className="text-[9px] font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1.5">
+                            <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse inline-block" />
+                            <span className="text-red-400/80">URGENTE · ACCIÓN REQUERIDA</span>
                           </p>
                         </div>
                       </div>
-                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/[0.06] hover:bg-white/10 flex items-center justify-center transition-colors shrink-0">
-                        <X size={14} className="text-white/50" />
+                      <button onClick={() => setOpenInsight(null)} className="h-9 w-9 rounded-full bg-white/8 hover:bg-white/15 border border-white/10 flex items-center justify-center transition-all shrink-0">
+                        <X size={15} className="text-white/50" />
                       </button>
                     </div>
-                    {/* Resumen 2 cajas */}
-                    {lowStockProducts.length > 0 && (() => {
-                      const agotados = lowStockProducts.filter(p => p.stockLevel === 0).length;
-                      const bajos = lowStockProducts.filter(p => p.stockLevel > 0).length;
-                      return (
-                        <div className="grid grid-cols-2 gap-2.5 px-5 mb-4">
-                          <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-3.5 text-center">
-                            <p className="text-[1.75rem] font-black text-rose-400 leading-none">{agotados}</p>
-                            <p className="text-[9px] text-rose-400/60 uppercase tracking-widest font-bold mt-1">Agotados</p>
-                          </div>
-                          <div className="bg-orange-500/[0.08] border border-orange-500/20 rounded-2xl p-3.5 text-center">
-                            <p className="text-[1.75rem] font-black text-orange-400 leading-none">{bajos}</p>
-                            <p className="text-[9px] text-orange-400/60 uppercase tracking-widest font-bold mt-1">Stock bajo</p>
-                          </div>
+
+                    {lowStockProducts.length === 0 ? (
+                      <div className="py-6 text-center">
+                        <CheckCircle2 size={28} className="text-emerald-400/40 mx-auto mb-2" />
+                        <p className="text-white/40 text-sm font-semibold">Inventario en niveles óptimos</p>
+                        <p className="text-white/25 text-xs mt-1">Todos tus productos tienen stock suficiente.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-4 gap-4">
+                        <div className="rounded-2xl bg-red-500/15 border border-red-400/25 p-4 text-center">
+                          <p className="text-[2.2rem] font-black text-red-400 leading-none">{agotados.length}</p>
+                          <p className="text-[8px] text-red-400/70 uppercase tracking-widest font-bold mt-1.5">Agotados</p>
                         </div>
-                      );
-                    })()}
-                    {/* Filter tabs */}
-                    <div className="flex gap-2 px-5 mb-3">
-                      {([
-                        { key: 'all' as const, label: 'Todos', count: lowStockProducts.length },
-                        { key: 'urgent' as const, label: 'Agotado', count: lowStockProducts.filter(p => p.stockLevel === 0).length },
-                        { key: 'low' as const, label: 'Stock bajo', count: lowStockProducts.filter(p => p.stockLevel > 0).length },
-                      ]).map(tab => (
-                        <button key={tab.key} onClick={() => setStockFilter(tab.key)}
-                          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border transition-all ${
-                            stockFilter === tab.key
-                              ? 'bg-rose-500/20 border-rose-500/30 text-rose-400'
-                              : 'bg-white/[0.03] border-white/[0.06] text-white/25 hover:text-white/40'
-                          }`}>
-                          {tab.label}
-                          <span className={`min-w-[16px] px-1 rounded-full text-[8px] font-black flex items-center justify-center ${stockFilter === tab.key ? 'bg-rose-500/30 text-rose-300' : 'bg-white/[0.05] text-white/20'}`}>{tab.count}</span>
-                        </button>
-                      ))}
-                    </div>
-                    {/* Product list */}
-                    <div className="px-5 pb-3">
-                      {lowStockProducts.length === 0 ? (
-                        <div className="py-10 text-center">
-                          <CheckCircle2 size={32} className="text-emerald-400/30 mx-auto mb-3" />
-                          <p className="text-white/30 text-sm font-semibold">Inventario en niveles óptimos</p>
+                        <div className="rounded-2xl bg-orange-400/15 border border-orange-400/25 p-4 text-center">
+                          <p className="text-[2.2rem] font-black text-orange-300 leading-none">{bajos.length}</p>
+                          <p className="text-[8px] text-orange-400/70 uppercase tracking-widest font-bold mt-1.5">Stock bajo</p>
                         </div>
-                      ) : (
-                        <div className="space-y-2 max-h-52 overflow-y-auto">
-                          {lowStockProducts
-                            .filter(p => stockFilter === 'all' ? true : stockFilter === 'urgent' ? p.stockLevel === 0 : p.stockLevel > 0)
-                            .map((p, i) => (
-                              <div key={i} className={`border rounded-2xl px-3.5 py-3 flex items-center gap-3 ${p.stockLevel === 0 ? 'bg-rose-500/[0.07] border-rose-500/20' : 'bg-orange-500/[0.05] border-orange-500/15'}`}>
+                        <div className="rounded-2xl bg-white/6 border border-white/10 p-4 text-center">
+                          <p className="text-[2.2rem] font-black text-white leading-none">{lowStockProducts.length}</p>
+                          <p className="text-[8px] text-white/35 uppercase tracking-widest font-bold mt-1.5">Total afectados</p>
+                        </div>
+                        <div className="rounded-2xl bg-white/6 border border-white/10 p-4 text-center">
+                          <p className="text-[2.2rem] font-black text-white leading-none">{pctAfectados}%</p>
+                          <p className="text-[8px] text-white/35 uppercase tracking-widest font-bold mt-1.5">Del catálogo</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {lowStockProducts.length > 0 && (
+                    <div className="flex-1 overflow-y-auto">
+                      <div className="px-8 pt-6 pb-4 grid grid-cols-2 gap-6">
+
+                        {/* Lista de productos afectados */}
+                        <div>
+                          {/* Filter tabs */}
+                          <div className="flex items-center gap-2 mb-4">
+                            {([
+                              { key: 'all' as const, label: 'Todos', count: lowStockProducts.length },
+                              { key: 'urgent' as const, label: 'Agotados', count: agotados.length },
+                              { key: 'low' as const, label: 'Stock bajo', count: bajos.length },
+                            ]).map(tab => (
+                              <button key={tab.key} onClick={() => setStockFilter(tab.key)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border transition-all ${
+                                  stockFilter === tab.key
+                                    ? 'bg-[#0A1A1A] border-[#0A1A1A] text-white'
+                                    : 'bg-gray-50 border-gray-200 text-gray-400 hover:text-gray-600'
+                                }`}>
+                                {tab.label}
+                                <span className={`min-w-[16px] px-1 rounded-full text-[8px] font-black ${stockFilter === tab.key ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'}`}>{tab.count}</span>
+                              </button>
+                            ))}
+                          </div>
+
+                          <div className="space-y-2.5">
+                            {filtered.length === 0 ? (
+                              <p className="text-[12px] text-gray-400 text-center py-8">Sin productos en esta categoría</p>
+                            ) : filtered.map((p, i) => (
+                              <div key={i} className={`rounded-xl px-4 py-3.5 flex items-center gap-3 border ${p.stockLevel === 0 ? 'bg-red-50 border-red-100' : 'bg-orange-50 border-orange-100'}`}>
+                                <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${p.stockLevel === 0 ? 'bg-red-100' : 'bg-orange-100'}`}>
+                                  {p.stockLevel === 0
+                                    ? <AlertCircle size={14} className="text-red-500" />
+                                    : <TrendingDown size={14} className="text-orange-500" />
+                                  }
+                                </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-[13px] font-semibold text-white/85 truncate">{p.name}</p>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <div className="flex-1 h-1 bg-white/[0.06] rounded-full overflow-hidden">
+                                  <p className="text-[13px] font-semibold text-[#0A1A1A] truncate">{p.name}</p>
+                                  <div className="flex items-center gap-2 mt-1.5">
+                                    <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                                       <motion.div
                                         initial={{ width: 0 }}
-                                        animate={{ width: `${Math.min((p.stockLevel / 5) * 100, 100)}%` }}
-                                        transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.06 }}
-                                        className={`h-full rounded-full ${p.stockLevel === 0 ? 'bg-rose-600' : p.stockLevel <= 2 ? 'bg-rose-500' : 'bg-orange-400'}`}
+                                        animate={{ width: `${Math.min((p.stockLevel / 10) * 100, 100)}%` }}
+                                        transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.05 }}
+                                        className={`h-full rounded-full ${p.stockLevel === 0 ? 'bg-red-500' : p.stockLevel <= 2 ? 'bg-red-400' : 'bg-orange-400'}`}
                                       />
                                     </div>
-                                    <span className={`text-[10px] font-black shrink-0 ${p.stockLevel === 0 ? 'text-rose-400' : p.stockLevel <= 2 ? 'text-rose-400' : 'text-orange-400'}`}>
+                                    <span className={`text-[10px] font-black shrink-0 ${p.stockLevel === 0 ? 'text-red-500' : 'text-orange-500'}`}>
                                       {p.stockLevel === 0 ? 'AGOTADO' : `${p.stockLevel} uds`}
                                     </span>
                                   </div>
                                 </div>
                                 <button
                                   onClick={() => { setOpenInsight(null); router.push('/dashboard/products'); }}
-                                  className="shrink-0 h-8 px-3 rounded-xl bg-rose-500/15 border border-rose-500/25 text-rose-400 text-[10px] font-bold hover:bg-rose-500/25 transition-colors"
+                                  className={`shrink-0 h-8 px-3.5 rounded-xl text-[10px] font-bold transition-colors ${p.stockLevel === 0 ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-orange-400 text-white hover:bg-orange-500'}`}
                                 >
                                   Reponer
                                 </button>
                               </div>
                             ))}
-                          {lowStockProducts.filter(p => stockFilter === 'all' ? true : stockFilter === 'urgent' ? p.stockLevel === 0 : p.stockLevel > 0).length === 0 && (
-                            <p className="text-[11px] text-white/20 text-center py-6">Sin productos en esta categoría</p>
+                          </div>
+                        </div>
+
+                        {/* Panel derecho: métricas y análisis */}
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-[10px] text-gray-400 uppercase tracking-widest font-black mb-3">Estado del inventario</p>
+                            <div className="space-y-2.5">
+                              <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 flex items-center justify-between">
+                                <span className="text-[12px] text-gray-600 font-medium">Total de productos</span>
+                                <span className="text-[13px] font-black text-[#0A1A1A]">{totalProductos}</span>
+                              </div>
+                              <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 flex items-center justify-between">
+                                <span className="text-[12px] text-gray-600 font-medium">Con stock OK</span>
+                                <span className="text-[13px] font-black text-emerald-600">{totalProductos - lowStockProducts.length}</span>
+                              </div>
+                              <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 flex items-center justify-between">
+                                <span className="text-[12px] text-gray-600 font-medium">Requieren atención</span>
+                                <span className="text-[13px] font-black text-red-500">{lowStockProducts.length}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Barra de salud del inventario */}
+                          <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Salud del inventario</span>
+                              <span className={`text-[12px] font-black ${100 - pctAfectados >= 80 ? 'text-emerald-600' : 100 - pctAfectados >= 60 ? 'text-orange-500' : 'text-red-500'}`}>
+                                {100 - pctAfectados}%
+                              </span>
+                            </div>
+                            <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${100 - pctAfectados}%` }}
+                                transition={{ duration: 0.7, ease: 'easeOut' }}
+                                className={`h-full rounded-full ${100 - pctAfectados >= 80 ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' : 100 - pctAfectados >= 60 ? 'bg-gradient-to-r from-orange-400 to-orange-500' : 'bg-gradient-to-r from-red-400 to-red-500'}`}
+                              />
+                            </div>
+                            <p className="text-[10px] text-gray-400 mt-2">
+                              {100 - pctAfectados >= 80 ? 'Inventario en buena salud general.' : 100 - pctAfectados >= 60 ? 'Requiere atención moderada.' : 'Estado crítico — acción inmediata necesaria.'}
+                            </p>
+                          </div>
+
+                          {/* Prioridad de reposición */}
+                          {agotados.length > 0 && (
+                            <div>
+                              <p className="text-[10px] text-gray-400 uppercase tracking-widest font-black mb-3">Prioridad crítica</p>
+                              <div className="space-y-2">
+                                {agotados.slice(0, 3).map((p, i) => (
+                                  <div key={i} className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5">
+                                    <div className="h-5 w-5 rounded-full bg-red-500 flex items-center justify-center shrink-0">
+                                      <span className="text-[9px] font-black text-white">{i + 1}</span>
+                                    </div>
+                                    <span className="flex-1 text-[12px] font-semibold text-[#0A1A1A] truncate">{p.name}</span>
+                                    <span className="text-[9px] font-black text-red-500 bg-red-100 px-2 py-0.5 rounded-full">AGOTADO</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           )}
                         </div>
-                      )}
+                      </div>
+
+                      {/* Insight box */}
+                      <div className="mx-8 mb-6 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200/60 rounded-2xl px-5 py-4 flex items-start gap-4">
+                        <div className="h-9 w-9 rounded-xl bg-red-100 border border-red-200/60 flex items-center justify-center shrink-0">
+                          <Lightbulb size={15} className="text-red-500" />
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-black text-red-400 uppercase tracking-widest mb-1.5">Recomendación</p>
+                          <p className="text-[12px] text-gray-600 leading-relaxed">
+                            {agotados.length > 0
+                              ? <><span className="font-bold text-red-600">{agotados.length} producto{agotados.length > 1 ? 's' : ''} agotado{agotados.length > 1 ? 's' : ''}</span> — cada día sin stock representa ventas perdidas. Prioriza la reposición de {agotados[0]?.name} primero.{bajos.length > 0 ? ` Además ${bajos.length} producto${bajos.length > 1 ? 's tienen' : ' tiene'} stock bajo y podría agotarse pronto.` : ''}</>
+                              : <><span className="font-bold text-orange-600">{bajos.length} producto{bajos.length > 1 ? 's' : ''} con stock bajo</span> — considera reponer antes de que se agoten para evitar interrupciones en ventas.</>
+                            }
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  {/* CTA */}
-                  <div className="px-4 py-4 shrink-0">
+                  )}
+
+                  {/* CTAs */}
+                  <div className="px-8 py-5 shrink-0 flex gap-3 border-t border-gray-100">
                     <button
                       onClick={() => { setOpenInsight(null); router.push('/dashboard/products'); }}
-                      className="w-full h-12 rounded-2xl bg-gradient-to-r from-rose-500 to-rose-600 text-white text-[13px] font-black flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-lg shadow-rose-500/20"
+                      className="flex-1 h-12 rounded-2xl bg-[#0A1A1A] text-white text-[13px] font-black flex items-center justify-center gap-2 hover:bg-[#1a2e2e] transition-colors"
                     >
-                      <Package size={15} />
-                      Reponer inventario ahora
+                      <Package size={15} /> Reponer inventario ahora
+                    </button>
+                    <button
+                      onClick={() => setOpenInsight(null)}
+                      className="h-12 px-6 rounded-2xl bg-gray-100 border border-gray-200 text-gray-600 text-[13px] font-semibold flex items-center gap-2 hover:bg-gray-200 transition-colors whitespace-nowrap"
+                    >
+                      Cerrar <X size={14}/>
                     </button>
                   </div>
                 </div>
               </motion.div>
             </>
-          )}
+            );
+          })()}
         </AnimatePresence>
 
         {/* ── MODAL 4: ANÁLISIS DETALLADO ── */}
         <AnimatePresence>
-          {openInsight === 'analisis' && (
+          {openInsight === 'analisis' && (() => {
+            const fmtCOP = (v: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v);
+            const statusStyles: Record<string, { bg: string; text: string; dot: string; label: string }> = {
+              pending:   { bg: 'bg-amber-50 border-amber-200',   text: 'text-amber-700',   dot: 'bg-amber-400',   label: 'Pendiente'  },
+              paid:      { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500', label: 'Pagado'     },
+              shipped:   { bg: 'bg-blue-50 border-blue-200',     text: 'text-blue-700',    dot: 'bg-blue-500',    label: 'Enviado'    },
+              delivered: { bg: 'bg-green-50 border-green-200',   text: 'text-green-700',   dot: 'bg-green-500',   label: 'Entregado'  },
+              cancelled: { bg: 'bg-red-50 border-red-200',       text: 'text-red-600',     dot: 'bg-red-500',     label: 'Cancelado'  },
+            };
+            const totalStatuses = Object.values(insightData.statusCount).reduce((a, v) => a + v, 0);
+            return (
             <>
               <motion.div
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="fixed inset-0 bg-black/90 backdrop-blur-md z-[300]"
+                className="fixed inset-0 bg-[#0A1A1A]/60 backdrop-blur-sm z-[300]"
                 onClick={() => setOpenInsight(null)}
               />
               <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 30 }}
-                transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
+                initial={{ opacity: 0, scale: 0.97, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.97, y: 20 }}
+                transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
                 className="fixed inset-0 flex items-center justify-center z-[301] p-4 pointer-events-none"
               >
-                <div className="pointer-events-auto w-full max-w-sm bg-[#0e0e0e] border border-white/[0.08] rounded-[1.25rem] shadow-[0_30px_80px_rgba(0,0,0,0.8)] max-h-[88vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
-                  <div className="flex-1 overflow-y-auto">
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-5 pt-5 pb-4">
+                <div className="pointer-events-auto w-full max-w-4xl bg-white rounded-3xl shadow-[0_32px_100px_rgba(10,26,26,0.28)] max-h-[92vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+
+                  {/* ── HEADER OSCURO ── */}
+                  <div className="bg-gradient-to-br from-[#0A1A1A] via-[#0a1a14] to-[#081a10] px-8 pt-6 pb-6 shrink-0">
+                    <div className="flex items-center justify-between mb-5">
                       <div className="flex items-center gap-3">
-                        <div className="h-11 w-11 rounded-xl bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                          <BarChart3 size={19} className="text-emerald-400" />
+                        <div className="h-9 w-9 rounded-xl bg-[#00b2bd]/20 border border-[#00b2bd]/30 flex items-center justify-center">
+                          <BarChart3 size={16} className="text-[#00b2bd]" />
                         </div>
                         <div>
-                          <h3 className="text-[17px] font-black text-white leading-tight">Análisis detallado</h3>
-                          <p className="text-[9px] text-emerald-400 font-bold uppercase tracking-widest mt-0.5">
-                            RESUMEN EJECUTIVO
+                          <h3 className="text-[20px] font-black text-white leading-none tracking-tight">Análisis detallado</h3>
+                          <p className="text-[9px] text-[#00b2bd]/70 font-bold uppercase tracking-widest mt-0.5">
+                            RESUMEN EJECUTIVO · {new Date().toLocaleDateString('es-CO',{month:'long',year:'numeric'}).toUpperCase()}
                           </p>
                         </div>
                       </div>
-                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/[0.06] hover:bg-white/10 flex items-center justify-center transition-colors shrink-0">
-                        <X size={14} className="text-white/50" />
+                      <button onClick={() => setOpenInsight(null)} className="h-9 w-9 rounded-full bg-white/8 hover:bg-white/15 border border-white/10 flex items-center justify-center transition-all shrink-0">
+                        <X size={15} className="text-white/50" />
                       </button>
                     </div>
-                    {/* 6 KPIs 2×3 */}
-                    <div className="grid grid-cols-2 gap-2 px-5 mb-4">
+
+                    {/* 4 KPIs principales en header */}
+                    <div className="grid grid-cols-4 gap-3">
                       {[
-                        { label: 'Total pedidos', sub: 'Histórico', value: String(insightData.totalOrders), color: 'text-white', accent: 'text-white/30' },
-                        { label: 'Ingresos totales', sub: 'Todos los tiempos', value: insightData.fmt(insightData.totalRevenue), color: 'text-emerald-400', accent: 'text-emerald-400/40' },
-                        { label: 'Ticket promedio', sub: 'Por pedido', value: insightData.fmt(insightData.avgTicket), color: 'text-cyan-400', accent: 'text-cyan-400/40' },
-                        { label: 'Completados', sub: `de ${insightData.totalOrders} pedidos`, value: String(insightData.completedOrders), color: 'text-green-400', accent: 'text-green-400/40' },
-                        { label: 'Tasa de éxito', sub: 'Pedidos exitosos', value: `${insightData.successRate}%`, color: 'text-amber-400', accent: 'text-amber-400/40' },
-                        { label: 'Día pico', sub: 'Más ventas', value: insightData.peakDay, color: 'text-purple-400', accent: 'text-purple-400/40' },
+                        { label: 'Ingresos totales', value: fmtCOP(insightData.totalRevenue), sub: 'Todos los tiempos', accent: true },
+                        { label: 'Ticket promedio', value: fmtCOP(insightData.avgTicket), sub: 'Por pedido', accent: false },
+                        { label: 'Total pedidos', value: String(insightData.totalOrders), sub: 'Histórico', accent: false },
+                        { label: 'Tasa de éxito', value: `${insightData.successRate}%`, sub: `${insightData.completedOrders} completados`, accent: false },
                       ].map((k, i) => (
-                        <div key={i} className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-3">
-                          <p className="text-[9px] text-white/30 font-semibold mb-0.5">{k.label}</p>
-                          <p className={`text-[17px] font-black leading-none mb-0.5 ${k.color}`}>{k.value}</p>
-                          <p className={`text-[9px] font-medium ${k.accent}`}>{k.sub}</p>
+                        <div key={i} className={`rounded-2xl p-4 ${k.accent ? 'bg-[#00b2bd]/15 border border-[#00b2bd]/25' : 'bg-white/6 border border-white/10'}`}>
+                          <p className="text-[8px] text-white/35 uppercase tracking-widest font-semibold mb-1">{k.label}</p>
+                          <p className={`text-[1.15rem] font-black leading-tight ${k.accent ? 'text-[#00b2bd]' : 'text-white'}`}>{k.value}</p>
+                          <p className="text-[9px] text-white/25 mt-0.5">{k.sub}</p>
                         </div>
                       ))}
                     </div>
-                    {/* Gráfico barras por día */}
-                    <div className="px-5 mb-4">
-                      <div className="flex items-center justify-between mb-2.5">
-                        <p className="text-[9px] text-white/25 uppercase tracking-widest font-semibold">ACTIVIDAD POR DÍA</p>
-                        <p className="text-[9px] text-white/25">Pico: <span className="text-white/50 font-bold">{insightData.peakDay}</span></p>
-                      </div>
-                      <div className="flex items-end gap-1.5 h-14">
-                        {insightData.dayStats.map((d, i) => (
-                          <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
-                            <div className="w-full flex items-end justify-center" style={{ height: '36px' }}>
-                              <motion.div
-                                initial={{ height: 0 }}
-                                animate={{ height: `${Math.max((d.pct / 100) * 36, 3)}px` }}
-                                transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.04 }}
-                                style={{ width: '100%' }}
-                                className={`rounded-t-[3px] ${d.day === insightData.peakDay ? 'bg-emerald-400' : 'bg-white/[0.08]'}`}
-                              />
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto">
+                    <div className="px-8 pt-6 pb-4 grid grid-cols-2 gap-6">
+
+                      {/* Columna izquierda: gráfico de actividad + estado pedidos */}
+                      <div className="space-y-5">
+
+                        {/* Gráfico barras por día */}
+                        <div>
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                              <div className="h-6 w-6 rounded-lg bg-[#e8faf9] border border-[#00b2bd]/30 flex items-center justify-center">
+                                <Activity size={11} className="text-[#00b2bd]" />
+                              </div>
+                              <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Actividad por día</p>
                             </div>
-                            <span className={`text-[8px] font-semibold ${d.day === insightData.peakDay ? 'text-emerald-400' : 'text-white/20'}`}>{d.day.slice(0,2)}</span>
+                            <span className="text-[10px] text-gray-400">Pico: <span className="font-black text-[#0A1A1A]">{insightData.peakDay}</span></span>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                    {/* Top productos */}
-                    {insightData.topProducts.length > 0 && (
-                      <div className="px-5 mb-4">
-                        <p className="text-[9px] text-white/25 uppercase tracking-widest font-semibold mb-2.5">TOP PRODUCTOS</p>
-                        <div className="space-y-2">
-                          {insightData.topProducts.slice(0, 4).map((p, i) => {
-                            const maxT = insightData.topProducts[0]?.total || 1;
-                            return (
-                              <div key={i} className="flex items-center gap-2.5">
-                                <span className="text-[9px] text-white/20 font-mono w-3 shrink-0">{i+1}</span>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between mb-1">
-                                    <p className="text-[11px] text-white/65 font-semibold truncate">{p.name}</p>
-                                    <p className="text-[10px] font-bold text-white/75 shrink-0 ml-2">{insightData.fmt(p.total)}</p>
-                                  </div>
-                                  <div className="h-1 bg-white/[0.05] rounded-full overflow-hidden">
+                          <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
+                            <div className="flex items-end gap-2 h-20">
+                              {insightData.dayStats.map((d, i) => (
+                                <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                                  <div className="w-full flex items-end justify-center" style={{ height: '56px' }}>
                                     <motion.div
-                                      initial={{ width: 0 }}
-                                      animate={{ width: `${(p.total / maxT) * 100}%` }}
-                                      transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.06 }}
-                                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
+                                      initial={{ height: 0 }}
+                                      animate={{ height: `${Math.max((d.pct / 100) * 56, 4)}px` }}
+                                      transition={{ duration: 0.55, ease: 'easeOut', delay: i * 0.05 }}
+                                      style={{ width: '100%' }}
+                                      className={`rounded-t-md ${d.day === insightData.peakDay ? 'bg-gradient-to-t from-[#00b2bd] to-[#00d4e0]' : 'bg-gray-200 hover:bg-gray-300'} transition-colors`}
                                     />
                                   </div>
+                                  <span className={`text-[9px] font-bold ${d.day === insightData.peakDay ? 'text-[#00b2bd]' : 'text-gray-400'}`}>{d.day.slice(0,2)}</span>
                                 </div>
-                              </div>
-                            );
-                          })}
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Estado de pedidos */}
+                        <div>
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="h-6 w-6 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center">
+                              <ShoppingBag size={11} className="text-gray-500" />
+                            </div>
+                            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Estado de pedidos</p>
+                          </div>
+                          {Object.keys(insightData.statusCount).length === 0 ? (
+                            <div className="bg-gray-50 border border-dashed border-gray-200 rounded-2xl py-8 text-center">
+                              <ShoppingBag size={20} className="text-gray-200 mx-auto mb-2" />
+                              <p className="text-[12px] text-gray-400 font-medium">Sin pedidos registrados</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2.5">
+                              {Object.entries(insightData.statusCount).map(([status, count]) => {
+                                const s = statusStyles[status] || { bg: 'bg-gray-50 border-gray-200', text: 'text-gray-600', dot: 'bg-gray-400', label: status };
+                                const pct = totalStatuses > 0 ? Math.round((count / totalStatuses) * 100) : 0;
+                                return (
+                                  <div key={status} className={`border rounded-xl px-4 py-3 ${s.bg}`}>
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="flex items-center gap-2">
+                                        <div className={`h-2 w-2 rounded-full ${s.dot}`} />
+                                        <span className={`text-[12px] font-semibold ${s.text}`}>{s.label}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className={`text-[11px] font-black ${s.text}`}>{count}</span>
+                                        <span className="text-[9px] text-gray-400 font-semibold">{pct}%</span>
+                                      </div>
+                                    </div>
+                                    <div className="h-1 bg-white/60 rounded-full overflow-hidden">
+                                      <motion.div initial={{width:0}} animate={{width:`${pct}%`}} transition={{duration:0.5,ease:'easeOut'}}
+                                        className={`h-full rounded-full ${s.dot}`}/>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       </div>
-                    )}
-                    {/* Estado de pedidos */}
-                    <div className="px-5 mb-4">
-                      <p className="text-[9px] text-white/25 uppercase tracking-widest font-semibold mb-2.5">ESTADO DE PEDIDOS</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {Object.entries(insightData.statusCount).map(([status, count]) => {
-                          const st: Record<string, string> = { pending: 'bg-amber-500/15 border-amber-500/25 text-amber-400', paid: 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400', shipped: 'bg-blue-500/15 border-blue-500/25 text-blue-400', delivered: 'bg-green-500/15 border-green-500/25 text-green-400', cancelled: 'bg-rose-500/15 border-rose-500/25 text-rose-400' };
-                          const lb: Record<string, string> = { pending: 'Pendiente', paid: 'Pagado', shipped: 'Enviado', delivered: 'Entregado', cancelled: 'Cancelado' };
-                          return (
-                            <div key={status} className={`border rounded-full px-2.5 py-1 flex items-center gap-1.5 ${st[status] || 'bg-white/[0.05] border-white/10 text-white/40'}`}>
-                              <span className="text-[9px] font-semibold">{lb[status] || status}</span>
-                              <span className="text-[10px] font-black">{count}</span>
+
+                      {/* Columna derecha: top productos + métricas adicionales */}
+                      <div className="space-y-5">
+
+                        {/* Top productos */}
+                        <div>
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="h-6 w-6 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center">
+                              <Trophy size={11} className="text-amber-500" />
                             </div>
-                          );
-                        })}
-                        {Object.keys(insightData.statusCount).length === 0 && <p className="text-[11px] text-white/20">Sin pedidos</p>}
+                            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Top productos</p>
+                          </div>
+                          {insightData.topProducts.length === 0 ? (
+                            <div className="bg-gray-50 border border-dashed border-gray-200 rounded-2xl py-8 text-center">
+                              <Package size={20} className="text-gray-200 mx-auto mb-2" />
+                              <p className="text-[12px] text-gray-400 font-medium">Sin ventas registradas</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2.5">
+                              {insightData.topProducts.slice(0, 5).map((p, i) => {
+                                const maxT = insightData.topProducts[0]?.total || 1;
+                                const pct = maxT > 0 ? (p.total / maxT) * 100 : 0;
+                                const medals = ['🥇','🥈','🥉'];
+                                const totalShare = insightData.totalRevenue > 0 ? Math.round((p.total / insightData.totalRevenue) * 100) : 0;
+                                return (
+                                  <div key={i} className={`rounded-xl px-4 py-3 border ${i === 0 ? 'bg-amber-50 border-amber-100' : 'bg-gray-50 border-gray-100'}`}>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="text-base leading-none shrink-0">
+                                        {i < 3 ? medals[i] : <span className="text-[10px] text-gray-400 font-black w-4 inline-block text-center">{i+1}</span>}
+                                      </span>
+                                      <span className={`flex-1 text-[11px] font-semibold truncate ${i === 0 ? 'text-amber-800' : 'text-gray-700'}`}>{p.name}</span>
+                                      <span className="text-[9px] text-gray-400">{totalShare}%</span>
+                                      <span className={`text-[11px] font-black shrink-0 ${i === 0 ? 'text-amber-700' : 'text-[#0A1A1A]'}`}>{fmtCOP(p.total)}</span>
+                                    </div>
+                                    <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+                                      <motion.div initial={{width:0}} animate={{width:`${pct}%`}} transition={{duration:0.55,ease:'easeOut',delay:i*0.06}}
+                                        className={`h-full rounded-full ${i === 0 ? 'bg-gradient-to-r from-amber-400 to-yellow-400' : 'bg-gray-300'}`}/>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Métricas adicionales */}
+                        <div>
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="h-6 w-6 rounded-lg bg-[#e8faf9] border border-[#00b2bd]/30 flex items-center justify-center">
+                              <Zap size={11} className="text-[#00b2bd]" />
+                            </div>
+                            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Métricas clave</p>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 flex items-center justify-between">
+                              <span className="text-[12px] text-gray-600 font-medium">Días activos este mes</span>
+                              <span className="text-[13px] font-black text-[#0A1A1A]">{insightData.activeDays}</span>
+                            </div>
+                            <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 flex items-center justify-between">
+                              <span className="text-[12px] text-gray-600 font-medium">Pedidos completados</span>
+                              <span className="text-[13px] font-black text-emerald-600">{insightData.completedOrders}</span>
+                            </div>
+                            <div className={`border rounded-xl px-4 py-3 flex items-center justify-between ${insightData.successRate >= 70 ? 'bg-emerald-50 border-emerald-100' : insightData.successRate >= 40 ? 'bg-amber-50 border-amber-100' : 'bg-red-50 border-red-100'}`}>
+                              <span className="text-[12px] text-gray-600 font-medium">Tasa de éxito</span>
+                              <span className={`text-[13px] font-black ${insightData.successRate >= 70 ? 'text-emerald-600' : insightData.successRate >= 40 ? 'text-amber-600' : 'text-red-500'}`}>{insightData.successRate}%</span>
+                            </div>
+                            <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 flex items-center justify-between">
+                              <span className="text-[12px] text-gray-600 font-medium">Día pico de ventas</span>
+                              <span className="text-[13px] font-black text-[#00b2bd]">{insightData.peakDay}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
+
                     {/* Insight box */}
-                    {orders.length > 0 && (
-                      <div className="mx-5 mb-4 bg-emerald-500/[0.07] border border-emerald-500/15 rounded-2xl px-4 py-3 flex items-start gap-2.5">
-                        <Lightbulb size={13} className="text-emerald-400 shrink-0 mt-0.5" />
-                        <p className="text-[11px] text-white/40 leading-relaxed">
-                          Tu día más activo es <span className="text-emerald-400 font-semibold">{insightData.peakDay}</span>.{' '}
-                          {insightData.successRate >= 70 ? `Tasa de éxito ${insightData.successRate}% — operación excelente.` : insightData.successRate >= 40 ? `Tasa de éxito ${insightData.successRate}% — revisa pedidos cancelados.` : 'Registra más ventas para ver patrones.'}
+                    <div className="mx-8 mb-6 bg-gradient-to-r from-[#e8faf9] to-[#f0fffe] border border-[#00b2bd]/30 rounded-2xl px-5 py-4 flex items-start gap-4">
+                      <div className="h-9 w-9 rounded-xl bg-[#00b2bd]/10 border border-[#00b2bd]/20 flex items-center justify-center shrink-0">
+                        <Lightbulb size={15} className="text-[#00b2bd]" />
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black text-[#00b2bd] uppercase tracking-widest mb-1.5">Insight ejecutivo</p>
+                        <p className="text-[12px] text-gray-600 leading-relaxed">
+                          Tu día más activo es <span className="font-bold text-[#0A1A1A]">{insightData.peakDay}</span>.{' '}
+                          {insightData.successRate >= 70
+                            ? <><span className="font-bold text-emerald-600">{insightData.successRate}% de tasa de éxito</span> — operación excelente. El ticket promedio de {fmtCOP(insightData.avgTicket)} indica una base de clientes sólida.</>
+                            : insightData.successRate >= 40
+                            ? <><span className="font-bold text-amber-600">{insightData.successRate}% de tasa de éxito</span> — hay margen de mejora. Revisa los pedidos cancelados para identificar patrones.</>
+                            : insightData.totalOrders === 0
+                            ? 'Aún no hay ventas registradas. Crea tu primera orden para comenzar a ver análisis.'
+                            : <><span className="font-bold text-red-500">{insightData.successRate}% de tasa de éxito</span> — requiere atención. Muchos pedidos no se están completando.</>
+                          }
                         </p>
                       </div>
-                    )}
+                    </div>
                   </div>
-                  {/* CTA */}
-                  <div className="px-4 py-4 shrink-0">
-                    <button
-                      onClick={() => showToast('Reporte PDF en desarrollo', 'info')}
-                      className="w-full h-12 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[13px] font-black flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-lg shadow-emerald-500/20"
-                    >
-                      <Download size={15} />
-                      Descargar reporte PDF
+
+                  {/* CTAs */}
+                  <div className="px-8 py-5 shrink-0 flex gap-3 border-t border-gray-100">
+                    <button onClick={()=>{setOpenInsight(null);router.push('/dashboard/orders');}}
+                      className="flex-1 h-12 rounded-2xl bg-[#0A1A1A] text-white text-[13px] font-black flex items-center justify-center gap-2 hover:bg-[#1a2e2e] transition-colors">
+                      <ShoppingBag size={15}/> Ver todos los pedidos
+                    </button>
+                    <button onClick={exportAnalysisPDF}
+                      className="h-12 px-6 rounded-2xl bg-gray-100 border border-gray-200 text-gray-600 text-[13px] font-semibold flex items-center gap-2 hover:bg-gray-200 transition-colors whitespace-nowrap">
+                      <Download size={14}/> Exportar PDF
                     </button>
                   </div>
                 </div>
               </motion.div>
             </>
-          )}
+            );
+          })()}
         </AnimatePresence>
+
+        </>, document.body)}
 
         <MetricDetailModal isOpen={!!selectedMetric} onClose={() => setSelectedMetric(null)} metric={selectedMetric} />
 
