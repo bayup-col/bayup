@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Bot, Moon, Sun, DollarSign, Truck, AlertCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Bell, Bot, Moon, Sun, DollarSign, Truck, AlertCircle, UserPlus, Headset, Building2, Wallet } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/context/theme-context';
 import { useSuperAdminTheme } from '@/context/super-admin-theme-context';
@@ -31,6 +32,7 @@ export const DashboardHeader = ({
     isBaytOpen,
     setIsBaytOpen
 }: HeaderProps) => {
+    const router = useRouter();
     const { theme, toggleTheme } = useTheme();
     const { saTheme, toggleSaTheme } = useSuperAdminTheme();
     const { token, userPlan, isGlobalStaff } = useAuth();
@@ -57,16 +59,15 @@ export const DashboardHeader = ({
         return () => main.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Polling de Notificaciones
+    // Polling de Notificaciones para tenants
     useEffect(() => {
+        if (isSuperAdminZone) return;
         let intervalId: any = null;
         const fetchNotifications = async () => {
             if (!token) { if (intervalId) clearInterval(intervalId); return; }
             try {
                 const isProduction = window.location.hostname.includes('railway.app') || window.location.hostname.includes('bayup.com');
                 const data = await apiRequest<any[]>('/notifications', { token }).catch((err: any) => {
-                    // La cuenta fue eliminada/desactivada mientras la pestaña estaba abierta:
-                    // el backend rechaza el token porque el usuario ya no existe.
                     if (err?.message === 'Could not validate credentials') {
                         if (intervalId) clearInterval(intervalId);
                         sessionStorage.setItem('bayup_logout_reason', 'account_removed');
@@ -77,11 +78,7 @@ export const DashboardHeader = ({
                     return null;
                 });
                 if (data && Array.isArray(data)) {
-                    const unread = data.filter((n: any) => !n.is_read).length;
-                    if (unread > lastCountRef.current) {
-                        try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch (e) {}
-                    }
-                    lastCountRef.current = unread;
+                    lastCountRef.current = data.filter((n: any) => !n.is_read).length;
                     setNotifications(data);
                 }
             } catch (err: any) {}
@@ -89,7 +86,74 @@ export const DashboardHeader = ({
         fetchNotifications();
         intervalId = setInterval(fetchNotifications, 30000);
         return () => { if (intervalId) clearInterval(intervalId); };
-    }, [token, logout]);
+    }, [token, logout, isSuperAdminZone]);
+
+    // Polling de Notificaciones para super admin
+    useEffect(() => {
+        if (!isSuperAdminZone || !token) return;
+        let intervalId: any = null;
+        const fetchAdminNotifications = async () => {
+            try {
+                const [regs, tickets, stats] = await Promise.all([
+                    apiRequest<any[]>('/super-admin/registrations', { token }).catch(() => []),
+                    apiRequest<any[]>('/super-admin/support/tickets', { token }).catch(() => []),
+                    apiRequest<any>('/super-admin/stats', { token }).catch(() => null),
+                ]);
+                const built: any[] = [];
+
+                // Registros: cada pendiente es una notificación accionable
+                (regs || []).forEach((r: any) => built.push({
+                    id: `reg-${r.id}`,
+                    title: 'Registro pendiente de aprobación',
+                    message: `${r.full_name || r.email} está esperando activación`,
+                    type: 'registration',
+                    is_read: false,
+                    href: '/dashboard/super-admin/registros',
+                }));
+
+                // Soporte: tickets sin resolver
+                (tickets || []).filter((t: any) => t.status !== 'resolved').forEach((t: any) => built.push({
+                    id: `ticket-${t.id}`,
+                    title: 'Ticket de soporte abierto',
+                    message: t.subject || 'Sin asunto',
+                    type: 'support',
+                    is_read: false,
+                    href: '/dashboard/super-admin/soporte',
+                }));
+
+                // Tesorería: comisión del día si hay actividad
+                if (stats?.commission_today > 0) {
+                    const fmt = (n: number) => '$' + Math.round(n).toLocaleString('es-CO');
+                    built.push({
+                        id: 'treasury-today',
+                        title: 'Comisión generada hoy',
+                        message: `${fmt(stats.commission_today)} en comisiones · ${fmt(stats.revenue_today)} en ventas`,
+                        type: 'treasury',
+                        is_read: true,
+                        href: '/dashboard/super-admin/tesoreria',
+                    });
+                }
+
+                // Empresas: activas vs total
+                if (stats?.total_companies > 0) {
+                    const inactive = stats.total_companies - (stats.active_companies || 0);
+                    if (inactive > 0) built.push({
+                        id: 'companies-inactive',
+                        title: `${inactive} empresa${inactive > 1 ? 's' : ''} inactiva${inactive > 1 ? 's' : ''}`,
+                        message: `${stats.active_companies} de ${stats.total_companies} empresas activas`,
+                        type: 'company',
+                        is_read: true,
+                        href: '/dashboard/super-admin/empresas',
+                    });
+                }
+
+                setNotifications(built);
+            } catch {}
+        };
+        fetchAdminNotifications();
+        intervalId = setInterval(fetchAdminNotifications, 60000);
+        return () => { if (intervalId) clearInterval(intervalId); };
+    }, [token, isSuperAdminZone]);
 
     // Ocultar al abrir modal
     useEffect(() => {
@@ -107,21 +171,45 @@ export const DashboardHeader = ({
 
     const unreadCount = notifications.filter(n => !n.is_read).length;
 
+    const markAsRead = async (id: string) => {
+        if (!token) return;
+        try {
+            await apiRequest(`/notifications/${id}/read`, { method: 'PUT', token });
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+        } catch {}
+    };
+
+    const markAllAsRead = async () => {
+        if (!token || unreadCount === 0) return;
+        try {
+            await apiRequest('/notifications/read-all', { method: 'PUT', token });
+            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+        } catch {}
+    };
+
     const isSuperAdminDark = isSuperAdminZone && saTheme === 'dark';
 
     const getNotificationStyles = (type: string) => {
         if (isSuperAdminDark) {
             switch (type) {
-                case 'success': return { icon: <DollarSign size={14} className="text-cyan" />, bg: 'bg-cyan/10' };
-                case 'logistics': return { icon: <Truck size={14} className="text-cyan" />, bg: 'bg-cyan/10' };
-                default: return { icon: <Bell size={14} className="text-white/40" />, bg: 'bg-white/5' };
+                case 'registration': return { icon: <UserPlus size={14} className="text-cyan" />, bg: 'bg-cyan/10' };
+                case 'support':      return { icon: <Headset size={14} className="text-amber-400" />, bg: 'bg-amber-400/10' };
+                case 'treasury':     return { icon: <Wallet size={14} className="text-emerald-400" />, bg: 'bg-emerald-400/10' };
+                case 'company':      return { icon: <Building2 size={14} className="text-rose-400" />, bg: 'bg-rose-400/10' };
+                case 'success':      return { icon: <DollarSign size={14} className="text-cyan" />, bg: 'bg-cyan/10' };
+                case 'logistics':    return { icon: <Truck size={14} className="text-cyan" />, bg: 'bg-cyan/10' };
+                default:             return { icon: <Bell size={14} className="text-white/40" />, bg: 'bg-white/5' };
             }
         }
         switch (type) {
-            case 'success': return { icon: <DollarSign size={14} className="text-emerald-600" />, bg: 'bg-emerald-50' };
-            case 'logistics': return { icon: <Truck size={14} className="text-blue-600" />, bg: 'bg-blue-50' };
-            case 'alert': return { icon: <AlertCircle size={14} className="text-rose-600" />, bg: 'bg-rose-50' };
-            default: return { icon: <Bell size={14} className="text-gray-600" />, bg: 'bg-gray-50' };
+            case 'registration': return { icon: <UserPlus size={14} className="text-teal-600" />, bg: 'bg-teal-50' };
+            case 'support':      return { icon: <Headset size={14} className="text-amber-600" />, bg: 'bg-amber-50' };
+            case 'treasury':     return { icon: <Wallet size={14} className="text-emerald-600" />, bg: 'bg-emerald-50' };
+            case 'company':      return { icon: <Building2 size={14} className="text-rose-600" />, bg: 'bg-rose-50' };
+            case 'success':      return { icon: <DollarSign size={14} className="text-emerald-600" />, bg: 'bg-emerald-50' };
+            case 'logistics':    return { icon: <Truck size={14} className="text-blue-600" />, bg: 'bg-blue-50' };
+            case 'alert':        return { icon: <AlertCircle size={14} className="text-rose-600" />, bg: 'bg-rose-50' };
+            default:             return { icon: <Bell size={14} className="text-gray-600" />, bg: 'bg-gray-50' };
         }
     };
 
@@ -184,10 +272,20 @@ export const DashboardHeader = ({
                                             isSuperAdminDark ? 'bg-[#001A1A]/95 border-white/5' : 'bg-white/95 border-gray-100'
                                         }`}
                                     >
-                                        <div className={`px-5 py-4 border-b flex items-center justify-between ${isSuperAdminDark ? 'border-white/5' : 'border-gray-100'}`}>
-                                            <h3 className={`text-[10px] font-semibold tracking-[0.2em] uppercase ${isSuperAdminDark ? 'text-white/40' : 'text-[#004d4d]'}`}>Notificaciones</h3>
-                                            {unreadCount > 0 && (
-                                                <span className={`text-white text-[8px] font-bold px-2 py-0.5 rounded-full ${isSuperAdminDark ? 'bg-[#00f2ff]/80' : 'bg-emerald-500'}`}>{unreadCount}</span>
+                                        <div className={`px-5 py-3 border-b flex items-center justify-between gap-2 ${isSuperAdminDark ? 'border-white/5' : 'border-gray-100'}`}>
+                                            <div className="flex items-center gap-2">
+                                                <h3 className={`text-[10px] font-semibold tracking-[0.2em] uppercase ${isSuperAdminDark ? 'text-white/40' : 'text-[#004d4d]'}`}>Notificaciones</h3>
+                                                {unreadCount > 0 && (
+                                                    <span className={`text-white text-[8px] font-bold px-2 py-0.5 rounded-full ${isSuperAdminDark ? 'bg-[#00f2ff]/80' : 'bg-emerald-500'}`}>{unreadCount}</span>
+                                                )}
+                                            </div>
+                                            {unreadCount > 0 && !isSuperAdminZone && (
+                                                <button
+                                                    onClick={markAllAsRead}
+                                                    className={`text-[9px] font-semibold px-2.5 py-1 rounded-xl transition-colors shrink-0 ${isSuperAdminDark ? 'text-[#00f2ff]/60 hover:text-[#00f2ff] hover:bg-white/5' : 'text-[#004d4d]/60 hover:text-[#004d4d] hover:bg-[#004d4d]/5'}`}
+                                                >
+                                                    Marcar todas como leídas
+                                                </button>
                                             )}
                                         </div>
                                         <div className="max-h-[320px] overflow-y-auto">
@@ -196,13 +294,27 @@ export const DashboardHeader = ({
                                             ) : notifications.map((n) => {
                                                 const styles = getNotificationStyles(n.type);
                                                 return (
-                                                    <div key={n.id} className={`px-5 py-4 border-b flex gap-3 transition-colors ${isSuperAdminDark ? 'border-white/5 hover:bg-white/5' : 'border-gray-50 hover:bg-gray-50/80'} ${!n.is_read ? '' : 'opacity-40'}`}>
+                                                    <button
+                                                        key={n.id}
+                                                        onClick={() => {
+                                                            if (isSuperAdminZone && n.href) {
+                                                                router.push(n.href);
+                                                            } else if (!n.is_read) {
+                                                                markAsRead(n.id);
+                                                            }
+                                                            setNotificationsOpen(false);
+                                                        }}
+                                                        className={`w-full px-5 py-4 border-b flex gap-3 transition-colors text-left ${isSuperAdminDark ? 'border-white/5 hover:bg-white/5' : 'border-gray-50 hover:bg-gray-50/80'} ${!n.is_read ? '' : 'opacity-40'}`}
+                                                    >
                                                         <div className={`h-8 w-8 shrink-0 rounded-xl flex items-center justify-center ${styles.bg}`}>{styles.icon}</div>
                                                         <div className="flex-1 min-w-0">
                                                             <p className={`text-[11px] font-semibold truncate ${isSuperAdminDark ? 'text-white/80' : 'text-gray-800'}`}>{n.title}</p>
                                                             <p className="text-[10px] text-gray-400 mt-0.5 line-clamp-2">{n.message}</p>
                                                         </div>
-                                                    </div>
+                                                        {!n.is_read && (
+                                                            <div className={`h-2 w-2 rounded-full shrink-0 mt-1 ${isSuperAdminDark ? 'bg-[#00f2ff]' : 'bg-[#004d4d]'}`}/>
+                                                        )}
+                                                    </button>
                                                 );
                                             })}
                                         </div>

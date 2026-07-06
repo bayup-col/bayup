@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useToast } from '@/context/toast-context';
 import { useAuth } from '@/context/auth-context';
 import { useTheme } from '@/context/theme-context';
@@ -541,6 +543,185 @@ export default function GastosPage() {
     showToast('Excel descargado ✓', 'success');
   };
 
+  const handleExportPDF = () => {
+    const monthName = new Date(periodYear, periodMonth).toLocaleString('es-CO', { month: 'long' });
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const W = doc.internal.pageSize.getWidth();
+    const teal: [number, number, number] = [0, 77, 77];
+    const tealMid: [number, number, number] = [0, 178, 189];
+    const white: [number, number, number] = [255, 255, 255];
+    const gray50: [number, number, number] = [248, 250, 250];
+    const gray700: [number, number, number] = [55, 65, 81];
+
+    // ── Cabecera ──────────────────────────────────────────────────────────
+    doc.setFillColor(...teal);
+    doc.rect(0, 0, W, 38, 'F');
+    doc.setFillColor(...tealMid);
+    doc.rect(0, 35, W, 3, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.setTextColor(...white);
+    doc.text('CONTROL DE GASTOS', 14, 16);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(180, 220, 220);
+    doc.text(`Período: ${monthName.toUpperCase()} ${periodYear}`, 14, 24);
+    doc.text(`Generado: ${new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}`, 14, 30);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(...white);
+    doc.text('BayUP.', W - 14, 22, { align: 'right' });
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(180, 220, 220);
+    doc.text('bayup.com.co', W - 14, 28, { align: 'right' });
+
+    let y = 48;
+
+    // ── KPIs ──────────────────────────────────────────────────────────────
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...teal);
+    doc.text('RESUMEN FINANCIERO', 14, y);
+    y += 5;
+
+    const kpis = [
+      { label: 'Ingresos del mes', value: fmt(salesRevenue), note: `${totalOrders} ventas` },
+      { label: 'Gastos totales',   value: fmt(totalExpenses), note: `${filteredExpenses.length} registros` },
+      { label: 'Utilidad neta',    value: fmt(netProfit),    note: `Margen: ${profitMargin.toFixed(1)}%` },
+      { label: 'Gastos pagados',   value: fmt(paidExpenses), note: '' },
+      { label: 'Por pagar',        value: fmt(pendingExpenses), note: overdueExpenses > 0 ? `Vencidos: ${fmt(overdueExpenses)}` : '' },
+    ];
+
+    const kpiW = (W - 28) / 3;
+    kpis.forEach((k, i) => {
+      const col = i % 3;
+      const row = Math.floor(i / 3);
+      const x = 14 + col * (kpiW + 3);
+      const yy = y + row * 22;
+      doc.setFillColor(...gray50);
+      doc.roundedRect(x, yy, kpiW, 18, 2, 2, 'F');
+      doc.setDrawColor(220, 230, 230);
+      doc.roundedRect(x, yy, kpiW, 18, 2, 2, 'S');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(120, 130, 130);
+      doc.text(k.label.toUpperCase(), x + 3, yy + 5);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(...teal);
+      doc.text(k.value, x + 3, yy + 12);
+      if (k.note) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.5);
+        doc.setTextColor(150, 150, 150);
+        doc.text(k.note, x + 3, yy + 16.5);
+      }
+    });
+    y += Math.ceil(kpis.length / 3) * 22 + 6;
+
+    // ── Tabla de gastos ───────────────────────────────────────────────────
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...teal);
+    doc.text(`DETALLE DE GASTOS — ${monthName.toUpperCase()} ${periodYear}`, 14, y);
+    y += 4;
+
+    if (filteredExpenses.length === 0) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(9);
+      doc.setTextColor(180, 180, 180);
+      doc.text('Sin gastos registrados en este período.', 14, y + 8);
+      y += 20;
+    } else {
+      autoTable(doc, {
+        startY: y,
+        head: [['FECHA', 'DESCRIPCIÓN', 'CATEGORÍA', 'TIPO', 'MONTO (COP)', 'ESTADO']],
+        body: filteredExpenses.map(e => {
+          const cat = CATEGORIES.find(c => c.id === e.category)?.label || e.category;
+          return [
+            new Date(e.due_date).toLocaleDateString('es-CO'),
+            e.description,
+            cat,
+            e.type === 'fijo' ? 'Fijo' : 'Variable',
+            fmt(e.amount),
+            STATUS_MAP[e.status]?.label || e.status,
+          ];
+        }),
+        styles: { fontSize: 8, cellPadding: 3 },
+        headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 7.5, halign: 'center' },
+        alternateRowStyles: { fillColor: gray50 },
+        columnStyles: {
+          0: { cellWidth: 22, halign: 'center' },
+          1: { cellWidth: 55 },
+          2: { cellWidth: 32 },
+          3: { cellWidth: 20, halign: 'center' },
+          4: { cellWidth: 28, halign: 'right', fontStyle: 'bold' },
+          5: { cellWidth: 20, halign: 'center' },
+        },
+        didParseCell: (data) => {
+          if (data.section === 'body' && data.column.index === 5) {
+            const val = String(data.cell.raw);
+            if (val === 'Pagado') data.cell.styles.textColor = [22, 101, 52];
+            else if (val === 'Vencido') data.cell.styles.textColor = [185, 28, 28];
+            else data.cell.styles.textColor = [146, 64, 14];
+          }
+        },
+        margin: { left: 14, right: 14 },
+      });
+      y = (doc as any).lastAutoTable.finalY + 8;
+    }
+
+    // ── Resumen por categoría ─────────────────────────────────────────────
+    if (byCategory.length > 0) {
+      if (y > 230) { doc.addPage(); y = 20; }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(...teal);
+      doc.text('GASTOS POR CATEGORÍA', 14, y);
+      y += 4;
+      autoTable(doc, {
+        startY: y,
+        head: [['CATEGORÍA', 'TOTAL (COP)', '% DEL TOTAL']],
+        body: byCategory.map(b => {
+          const label = CATEGORIES.find(c => c.id === b.cat)?.label || b.cat;
+          const pct = totalExpenses > 0 ? ((b.total / totalExpenses) * 100).toFixed(1) : '0.0';
+          return [label, fmt(b.total), `${pct}%`];
+        }),
+        styles: { fontSize: 8.5, cellPadding: 3.5 },
+        headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 8, halign: 'center' },
+        alternateRowStyles: { fillColor: gray50 },
+        columnStyles: {
+          0: { cellWidth: 70 },
+          1: { cellWidth: 55, halign: 'right', fontStyle: 'bold' },
+          2: { cellWidth: 35, halign: 'center' },
+        },
+        margin: { left: 14, right: 14 },
+      });
+    }
+
+    // ── Footer ────────────────────────────────────────────────────────────
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      const H = doc.internal.pageSize.getHeight();
+      doc.setFillColor(...teal);
+      doc.rect(0, H - 10, W, 10, 'F');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(...white);
+      doc.text(`Generado por BayUP • bayup.com.co • ${new Date().toLocaleDateString('es-CO')}`, 14, H - 3.5);
+      doc.text(`Pág. ${i} / ${pageCount}`, W - 14, H - 3.5, { align: 'right' });
+    }
+
+    doc.save(`gastos_${monthName.toLowerCase()}_${periodYear}.pdf`);
+    setShowExportMenu(false);
+    showToast('PDF generado ✓', 'success');
+  };
+
   const tabs = [
     { id: 'resumen',       label: 'Resumen' },
     { id: 'gastos',        label: 'Gastos' },
@@ -605,6 +786,11 @@ export default function GastosPage() {
                   <button onClick={handleExportCSV}
                     className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors text-left">
                     <Download size={14} className="text-gray-400"/> CSV (.csv)
+                  </button>
+                  <div className="h-px bg-gray-100 mx-3"/>
+                  <button onClick={handleExportPDF}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors text-left">
+                    <FileText size={14} className="text-rose-500"/> PDF (.pdf)
                   </button>
                 </motion.div>
               )}

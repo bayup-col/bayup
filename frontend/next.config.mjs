@@ -12,10 +12,10 @@ const nextConfig = {
         ],
     },
     eslint: {
-        ignoreDuringBuilds: true,
+        ignoreDuringBuilds: false,
     },
     typescript: {
-        ignoreBuildErrors: true,
+        ignoreBuildErrors: false,
     },
     webpack: (config, { isServer }) => {
         if (!isServer) {
@@ -36,8 +36,8 @@ const nextConfig = {
                         value: [
                             "default-src 'self'",
                             "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://framer.com https://*.framer.com https://*.framerusercontent.com",
-                            "connect-src 'self' https://api.bayup.com.co https://*.bayup.com.co https://framer.com https://*.framer.com https://*.framerusercontent.com https://*.sentry.io https://*.supabase.co wss://*.supabase.co http://localhost:8000 http://localhost:8001",
-                            "img-src 'self' data: blob: https://*.framerusercontent.com https://framer.com https://images.unsplash.com https://*.unsplash.com https://*.supabase.co http://localhost:8001",
+                            "connect-src 'self' https://api.bayup.com.co https://*.bayup.com.co https://framer.com https://*.framer.com https://*.framerusercontent.com https://*.sentry.io https://*.supabase.co wss://*.supabase.co http://localhost:8000 http://localhost:8001 https://*.onrender.com",
+                            "img-src 'self' data: blob: https: http://localhost:8001",
                             "style-src 'self' 'unsafe-inline'",
                             "font-src 'self' data: https://fonts.gstatic.com",
                             "frame-src 'self'",
@@ -56,8 +56,6 @@ const sentryConfig = withSentryConfig(nextConfig, {
     tunnelRoute: undefined,
 });
 
-// Re-aplicar explícitamente después del wrap de Sentry
-sentryConfig.eslint = { ignoreDuringBuilds: true };
-sentryConfig.typescript = { ignoreBuildErrors: true };
+// TypeScript y ESLint activos en CI — 0 errores verificados al activar
 
 export default sentryConfig;

@@ -43,11 +43,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addItem = (item: CartItem) => {
     setItems((prev) => {
+      // Si el carrito tiene ítems de otra tienda, limpiarlo antes de agregar
+      const currentTenant = prev[0]?.tenant_id ?? prev[0]?.owner_id;
+      const newTenant = item.tenant_id ?? item.owner_id;
+      if (prev.length > 0 && currentTenant && newTenant && currentTenant !== newTenant) {
+        showToast("Carrito reiniciado — solo puedes comprar en una tienda a la vez", "info");
+        return [{ ...item, quantity: 1 }];
+      }
       const existing = prev.find((i) => i.id === item.id && i.variant === item.variant);
       if (existing) {
         return prev.map((i) => (i.id === item.id && i.variant === item.variant ? { ...i, quantity: i.quantity + 1 } : i));
       }
-      return [...prev, item];
+      return [...prev, { ...item, quantity: item.quantity ?? 1 }];
     });
     setIsCartOpen(true);
     setTimeout(() => {

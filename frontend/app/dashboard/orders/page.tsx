@@ -85,10 +85,11 @@ function StatusBadge({ status }: { status: string }) {
 function SourceBadge({ source }: { source: string }) {
   const src = (source || '').toLowerCase();
   const cfg =
-    src === 'pos'       ? { label: 'Tienda física', color: '#7c3aed', bg: '#7c3aed15' } :
-    src === 'whatsapp'  ? { label: 'WhatsApp',       color: '#16a34a', bg: '#16a34a15' } :
-    src === 'instagram' ? { label: 'Instagram',      color: '#db2777', bg: '#db277715' } :
-                          { label: 'Web',             color: '#0891b2', bg: '#0891b215' };
+    src === 'pos' || src === 'tienda física' ? { label: 'Tienda física', color: '#7c3aed', bg: '#7c3aed15' } :
+    src === 'whatsapp'                       ? { label: 'WhatsApp',       color: '#16a34a', bg: '#16a34a15' } :
+    src === 'instagram'                      ? { label: 'Instagram',      color: '#db2777', bg: '#db277715' } :
+    src === 'social' || src === 'redes sociales' ? { label: 'Redes Sociales', color: '#f59e0b', bg: '#f59e0b15' } :
+                                               { label: 'Web',             color: '#0891b2', bg: '#0891b215' };
   return (
     <span className="text-[8px] font-black px-2 py-0.5 rounded-full"
       style={{ backgroundColor: cfg.bg, color: cfg.color }}>
@@ -623,6 +624,23 @@ export default function OrdersPage() {
               {/* Footer CTAs */}
               <div className="p-5 border-t border-gray-100 space-y-2 shrink-0 bg-gray-50/50">
 
+                {/* Comprobante: disponible en proceso y completado */}
+                {(drawerOrder.status === 'processing' || drawerOrder.status === 'completed') && (
+                  <button
+                    onClick={async () => {
+                      const companyData = (() => { try { const c = localStorage.getItem('bayup_company_profile'); return c ? JSON.parse(c) : null; } catch { return null; } })();
+                      const { generateInvoicePDF } = await import('@/lib/report-generator');
+                      await generateInvoicePDF({
+                        company: companyData,
+                        order: drawerOrder,
+                        customer: { name: drawerOrder.customer_name, email: drawerOrder.customer_email, phone: drawerOrder.customer_phone, city: drawerOrder.customer_city },
+                      });
+                    }}
+                    className="w-full h-11 rounded-2xl bg-[#004d4d] hover:bg-[#003838] text-white font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
+                    <Download size={13}/> Generar comprobante
+                  </button>
+                )}
+
                 {/* CTA principal: Aceptar y facturar */}
                 {drawerOrder.status === 'pending' && (
                   <button
@@ -631,7 +649,7 @@ export default function OrdersPage() {
                     className="w-full h-12 rounded-2xl bg-gradient-to-r from-[#004d4d] to-[#00706e] hover:from-[#003838] hover:to-[#005856] text-white font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-50">
                     {updatingId === drawerOrder.id
                       ? <Loader2 size={14} className="animate-spin"/>
-                      : <><BadgeCheck size={15}/> Aceptar y facturar</>}
+                      : <><BadgeCheck size={15}/> Confirmar pedido</>}
                   </button>
                 )}
 
@@ -643,7 +661,7 @@ export default function OrdersPage() {
                     className="w-full h-12 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-50">
                     {updatingId === drawerOrder.id
                       ? <Loader2 size={14} className="animate-spin"/>
-                      : <><Truck size={15}/> Completar → Envíos</>}
+                      : <><Truck size={15}/> Marcar como completado</>}
                   </button>
                 )}
 

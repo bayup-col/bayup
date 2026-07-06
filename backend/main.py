@@ -80,6 +80,27 @@ def _sync_postgres_schema() -> None:
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_confirmation_expires TIMESTAMP",
             # payments
             "ALTER TABLE payments ADD COLUMN IF NOT EXISTS idempotency_key VARCHAR(128)",
+            # liquidations — tabla añadida post-lanzamiento, creada si no existe
+            """CREATE TABLE IF NOT EXISTS liquidations (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                tenant_id UUID NOT NULL REFERENCES users(id),
+                gross_amount DOUBLE PRECISION DEFAULT 0.0,
+                bayup_commission DOUBLE PRECISION DEFAULT 0.0,
+                prix_fee DOUBLE PRECISION DEFAULT 0.0,
+                net_amount DOUBLE PRECISION DEFAULT 0.0,
+                order_count INTEGER DEFAULT 0,
+                period_start TIMESTAMP,
+                period_end TIMESTAMP,
+                status VARCHAR DEFAULT 'pending',
+                scheduled_date TIMESTAMP,
+                paid_date TIMESTAMP,
+                transfer_reference VARCHAR,
+                notes VARCHAR,
+                created_at TIMESTAMP DEFAULT NOW()
+            )""",
+            "CREATE INDEX IF NOT EXISTS ix_liquidations_tenant_id ON liquidations (tenant_id)",
+            "CREATE INDEX IF NOT EXISTS ix_liquidations_status ON liquidations (status)",
+            "CREATE INDEX IF NOT EXISTS ix_liquidations_created_at ON liquidations (created_at)",
         ]
         with engine.begin() as conn:
             for stmt in stmts:
@@ -204,6 +225,7 @@ ALLOWED_ORIGINS = [
     "https://bayup.com.co",
     "https://www.bayup.com.co",
     "https://bayup.vercel.app",
+    "https://bayup-git-development-bayups-projects-7400e74e.vercel.app",
 ]
 
 app.add_middleware(
@@ -356,8 +378,8 @@ def login(request: Request, form_data: UserLoginRequest):
             key="bayup_access_token",
             value=access_token,
             httponly=True,
-            secure=is_prod,
-            samesite="lax",
+            secure=True,
+            samesite="none",
             max_age=3600,  # 1 hora
             path="/",
         )
@@ -365,8 +387,8 @@ def login(request: Request, form_data: UserLoginRequest):
             key="bayup_refresh_token",
             value=_create_refresh_token(user.email),
             httponly=True,
-            secure=is_prod,
-            samesite="lax",
+            secure=True,
+            samesite="none",
             max_age=30 * 24 * 3600,  # 30 días
             path="/",
         )
@@ -446,8 +468,8 @@ async def refresh_token_endpoint(request: Request):
             key="bayup_access_token",
             value=new_access_token,
             httponly=True,
-            secure=is_prod,
-            samesite="lax",
+            secure=True,
+            samesite="none",
             max_age=3600,
             path="/",
         )
@@ -721,6 +743,20 @@ async def read_users_me(request: Request):
             "onboarding_completed": bool(getattr(current_user, 'onboarding_completed', False)),
             "status": getattr(current_user, 'status', 'Activo'),
             "reviewer_notes": getattr(current_user, 'reviewer_notes', None),
+            # Campos de Config Tienda (identidad, contacto, fiscal, redes, pagos)
+            "category":      getattr(current_user, 'category', "Moda & Accesorios") or "Moda & Accesorios",
+            "story":         getattr(current_user, 'story', "") or "",
+            "phone":         getattr(current_user, 'phone', "") or "",
+            "address":       getattr(current_user, 'address', "") or "",
+            "customer_city": getattr(current_user, 'customer_city', "") or "",
+            "country":       getattr(current_user, 'country', "Colombia") or "Colombia",
+            "hours":         getattr(current_user, 'hours', "") or "",
+            "website":       getattr(current_user, 'website', "") or "",
+            "nit":           getattr(current_user, 'nit', "") or "",
+            "tax_regime":    getattr(current_user, 'tax_regime', "Simplificado") or "Simplificado",
+            "legal_rep":     getattr(current_user, 'legal_rep', "") or "",
+            "social_links":  getattr(current_user, 'social_links', {}) or {},
+            "bank_accounts": getattr(current_user, 'bank_accounts', []) or [],
         }
     finally:
         db.close()
@@ -792,6 +828,7 @@ async def create_product_route(payload: ProductCreateRequest, request: Request):
         db.close()
 
 @app.post("/products/bulk-upload")
+@limiter.limit("10/minute")
 async def bulk_upload_products(
     request: Request,
     file: UploadFile = File(...),
@@ -801,6 +838,16 @@ async def bulk_upload_products(
     esperadas (insensible a mayúsculas/acentos): nombre*, precio*,
     descripcion, categoria, sku. Filas inválidas se omiten y se reportan
     en `errors` en vez de abortar toda la carga."""
+    ALLOWED_MIME = {
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel",
+    }
+    if file.content_type not in ALLOWED_MIME:
+        raise HTTPException(status_code=400, detail="Solo se aceptan archivos .xlsx o .xls")
+    MAX_SIZE = 5 * 1024 * 1024
+    raw = await file.read(MAX_SIZE + 1)
+    if len(raw) > MAX_SIZE:
+        raise HTTPException(status_code=413, detail="El archivo supera el límite de 5 MB")
     import crud, schemas, pandas as pd, io
     from database import SessionLocal
     db = SessionLocal()
@@ -945,6 +992,12 @@ async def create_order_route(payload: OrderCreateRequest, request: Request):
         tenant_id = _tenant_id(user)
         order_in = schemas.OrderCreate(tenant_id=tenant_id, **payload.model_dump())
         db_order = crud.create_order(db, order=order_in, customer_id=user.id, tenant_id=tenant_id)
+        total_fmt = f"${db_order.total_price:,.0f}".replace(",", ".")
+        _create_shipment_for_order(db, db_order, tenant_id)
+        _push_notification(db, tenant_id,
+            "💰 Nuevo pedido creado",
+            f"Pedido #{str(db_order.id)[:8].upper()} por {total_fmt}",
+            "success")
         return schemas.Order.model_validate(db_order).model_dump(mode="json")
     finally:
         db.close()
@@ -974,11 +1027,160 @@ async def update_order_route(order_id: str, payload: OrderUpdateRequest, request
         ).first()
         if not db_order:
             raise HTTPException(status_code=404, detail="Pedido no encontrado")
+        prev_status = db_order.status
         db_order.status = payload.status
         db.commit()
+        if payload.status != prev_status:
+            if payload.status == "completed":
+                _push_notification(db, tenant_id,
+                    "✅ Pedido completado",
+                    f"Pedido #{order_id[:8].upper()} marcado como completado",
+                    "success")
+            elif payload.status == "cancelled":
+                _push_notification(db, tenant_id,
+                    "❌ Pedido cancelado",
+                    f"Pedido #{order_id[:8].upper()} fue cancelado",
+                    "alert")
         return {"id": str(db_order.id), "status": db_order.status}
     finally:
         db.close()
+
+# ── SHIPMENTS ────────────────────────────────────────────────────────────────
+
+VALID_SHIP_STATUSES = {"pendiente","guia_generada","en_transito","en_reparto","entregado","incidencia","devuelto"}
+
+class ShipmentUpdateRequest(BaseModel):
+    status: str | None = None
+    carrier: str | None = None
+    tracking_number: str | None = None
+    notes: str | None = None
+    estimated_delivery: str | None = None
+
+@app.get("/shipments")
+async def get_shipments(request: Request):
+    import models as _m
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        rows = (
+            db.query(_m.Shipment, _m.Order)
+            .join(_m.Order, _m.Shipment.order_id == _m.Order.id)
+            .filter(_m.Shipment.tenant_id == tenant_id)
+            .order_by(_m.Shipment.updated_at.desc())
+            .all()
+        )
+        result = []
+        for ship, order in rows:
+            items_count = len(order.items) if order.items else 0
+            created = getattr(ship, 'created_at', None) or order.created_at
+            updated = getattr(ship, 'updated_at', None) or order.created_at
+            est_del = getattr(ship, 'estimated_delivery', None)
+            result.append({
+                "id":               str(ship.id),
+                "order_id":         str(ship.order_id),
+                "order_number":     str(order.id)[:8].upper(),
+                "tracking_number":  ship.tracking_number or "",
+                "carrier":          ship.carrier or "",
+                "status":           ship.status if ship.status in ("pendiente","guia_generada","en_transito","en_reparto","entregado","incidencia","devuelto") else "pendiente",
+                "customer_name":    order.customer_name or "Cliente",
+                "customer_phone":   order.customer_phone or "",
+                "customer_city":    order.customer_city or "",
+                "customer_address": order.shipping_address or order.customer_city or "",
+                "total_price":      order.total_price or 0,
+                "items_count":      items_count,
+                "created_at":       created.isoformat() if created else "",
+                "updated_at":       updated.isoformat() if updated else "",
+                "estimated_delivery": est_del.isoformat() if est_del else None,
+                "notes":            getattr(ship, 'notes', None),
+                "history":          getattr(ship, 'history', []) or [],
+            })
+        return result
+    finally:
+        db.close()
+
+@app.put("/shipments/{shipment_id}")
+async def update_shipment(shipment_id: str, payload: ShipmentUpdateRequest, request: Request):
+    import models as _m, uuid as _uuid, datetime as _dt
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        try:
+            ship_uuid = _uuid.UUID(shipment_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="shipment_id inválido")
+        ship = db.query(_m.Shipment).filter(
+            _m.Shipment.id == ship_uuid,
+            _m.Shipment.tenant_id == tenant_id,
+        ).first()
+        if not ship:
+            raise HTTPException(status_code=404, detail="Envío no encontrado")
+        if payload.status and payload.status not in VALID_SHIP_STATUSES:
+            raise HTTPException(status_code=400, detail=f"status inválido: {payload.status}")
+        prev = ship.status
+        if payload.status and payload.status != prev:
+            ship.status = payload.status
+            history = list(getattr(ship, 'history', []) or [])
+            history.append({
+                "status": payload.status,
+                "date": _dt.datetime.utcnow().isoformat(),
+                "note": payload.notes or "",
+            })
+            ship.history = history
+            # Sincroniza estado del pedido en casos terminales
+            order = db.query(_m.Order).filter(_m.Order.id == ship.order_id).first()
+            if order and payload.status == "entregado":
+                order.status = "completed"
+        if payload.carrier is not None:
+            ship.carrier = payload.carrier
+        if payload.tracking_number is not None:
+            ship.tracking_number = payload.tracking_number
+        if payload.notes is not None:
+            ship.notes = payload.notes
+        if payload.estimated_delivery is not None:
+            try:
+                ship.estimated_delivery = _dt.datetime.fromisoformat(payload.estimated_delivery)
+            except ValueError:
+                pass
+        ship.updated_at = _dt.datetime.utcnow()
+        db.commit()
+        return {"ok": True, "id": str(ship.id), "status": ship.status}
+    finally:
+        db.close()
+
+def _create_shipment_for_order(db, order, tenant_id):
+    """Crea un envío vacío ligado al pedido. No lanza excepciones."""
+    import models as _m
+    try:
+        existing = db.query(_m.Shipment).filter(_m.Shipment.order_id == order.id).first()
+        if existing:
+            return
+        ship = _m.Shipment(
+            order_id=order.id,
+            tenant_id=tenant_id,
+            status="pendiente",  # siempre explícito, nunca depende del default del modelo
+            recipient_name=order.customer_name or "Cliente",
+            recipient_phone=order.customer_phone or "",
+            destination_address=order.shipping_address or order.customer_city or "",
+            history=[],
+        )
+        db.add(ship)
+        db.commit()
+    except Exception:
+        db.rollback()
+
+def _push_notification(db, tenant_id, title: str, message: str, type_: str = "info"):
+    """Crea una notificación en BD para el tenant. No lanza excepciones."""
+    import models as _m
+    try:
+        notif = _m.Notification(tenant_id=tenant_id, title=title, message=message, type=type_)
+        db.add(notif)
+        db.commit()
+    except Exception as _e:
+        logger.warning("No se pudo crear notificación: %s", _e)
 
 @app.get("/notifications")
 async def get_notifications(request: Request):
@@ -997,6 +1199,54 @@ async def get_notifications(request: Request):
                 "created_at": n.created_at.isoformat() if n.created_at else None,
             } for n in notifications
         ]
+    finally:
+        db.close()
+
+@app.put("/notifications/read-all")
+async def mark_all_notifications_read(request: Request):
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        db.query(models.Notification).filter(
+            models.Notification.tenant_id == _tenant_id(user),
+            models.Notification.is_read == False
+        ).update({"is_read": True})
+        db.commit()
+        return {"success": True}
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+@app.put("/notifications/{notification_id}/read")
+async def mark_notification_read(notification_id: str, request: Request):
+    import models
+    import uuid as _uuid
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        try:
+            nid = _uuid.UUID(notification_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="ID de notificación inválido")
+        notification = db.query(models.Notification).filter(
+            models.Notification.id == nid,
+            models.Notification.tenant_id == _tenant_id(user)
+        ).first()
+        if not notification:
+            raise HTTPException(status_code=404, detail="Notificación no encontrada")
+        notification.is_read = True
+        db.commit()
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -1255,6 +1505,13 @@ def create_public_order(request: Request, payload: PublicOrderCreateRequest):
         except Exception as _notify_err:
             logger.warning("No se pudo enviar notificación de venta al dueño: %s", _notify_err)
 
+        total_fmt = f"${db_order.total_price:,.0f}".replace(",", ".")
+        _create_shipment_for_order(db, db_order, tenant_uuid)
+        _push_notification(db, tenant_uuid,
+            "🛒 Nueva venta en tienda",
+            f"{payload.customer_name or 'Cliente'} compró por {total_fmt}",
+            "success")
+
         return schemas.Order.model_validate(db_order).model_dump(mode="json")
     except ValueError:
         raise HTTPException(status_code=400, detail="product_variant_id inválido")
@@ -1330,6 +1587,7 @@ async def create_admin_user(request: Request):
     db = SessionLocal()
     try:
         user = await _authenticate(request, db)
+        _require_admin_role(user)
         tenant_id = _tenant_id(user)
         body = await request.json()
         email = (body.get("email") or "").strip().lower()
@@ -1370,6 +1628,7 @@ async def update_admin_user(user_id: str, request: Request):
     db = SessionLocal()
     try:
         user = await _authenticate(request, db)
+        _require_admin_role(user)
         tenant_id = _tenant_id(user)
         try:
             target_uuid = uuid_lib.UUID(user_id)
@@ -1999,6 +2258,7 @@ async def complete_onboarding(request: Request, payload: OnboardingCompleteReque
         db.close()
 
 @app.post("/admin/upload-image")
+@limiter.limit("20/minute")
 async def upload_image(request: Request, file: UploadFile = File(...)):
     import s3_service
     from database import SessionLocal
@@ -2426,7 +2686,11 @@ async def get_super_admin_treasury(request: Request):
         user = await _authenticate(request, db)
         _require_super_admin(user)
 
-        orders = db.query(models.Order).order_by(models.Order.created_at.desc()).all()
+        from datetime import timezone, timedelta
+        cutoff = datetime.now(timezone.utc) - timedelta(days=365)
+        orders = db.query(models.Order).filter(
+            models.Order.created_at >= cutoff
+        ).order_by(models.Order.created_at.desc()).all()
         tenants = {
             t.id: t for t in db.query(models.User).filter(
                 models.User.role == "admin_tienda", models.User.owner_id.is_(None)
@@ -2596,8 +2860,10 @@ async def get_super_admin_users(
             models.User.owner_id.is_(None),
         ).all()
         tenants_by_id = {u.id: u for u in tenants_all}
-        # MED-001: paginar la consulta principal
-        all_users = db.query(models.User).offset(skip).limit(limit).all()
+        # MED-001: paginar la consulta principal (excluir clientes finales de tiendas)
+        all_users = db.query(models.User).filter(
+            models.User.role != "cliente"
+        ).offset(skip).limit(limit).all()
 
         result = []
         for u in all_users:
@@ -2696,6 +2962,8 @@ async def reply_super_admin_ticket(ticket_id: str, payload: dict, request: Reque
             ticket.status = "En proceso"
         db.commit()
         tenant = db.query(models.User).filter(models.User.id == ticket.tenant_id).first()
+        # Notificar al tenant que Bayup respondió su ticket
+        _push_notification(db, ticket.tenant_id, "💬 Soporte Bayup respondió", f"Ticket: {ticket.title}")
         return _serialize_ticket(ticket, tenant)
     finally:
         db.close()
@@ -2742,7 +3010,13 @@ async def create_support_ticket(payload: dict, request: Request):
         )
         db.add(ticket)
         db.commit()
-        return _serialize_ticket(ticket, db.query(models.User).filter(models.User.id == tenant_id).first())
+        # Notificar a todos los super admins que hay un ticket nuevo
+        super_admins = db.query(models.User).filter(models.User.is_global_staff == True).all()
+        tenant_user = db.query(models.User).filter(models.User.id == tenant_id).first()
+        tenant_name = (tenant_user.full_name or tenant_user.email) if tenant_user else "Un tenant"
+        for sa in super_admins:
+            _push_notification(db, sa.id, f"🎫 Nuevo ticket de soporte", f"{tenant_name}: {title}")
+        return _serialize_ticket(ticket, tenant_user)
     finally:
         db.close()
 
@@ -2786,6 +3060,11 @@ async def reply_my_support_ticket(ticket_id: str, payload: dict, request: Reques
             ticket.status = "Abierto"
         db.commit()
         tenant = db.query(models.User).filter(models.User.id == tenant_id).first()
+        tenant_name = (tenant.full_name or tenant.email) if tenant else "Un tenant"
+        # Notificar a todos los super admins que el tenant respondió
+        super_admins = db.query(models.User).filter(models.User.is_global_staff == True).all()
+        for sa in super_admins:
+            _push_notification(db, sa.id, f"💬 Respuesta en ticket de soporte", f"{tenant_name}: {text[:80]}")
         return _serialize_ticket(ticket, tenant)
     finally:
         db.close()
@@ -3767,7 +4046,9 @@ _BAYUP_SDK = """
           } else {
             var li = document.createElement('div');
             li.className = 'bayup-cart-item';
-            li.innerHTML = '<span>' + item.name + ' x' + item.qty + '</span><span>' + formatCOP(item.unit_price * item.qty) + '</span>';
+            var _s1=document.createElement('span');_s1.textContent=item.name+' x'+item.qty;
+            var _s2=document.createElement('span');_s2.textContent=formatCOP(item.unit_price*item.qty);
+            li.appendChild(_s1);li.appendChild(_s2);
             cartList.appendChild(li);
           }
         });
@@ -4105,6 +4386,7 @@ class RoadmapVoteIn(BaseModel):
     session_key: str = ""
 
 @app.post("/public/roadmap/{item_id}/vote")
+@limiter.limit("10/minute")
 async def vote_roadmap_item(item_id: str, request: Request, body: RoadmapVoteIn):
     import models as _rm
     from database import SessionLocal

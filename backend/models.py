@@ -371,15 +371,20 @@ class Provider(Base):
 class Shipment(Base):
     __tablename__ = "shipments"
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
-    order_id = Column(GUID(), ForeignKey("orders.id"))
+    order_id = Column(GUID(), ForeignKey("orders.id"), unique=True)
     tenant_id = Column(GUID(), ForeignKey("users.id"), index=True)
-    status = Column(String, default="pending_packing", index=True)
+    status = Column(String, default="pendiente", index=True)
     recipient_name = Column(String)
     recipient_phone = Column(String, nullable=True)
-    destination_address = Column(String)
+    destination_address = Column(String, nullable=True)
     carrier = Column(String, nullable=True)
     tracking_number = Column(String, nullable=True)
+    notes = Column(String, nullable=True)
+    history = Column(JSON, default=list)
+    estimated_delivery = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    order = relationship("Order", backref="shipment", foreign_keys=[order_id])
 
 class Notification(Base):
     __tablename__ = "notifications"

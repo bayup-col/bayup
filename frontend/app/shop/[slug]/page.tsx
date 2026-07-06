@@ -439,10 +439,50 @@ function ShopContent() {
                                 ))}
                             </div>
                         </section>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center min-h-[70vh] space-y-6">
-                            <div className="h-20 w-20 bg-gray-50 rounded-[2rem] flex items-center justify-center text-gray-200 animate-pulse"><Layout size={40}/></div>
-                            <p className="text-[10px] font-black uppercase text-gray-300 tracking-[0.4em]">Diseñando vista de {view}...</p>
+                    ) : view === 'product' ? (() => {
+                        const product = (shopData.products || []).find((p: any) => p.id === productId);
+                        if (!product) return (
+                            <div className="flex flex-col items-center justify-center min-h-[70vh] space-y-4">
+                                <p className="text-gray-400 font-bold">Producto no encontrado.</p>
+                                <button onClick={() => router.push(`/shop/${slug}?view=catalog`)} className="text-[#004d4d] font-black text-sm underline">Volver al catálogo</button>
+                            </div>
+                        );
+                        const images: string[] = Array.isArray(product.image_url) ? product.image_url : (product.image_url ? [product.image_url] : []);
+                        return (
+                            <section className="max-w-5xl mx-auto px-6 py-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-400 hover:text-gray-700 font-black text-[10px] uppercase tracking-widest mb-10 transition-colors">
+                                    <ChevronRight size={14} className="rotate-180"/> Volver
+                                </button>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                                    <div className="aspect-square bg-gray-50 rounded-[3rem] overflow-hidden">
+                                        {images[0]
+                                            ? <img src={images[0]} alt={product.name} className="h-full w-full object-cover"/>
+                                            : <div className="h-full w-full flex items-center justify-center text-gray-200"><ImageIcon size={64}/></div>
+                                        }
+                                    </div>
+                                    <div className="flex flex-col justify-center space-y-6">
+                                        <div>
+                                            <p className="text-[10px] font-black text-[#004d4d] uppercase tracking-[0.3em] mb-3">
+                                                {shopData.categories?.find((c:any) => c.id === product.collection_id)?.title || shopData.category || 'Producto'}
+                                            </p>
+                                            <h1 className="text-4xl font-black uppercase tracking-tighter leading-tight">{product.name}</h1>
+                                            {product.description && <p className="text-gray-500 mt-4 leading-relaxed">{product.description}</p>}
+                                        </div>
+                                        <p className="text-5xl font-black text-[#004d4d] tracking-tighter">${Number(product.price).toLocaleString()}</p>
+                                        <button
+                                            onClick={() => { addToCart(product); setIsCartOpen(true); }}
+                                            className="w-full h-16 rounded-3xl bg-gray-900 text-[#00f2ff] font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-black active:scale-95 transition-all shadow-2xl"
+                                        >
+                                            <ShoppingBag size={20}/> Agregar al carrito
+                                        </button>
+                                    </div>
+                                </div>
+                            </section>
+                        );
+                    })() : (
+                        <div className="flex flex-col items-center justify-center min-h-[70vh] space-y-4">
+                            <p className="text-gray-400 font-bold">Vista no disponible.</p>
+                            <button onClick={() => router.push(`/shop/${slug}`)} className="text-[#004d4d] font-black text-sm underline">Ir al inicio</button>
                         </div>
                     )
                 )}
@@ -465,7 +505,7 @@ function ShopContent() {
                                     <div className="h-full flex flex-col items-center justify-center opacity-30"><ShoppingBag size={64}/><p className="text-[10px] font-black uppercase mt-4">Carrito Vacío</p></div>
                                 ) : cart.map((item) => (
                                     <div key={item.id} className="flex gap-4 p-4 bg-gray-50 rounded-[2rem] border border-gray-100">
-                                        <div className="h-20 w-20 rounded-2xl overflow-hidden bg-white shrink-0"><img src={item.image || 'https://via.placeholder.com/100'} className="h-full w-full object-cover" /></div>
+                                        <div className="h-20 w-20 rounded-2xl overflow-hidden bg-gray-100 shrink-0 flex items-center justify-center">{item.image ? <img src={item.image} className="h-full w-full object-cover" alt={item.title}/> : <ShoppingBag size={24} className="text-gray-300"/>}</div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-black text-gray-900 line-clamp-1">{item.title}</p>
                                             <p className="text-xs font-bold text-[#004d4d] mt-1">${item.price.toLocaleString()}</p>

@@ -5,10 +5,12 @@ import {
   TrendingUp, TrendingDown, Eye, Users, ShoppingCart, DollarSign, Monitor, Smartphone,
   Globe, Clock, MapPin, Search, Package, Star, ArrowUpRight, ArrowDownRight,
   Download, Calendar, ChevronDown, Activity, Target, Zap, BarChart3, RefreshCw,
-  User, Heart, ShoppingBag, FileSpreadsheet
+  User, Heart, ShoppingBag, FileSpreadsheet, FileText
 } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/auth-context';
 import { useTheme } from '@/context/theme-context';
@@ -158,7 +160,7 @@ function buildRealData(orders: any[]) {
 
 // ── MAIN PAGE ─────────────────────────────────────────────────────────────
 export default function WebAnalyticsPage() {
-  const { token } = useAuth();
+  const { token, userName, userEmail } = useAuth();
   const { theme } = useTheme();
   const { showToast } = useToast();
   const dark = theme === 'dark';
@@ -340,6 +342,159 @@ export default function WebAnalyticsPage() {
     showToast('Excel descargado ✓', 'success');
   };
 
+  const handleExportPDF = () => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const W = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
+    const teal: [number, number, number] = [0, 77, 77];
+    const tealMid: [number, number, number] = [0, 178, 189];
+    const white: [number, number, number] = [255, 255, 255];
+    const gray50: [number, number, number] = [247, 250, 250];
+    const companyName = userName || userEmail || '';
+    const dateStr = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    // ── Header band ──────────────────────────────────────────────────────
+    doc.setFillColor(...teal);
+    doc.rect(0, 0, W, 26, 'F');
+    // Acento inferior
+    doc.setFillColor(...tealMid);
+    doc.rect(0, 24, W, 2, 'F');
+
+    // Logo BayUP a la izquierda
+    doc.setTextColor(...white);
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('BayUP.', 14, 16);
+
+    // Título centrado
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ESTADÍSTICAS', W / 2, 11, { align: 'center' });
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Reporte de analítica e inteligencia comercial', W / 2, 17, { align: 'center' });
+    if (companyName) {
+      doc.setFontSize(8);
+      doc.text(companyName, W / 2, 22, { align: 'center' });
+    }
+
+    // Fecha a la derecha
+    doc.setFontSize(8);
+    doc.text(`Generado: ${dateStr}`, W - 14, 16, { align: 'right' });
+    doc.setFontSize(7);
+    doc.text(periodLabel, W - 14, 22, { align: 'right' });
+
+    // ── KPIs ─────────────────────────────────────────────────────────────
+    let y = 34;
+    doc.setTextColor(...teal);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('INDICADORES PRINCIPALES', 14, y);
+    y += 5;
+
+    const kpis = [
+      { label: 'PEDIDOS TOTALES',  value: fmtN(totalOrders) },
+      { label: 'INGRESOS TOTALES', value: totalRevenue > 0 ? fmt(totalRevenue) : '$0' },
+      { label: 'TICKET PROMEDIO',  value: avgTicket > 0 ? fmt(avgTicket) : '$0' },
+    ];
+    const boxW = (W - 28 - 8) / 3;
+    kpis.forEach((kpi, i) => {
+      const x = 14 + i * (boxW + 4);
+      doc.setFillColor(...gray50);
+      doc.roundedRect(x, y, boxW, 18, 2, 2, 'F');
+      doc.setDrawColor(...teal);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(x, y, boxW, 18, 2, 2, 'S');
+      doc.setTextColor(130, 130, 130);
+      doc.setFontSize(6.5);
+      doc.setFont('helvetica', 'bold');
+      doc.text(kpi.label, x + boxW / 2, y + 7, { align: 'center' });
+      doc.setTextColor(...teal);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(kpi.value, x + boxW / 2, y + 14, { align: 'center' });
+    });
+    y += 25;
+
+    // ── Ventas mensuales ─────────────────────────────────────────────────
+    const now2 = new Date();
+    const monthlyForPDF = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now2.getFullYear(), now2.getMonth() - 5 + i, 1);
+      const m = d.getMonth();
+      const yr = d.getFullYear();
+      const monthOrders = orders.filter(o => {
+        const od = new Date(o.created_at);
+        return od.getMonth() === m && od.getFullYear() === yr;
+      });
+      return {
+        mes: MONTHS_LABELS[m],
+        pedidos: monthOrders.length,
+        ventas: monthOrders.reduce((a, o) => a + (o.total_price || 0), 0),
+      };
+    });
+
+    const midX = W / 2 + 2;
+
+    doc.setTextColor(...teal);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('VENTAS MENSUALES — ÚLTIMOS 6 MESES', 14, y);
+
+    if (realData.topProducts.length > 0) {
+      doc.text('TOP PRODUCTOS POR INGRESOS', midX, y);
+    }
+    y += 4;
+
+    autoTable(doc, {
+      startY: y,
+      head: [['MES', 'PEDIDOS', 'INGRESOS (COP)']],
+      body: monthlyForPDF.map(m => [m.mes, fmtN(m.pedidos), fmt(m.ventas)]),
+      styles: { fontSize: 8.5, cellPadding: 3.5 },
+      headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 8, halign: 'center' },
+      alternateRowStyles: { fillColor: gray50 },
+      columnStyles: {
+        0: { cellWidth: 22, halign: 'center' },
+        1: { cellWidth: 22, halign: 'center' },
+        2: { halign: 'right', fontStyle: 'bold' },
+      },
+      margin: { left: 14, right: midX },
+    });
+
+    if (realData.topProducts.length > 0) {
+      autoTable(doc, {
+        startY: y,
+        head: [['PRODUCTO', 'UNIDADES', 'INGRESOS (COP)']],
+        body: realData.topProducts.slice(0, 8).map((p, i) => [`#${i + 1} ${p.name}`, fmtN(p.units), fmt(p.revenue)]),
+        styles: { fontSize: 8.5, cellPadding: 3.5 },
+        headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 8, halign: 'center' },
+        alternateRowStyles: { fillColor: gray50 },
+        columnStyles: {
+          0: { overflow: 'ellipsize' },
+          1: { cellWidth: 24, halign: 'center' },
+          2: { cellWidth: 42, halign: 'right', fontStyle: 'bold' },
+        },
+        margin: { left: midX, right: 14 },
+      });
+    }
+
+    // ── Footer en cada página ────────────────────────────────────────────
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFillColor(...teal);
+      doc.rect(0, H - 8, W, 8, 'F');
+      doc.setTextColor(...white);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Generado por BayUP • bayup.com.co', W / 2, H - 3, { align: 'center' });
+      doc.text(`Pág. ${i} / ${pageCount}`, W - 14, H - 3, { align: 'right' });
+    }
+
+    doc.save(`estadisticas_bayup_${new Date().toISOString().slice(0, 10)}.pdf`);
+    setShowExportMenu(false);
+    showToast('PDF generado ✓', 'success');
+  };
+
   const periodLabel = { '7d': 'Últimos 7 días', '30d': 'Últimos 30 días', '90d': 'Últimos 90 días' }[period];
 
   const tabs = [
@@ -410,6 +565,11 @@ export default function WebAnalyticsPage() {
                   <button onClick={handleExportCSV}
                     className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors text-left">
                     <Download size={14} className="text-gray-400"/> CSV (.csv)
+                  </button>
+                  <div className="h-px bg-gray-100 mx-3"/>
+                  <button onClick={handleExportPDF}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors text-left">
+                    <FileText size={14} className="text-rose-500"/> PDF (.pdf)
                   </button>
                 </motion.div>
               )}

@@ -1,5 +1,6 @@
 """
 Endpoints de Liquidación — se importan en main.py al final.
+v2: comisión sobre todas las ventas (POS + web), sin filtro de source.
 """
 import datetime as dt
 import uuid as uuid_lib
@@ -42,7 +43,6 @@ def register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_a
 
             q = db.query(models.Order).filter(
                 models.Order.tenant_id == tid,
-                models.Order.source == "web",
                 models.Order.status.in_(["confirmed", "delivered", "completed", "pending"]),
             )
             if cutoff:
@@ -193,7 +193,6 @@ def register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_a
                 cutoff = last_paid.paid_date if last_paid else None
                 q = db.query(models.Order).filter(
                     models.Order.tenant_id == t.id,
-                    models.Order.source == "web",
                     models.Order.status.in_(["confirmed", "delivered", "completed", "pending"]),
                 )
                 if cutoff:

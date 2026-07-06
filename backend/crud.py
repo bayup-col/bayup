@@ -258,9 +258,13 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
     
     # 2. Creación de la Orden
     initial_status = "completed" if order.source.lower() == "pos" else "pending"
+    commission_rate = getattr(order, 'commission_rate_snapshot', None) or 0.025
+    commission_amount = round(subtotal * commission_rate, 2)
     db_order = models.Order(
         id=uuid.uuid4(),
         total_price=subtotal,
+        commission_amount=commission_amount,
+        commission_rate_snapshot=commission_rate,
         customer_id=customer_id,
         tenant_id=actual_tenant_id,
         customer_name=order.customer_name,

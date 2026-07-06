@@ -33,7 +33,7 @@ interface InvoicingItem {
 interface PastInvoice {
   id: string; invoice_num: string; date: string; customer: string;
   customer_email?: string; customer_phone?: string; customer_city?: string;
-  source: string; payment_method: string; total: number;
+  source: string; payment_method: string; total: number; status?: string;
 }
 
 // ── KPI CARD ──────────────────────────────────────────────────────────────
@@ -73,10 +73,11 @@ function KpiCard({ icon, label, value, sub, accent, progress }: {
 function SourceBadge({ source }: { source: string }) {
   const s = (source || '').toLowerCase();
   const cfg =
-    s === 'pos' || s === 'tienda física' ? { label: 'Tienda',    color: '#7c3aed', bg: '#7c3aed15' } :
-    s === 'whatsapp'                      ? { label: 'WhatsApp',  color: '#16a34a', bg: '#16a34a15' } :
-    s === 'página web'                    ? { label: 'Web',       color: '#0891b2', bg: '#0891b215' } :
-                                            { label: source || 'Otros', color: '#6b7280', bg: '#6b728015' };
+    s === 'pos' || s === 'tienda física'      ? { label: 'Tienda',        color: '#7c3aed', bg: '#7c3aed15' } :
+    s === 'whatsapp'                          ? { label: 'WhatsApp',      color: '#16a34a', bg: '#16a34a15' } :
+    s === 'social' || s === 'redes sociales' ? { label: 'Redes Sociales', color: '#f59e0b', bg: '#f59e0b15' } :
+    s === 'web' || s === 'página web'         ? { label: 'Web',           color: '#0891b2', bg: '#0891b215' } :
+                                               { label: source || 'Otros', color: '#6b7280', bg: '#6b728015' };
   return (
     <span className="text-[8px] font-black px-2 py-0.5 rounded-full"
       style={{ backgroundColor: cfg.bg, color: cfg.color }}>
@@ -179,7 +180,8 @@ export default function InvoicingPage() {
         customer_city: o.customer_city,
         source: o.source || 'pos',
         payment_method: o.payment_method || 'cash',
-        total: o.total_price || 0
+        total: o.total_price || 0,
+        status: o.status
       })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setHistory(mapped);
     }
@@ -202,25 +204,33 @@ export default function InvoicingPage() {
     return () => document.body.classList.remove('sidebar-hide');
   }, [isPOSActive]);
 
-  // ── KPIs ──
+  // Ventas visibles en facturación: POS (cualquier estado) + web solo si completado
+  const isFacturable = (inv: PastInvoice) => {
+    const src = (inv.source || '').toLowerCase();
+    const isWeb = src === 'web' || src === 'página web';
+    return !isWeb || inv.status === 'completed';
+  };
+
+  // ── KPIs ── (POS + pedidos web completados)
   const invoicingKpis = useMemo(() => {
-    const today        = new Date().toISOString().split('T')[0];
-    const todayOrders  = history.filter(inv => inv.date?.split('T')[0] === today);
-    const salesToday   = todayOrders.reduce((a, b) => a + Number(b.total), 0);
-    const cashToday    = todayOrders.filter(o => o.payment_method === 'cash').reduce((a, b) => a + Number(b.total), 0);
-    const transToday   = todayOrders.filter(o => o.payment_method === 'transfer').reduce((a, b) => a + Number(b.total), 0);
-    const totalRev     = history.reduce((a, b) => a + Number(b.total), 0);
-    const avgTicket    = history.length > 0 ? totalRev / history.length : 0;
+    const billed    = history.filter(isFacturable);
+    const today     = new Date().toISOString().split('T')[0];
+    const todayOrds = billed.filter(inv => inv.date?.split('T')[0] === today);
+    const salesToday = todayOrds.reduce((a, b) => a + Number(b.total), 0);
+    const totalRev   = billed.reduce((a, b) => a + Number(b.total), 0);
+    const avgTicket  = billed.length > 0 ? totalRev / billed.length : 0;
     return [
-      { icon: <Activity/>, label: 'Ventas de hoy', value: fmtCOP(salesToday),         sub: 'En vivo',  accent: '#10b981', progress: Math.min((salesToday / 1000000) * 100, 100) },
-      { icon: <ShoppingBag/>, label: 'Operaciones', value: String(history.length),     sub: 'Total',    accent: '#0891b2', progress: Math.min((history.length / 50) * 100, 100) },
-      { icon: <Target/>, label: 'Ticket promedio', value: fmtCOP(avgTicket),           sub: 'Market',   accent: '#7c3aed', progress: 60 },
-      { icon: <Wallet/>, label: 'Flujo de caja',   value: fmtCOP(totalRev),            sub: 'Balance',  accent: '#004d4d', progress: 75 },
+      { icon: <Activity/>, label: 'Ventas de hoy', value: fmtCOP(salesToday),        sub: 'En vivo',  accent: '#10b981', progress: Math.min((salesToday / 1000000) * 100, 100) },
+      { icon: <ShoppingBag/>, label: 'Operaciones', value: String(billed.length),     sub: 'Total',    accent: '#0891b2', progress: Math.min((billed.length / 50) * 100, 100) },
+      { icon: <Target/>, label: 'Ticket promedio', value: fmtCOP(avgTicket),          sub: 'Market',   accent: '#7c3aed', progress: 60 },
+      { icon: <Wallet/>, label: 'Flujo de caja',   value: fmtCOP(totalRev),           sub: 'Balance',  accent: '#004d4d', progress: 75 },
     ];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [history]);
 
   // ── Filtered history ──
   const filteredHistory = useMemo(() => history.filter(inv => {
+    if (!isFacturable(inv)) return false;        // excluir web no completados
     const q = historySearch.toLowerCase();
     const matchSearch  = !q || inv.customer?.toLowerCase().includes(q) || inv.invoice_num?.toLowerCase().includes(q);
     const d = new Date(inv.date);
@@ -230,6 +240,7 @@ export default function InvoicingPage() {
     const matchPayment = extraFilters.payment === 'Todos' ||
       inv.payment_method === (extraFilters.payment === 'Efectivo' ? 'cash' : 'transfer');
     return matchSearch && matchStart && matchEnd && matchSource && matchPayment;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [history, historySearch, dateRange, extraFilters]);
 
   // ── EXPORT ──
@@ -397,7 +408,10 @@ export default function InvoicingPage() {
         commission_amount: 0,
         commission_rate_snapshot: 0,
         payment_method: paymentMethod === 'cash' ? 'cash' : 'transfer',
-        source: customerInfo.source || 'pos',
+        source: customerInfo.source === 'Tienda Física' ? 'pos'
+               : customerInfo.source === 'WhatsApp'    ? 'whatsapp'
+               : customerInfo.source === 'Redes Sociales' ? 'social'
+               : customerInfo.source || 'pos',
         items: invoiceItems.map(i => ({
           product_variant_id: i.variant_id,
           quantity: i.quantity,
@@ -688,7 +702,7 @@ export default function InvoicingPage() {
                         </button>
                         {isSourceDropdownOpen && (
                           <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-1.5 space-y-0.5">
-                            {['Tienda Física','WhatsApp','Página Web','Redes Sociales'].map(opt => (
+                            {['Tienda Física','WhatsApp','Redes Sociales'].map(opt => (
                               <button key={opt} onClick={() => { setCustomerInfo(p => ({ ...p, source: opt })); setIsSourceDropdownOpen(false); }}
                                 className="w-full text-left px-3 py-2 rounded-lg text-[11px] font-semibold hover:bg-gray-50 text-gray-700">
                                 {opt}
@@ -817,7 +831,7 @@ export default function InvoicingPage() {
                           return res.map(c => (
                             <button key={c.email || c.name}
                               onClick={() => {
-                                setCustomerInfo({ name: c.name, email: c.email, phone: c.phone, city: c.city, source: c.source, type: c.type, seller: '' });
+                                setCustomerInfo(prev => ({ ...prev, name: c.name, email: c.email, phone: c.phone, city: c.city, type: c.type || prev.type }));
                                 setPosCustomerMode('create'); setCustomerSearch('');
                               }}
                               className="w-full flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl hover:border-[#004d4d]/20 transition-all text-left">
@@ -1012,12 +1026,12 @@ export default function InvoicingPage() {
                         <span className="text-[9px] font-black text-gray-800">$0</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-[8px] font-black text-gray-400 uppercase">Comisión Bayup</span>
-                        <span className="text-[9px] font-black text-[#004d4d]">¡Bonificado!</span>
+                        <span className="text-[8px] font-black text-gray-400 uppercase">Comisión Bayup (2.5%)</span>
+                        <span className="text-[9px] font-black text-red-500">-{fmtCOP(calculateSubtotal() * 0.025)}</span>
                       </div>
                       <div className="bg-[#001a1a] rounded-xl px-3 py-2.5 flex items-center justify-between mt-1">
                         <span className="text-[8px] font-black text-white uppercase tracking-widest">Total Neto</span>
-                        <span className="text-base font-black text-white">{fmtCOP(calculateSubtotal())}</span>
+                        <span className="text-base font-black text-white">{fmtCOP(calculateSubtotal() * 0.975)}</span>
                       </div>
                     </div>
                   </div>

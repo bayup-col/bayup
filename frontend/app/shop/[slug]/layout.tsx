@@ -27,24 +27,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  const storeName = data.store_name || 'Mi Tienda';
+  const storeName = data.full_name || data.store_name || 'Mi Tienda';
   const productsCount = data.products?.length || 0;
   const description = `Explora la colección exclusiva de ${storeName} en Bayup. Tenemos ${productsCount} productos disponibles para envío inmediato. ¡Compra inteligente!`;
 
+  const ogImage = data.products?.[0]?.image_url?.[0] ?? data.logo_url ?? null;
   return {
+    metadataBase: new URL('https://www.bayup.com.co'),
     title: `${storeName} | Tienda Oficial`,
     description: description,
+    alternates: { canonical: `/shop/${params.slug}` },
     openGraph: {
       title: `${storeName} - Catálogo Online`,
       description: description,
       type: 'website',
-      images: data.products?.[0]?.image_url?.[0] ? [{ url: data.products[0].image_url[0] }] : [],
+      images: ogImage ? [{ url: ogImage, alt: storeName }] : [],
     },
     twitter: {
       card: 'summary_large_image',
       title: storeName,
       description: description,
-    }
+      images: ogImage ? [ogImage] : [],
+    },
   };
 }
 

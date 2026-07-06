@@ -119,6 +119,15 @@ export default function DashboardPage() {
   }, [userName]);
   const [activities, setActivities] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [openInsight, setOpenInsight] = useState<null | 'meta' | 'producto' | 'stock' | 'analisis'>(null);
+  const [stockFilter, setStockFilter] = useState<'all' | 'urgent' | 'low'>('all');
+  const [monthlyGoal, setMonthlyGoal] = useState<number>(() => {
+    if (typeof window === 'undefined') return 0;
+    return Number(localStorage.getItem('bayup_monthly_goal') || 0);
+  });
+  const [editingGoal, setEditingGoal] = useState(false);
+  const [goalInput, setGoalInput] = useState('');
   const [realStats, setRealStats] = useState({ 
     revenue: 0, 
     orders_count: 0, 
@@ -196,14 +205,14 @@ export default function DashboardPage() {
     });
   }, [weeklySales]);
 
-  // --- INSIGHTS DINÁMICOS ---
-  const insights = useMemo(() => {
+  // --- DATOS DE INSIGHTS (compartidos con modales) ---
+  const insightData = useMemo(() => {
     const now = new Date();
     const monthlyTotal = orders.reduce((acc, o) => {
         const d = new Date(o.created_at);
         return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() ? acc + (o.total_price || 0) : acc;
     }, 0);
-    const goal = Math.max(monthlyTotal * 1.35, 500_000);
+    const goal = monthlyGoal > 0 ? monthlyGoal : Math.max(monthlyTotal * 1.35, 500_000);
     const goalPct = goal > 0 ? Math.min(Math.round((monthlyTotal / goal) * 100), 100) : 0;
     const fmt = (v: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v);
 
@@ -217,32 +226,79 @@ export default function DashboardPage() {
             productMap[key].units += (item.quantity || 1);
         });
     });
-    const topProduct = Object.values(productMap).sort((a, b) => b.total - a.total)[0];
+    const topProducts = Object.values(productMap).sort((a, b) => b.total - a.total);
+    const topProduct = topProducts[0];
 
+    const monthOrders = orders
+        .filter(o => { const d = new Date(o.created_at); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); })
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const daysLeft = lastDay - now.getDate();
+    const dailyNeeded = daysLeft > 0 ? Math.max(0, (goal - monthlyTotal) / daysLeft) : 0;
+
+    const statusCount: Record<string, number> = {};
+    orders.forEach(o => { const s = o.status || 'pending'; statusCount[s] = (statusCount[s] || 0) + 1; });
+
+    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const dayCounts: Record<number, number> = {};
+    orders.forEach(o => { const d = new Date(o.created_at).getDay(); dayCounts[d] = (dayCounts[d] || 0) + 1; });
+    const peakDayIdx = Object.keys(dayCounts).length > 0
+        ? parseInt(Object.keys(dayCounts).reduce((a, b) => dayCounts[+a] > dayCounts[+b] ? a : b))
+        : 1;
+
+    const totalOrders = orders.length;
+    const totalRevenue = orders.reduce((a, o) => a + (o.total_price || 0), 0);
+    const avgTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    const completedOrders = orders.filter(o => o.status === 'delivered' || o.status === 'paid').length;
+    const successRate = totalOrders > 0 ? Math.round((completedOrders / totalOrders) * 100) : 0;
+
+    const leaderSharePct = topProducts.length > 0 && totalRevenue > 0 ? Math.round((topProducts[0].total / totalRevenue) * 100) : 0;
+    const maxDayCount = Math.max(...Object.values(dayCounts), 1);
+    const dayStats = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].map((day, i) => ({
+      day, count: dayCounts[i] || 0,
+      pct: Math.round(((dayCounts[i] || 0) / maxDayCount) * 100),
+    }));
+    const activeDays = now.getDate();
+    const projectedPct = activeDays > 0 && monthlyTotal > 0 ? Math.round((monthlyTotal / activeDays) * lastDay / goal * 100) : 0;
+    return { monthlyTotal, goal, goalPct, fmt, topProducts, topProduct, monthOrders, daysLeft, dailyNeeded, statusCount, peakDay: dayNames[peakDayIdx], totalOrders, totalRevenue, avgTicket, completedOrders, successRate, leaderSharePct, dayStats, activeDays, projectedPct };
+  }, [orders, monthlyGoal]);
+
+  // --- INSIGHTS DINÁMICOS ---
+  const insights = useMemo(() => {
+    const { monthlyTotal, goalPct, topProduct, fmt } = insightData;
     return [
         {
             icon: <TrendingUp size={15} />, iconBg: 'bg-rose-100 text-rose-500',
-            bg: 'bg-rose-50 border border-rose-100', tag: 'Meta del mes', tagBg: 'bg-rose-100', tagColor: 'text-rose-600',
+            tag: 'Meta del mes', tagBg: 'bg-rose-100', tagColor: 'text-rose-600',
             title: '1. Meta del mes',
             text: monthlyTotal > 0 ? `${goalPct}% completado. Ventas acumuladas: ${fmt(monthlyTotal)}.` : 'Sin ventas registradas este mes aún. ¡Activa tu primera venta!',
-            link: '/dashboard/invoicing',
+            modal: 'meta' as const,
         },
         {
             icon: <Zap size={15} />, iconBg: 'bg-amber-100 text-amber-500',
-            bg: 'bg-amber-50 border border-amber-100', tag: 'Top ventas', tagBg: 'bg-amber-100', tagColor: 'text-amber-600',
+            tag: 'Top ventas', tagBg: 'bg-amber-100', tagColor: 'text-amber-600',
             title: '2. Producto líder del mes',
             text: topProduct ? `"${topProduct.name}" lidera con ${fmt(topProduct.total)} (${topProduct.units} uds).` : 'Registra ventas para ver tu producto estrella del mes.',
-            link: '/dashboard/products',
+            modal: 'producto' as const,
         },
         {
             icon: <AlertCircle size={15} />, iconBg: 'bg-red-100 text-red-500',
-            bg: 'bg-red-50 border border-red-100', tag: 'Alerta stock', tagBg: 'bg-red-100', tagColor: 'text-red-600',
+            tag: 'Alerta stock', tagBg: 'bg-red-100', tagColor: 'text-red-600',
             title: '3. Stock crítico',
             text: realStats.low_stock > 0 ? `${realStats.low_stock} producto${realStats.low_stock > 1 ? 's' : ''} con stock crítico (≤5 uds). Reponlos para no perder ventas.` : 'Inventario en niveles óptimos. Todo bajo control.',
-            link: '/dashboard/products',
+            modal: 'stock' as const,
         }
     ];
-  }, [orders, realStats]);
+  }, [insightData, realStats]);
+
+  // --- PRODUCTOS CON STOCK CRÍTICO ---
+  const lowStockProducts = useMemo(() =>
+    products
+        .map(p => ({ ...p, stockLevel: p.stock ?? (p.variants?.reduce((a: number, v: any) => a + (v.stock || 0), 0) ?? 0) }))
+        .filter(p => p.stockLevel <= 5)
+        .sort((a, b) => a.stockLevel - b.stockLevel),
+  [products]);
 
   const loadDashboardData = useCallback(async () => {
     if (!token) return;
@@ -261,6 +317,7 @@ export default function DashboardPage() {
         }
         
         const products = Array.isArray(pData) ? pData : [];
+        setProducts(products);
         const ordersList = Array.isArray(oData) ? oData : [];
         const logs = Array.isArray(lData) ? lData : [];
 
@@ -695,7 +752,7 @@ export default function DashboardPage() {
                     </div>
 
                     {insights.map((ins, i) => (
-                        <div key={i} onClick={() => router.push(ins.link)} className="bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl p-4 flex flex-col gap-2 transition-colors duration-150 cursor-pointer">
+                        <div key={i} onClick={() => setOpenInsight(ins.modal)} className="bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl p-4 flex flex-col gap-2 transition-colors duration-150 cursor-pointer">
                             <div className="flex items-center gap-3">
                                 <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${ins.iconBg}`}>{ins.icon}</div>
                                 <h5 className="font-semibold text-[13px] text-white leading-tight">{ins.title}</h5>
@@ -705,7 +762,7 @@ export default function DashboardPage() {
                         </div>
                     ))}
 
-                    <button onClick={() => router.push('/dashboard/web-analytics')} className="mt-auto w-full py-2.5 rounded-xl border border-white/10 text-[9px] font-semibold tracking-widest uppercase text-white/50 hover:text-white hover:border-white/20 transition-colors duration-150 flex items-center justify-center gap-2">
+                    <button onClick={() => setOpenInsight('analisis')} className="mt-auto w-full py-2.5 rounded-xl border border-white/10 text-[9px] font-semibold tracking-widest uppercase text-white/50 hover:text-white hover:border-white/20 transition-colors duration-150 flex items-center justify-center gap-2">
                         <BarChart3 size={12} /> Ver Análisis Detallado
                     </button>
                 </div>
@@ -753,6 +810,577 @@ export default function DashboardPage() {
                 </table>
             </div>
         </PremiumCard>
+
+        {/* ── MODAL 1: META DEL MES ── */}
+        <AnimatePresence>
+          {openInsight === 'meta' && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 bg-black/90 backdrop-blur-md z-[300]"
+                onClick={() => setOpenInsight(null)}
+              />
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 30 }}
+                transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
+                className="fixed inset-0 flex items-center justify-center z-[301] p-4 pointer-events-none"
+              >
+                <div className="pointer-events-auto w-full max-w-sm bg-[#0e0e0e] border border-white/[0.08] rounded-[1.25rem] shadow-[0_30px_80px_rgba(0,0,0,0.8)] max-h-[88vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                  <div className="flex-1 overflow-y-auto">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-5 pt-5 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-11 w-11 rounded-xl bg-rose-500/20 border border-rose-500/20 flex items-center justify-center shrink-0">
+                          <Target size={19} className="text-rose-400" />
+                        </div>
+                        <div>
+                          <h3 className="text-[17px] font-black text-white leading-tight">Meta del mes</h3>
+                          <p className="text-[9px] text-rose-400 font-bold uppercase tracking-widest mt-0.5">
+                            SEGUIMIENTO · {insightData.activeDays} DÍAS ACTIVOS
+                          </p>
+                        </div>
+                      </div>
+                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/[0.06] hover:bg-white/10 flex items-center justify-center transition-colors shrink-0">
+                        <X size={14} className="text-white/50" />
+                      </button>
+                    </div>
+                    {/* Ring + Stats */}
+                    <div className="flex items-center gap-4 px-5 pb-4">
+                      <div className="relative h-[105px] w-[105px] shrink-0">
+                        <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                          <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10"/>
+                          <circle cx="50" cy="50" r="40" fill="none" stroke="url(#roseGM1)" strokeWidth="10" strokeLinecap="round"
+                            strokeDasharray={`${2 * Math.PI * 40 * Math.min(insightData.goalPct, 100) / 100} ${2 * Math.PI * 40}`}
+                          />
+                          <defs>
+                            <linearGradient id="roseGM1" x1="0" y1="0" x2="1" y2="1">
+                              <stop offset="0%" stopColor="#fb7185"/><stop offset="100%" stopColor="#f43f5e"/>
+                            </linearGradient>
+                          </defs>
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-[1.85rem] font-black text-white leading-none">{insightData.goalPct}%</span>
+                        </div>
+                      </div>
+                      <div className="flex-1 space-y-2.5">
+                        {[
+                          { label: 'Acumulado', value: insightData.fmt(insightData.monthlyTotal), color: 'text-white', editable: false },
+                          { label: 'Meta mensual', value: insightData.fmt(insightData.goal), color: 'text-rose-400', editable: true },
+                          { label: 'Días restantes', value: `${insightData.daysLeft}d`, color: 'text-white/55', editable: false },
+                          { label: 'Necesario / día', value: insightData.dailyNeeded > 0 ? insightData.fmt(insightData.dailyNeeded) : '—', color: 'text-amber-400', editable: false },
+                        ].map((s, i) => (
+                          <div key={i} className="flex items-center justify-between">
+                            <span className="text-[11px] text-white/35 font-medium">{s.label}</span>
+                            {s.editable && editingGoal ? (
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  value={goalInput}
+                                  onChange={e => setGoalInput(e.target.value)}
+                                  className="w-24 bg-rose-500/10 border border-rose-500/30 rounded-lg px-2 py-0.5 text-[12px] font-bold text-rose-300 outline-none text-right"
+                                  autoFocus
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') {
+                                      const val = Number(String(goalInput).replace(/\D/g,''));
+                                      if (val > 0) { setMonthlyGoal(val); localStorage.setItem('bayup_monthly_goal', String(val)); }
+                                      setEditingGoal(false); setGoalInput('');
+                                    }
+                                    if (e.key === 'Escape') { setEditingGoal(false); setGoalInput(''); }
+                                  }}
+                                />
+                                <button onClick={() => {
+                                  const val = Number(String(goalInput).replace(/\D/g,''));
+                                  if (val > 0) { setMonthlyGoal(val); localStorage.setItem('bayup_monthly_goal', String(val)); }
+                                  setEditingGoal(false); setGoalInput('');
+                                }} className="text-[10px] font-bold text-rose-400 hover:text-rose-300 shrink-0">OK</button>
+                                <button onClick={() => { setEditingGoal(false); setGoalInput(''); }} className="opacity-40 hover:opacity-80 shrink-0"><X size={11} className="text-white/50" /></button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5">
+                                <span className={`text-[13px] font-bold ${s.color}`}>{s.value}</span>
+                                {s.editable && (
+                                  <button onClick={() => { setEditingGoal(true); setGoalInput(String(Math.round(insightData.goal))); }} className="opacity-30 hover:opacity-70 transition-opacity">
+                                    <Edit3 size={10} className="text-rose-400" />
+                                  </button>
+                                )}
+                                {s.editable && monthlyGoal > 0 && !editingGoal && (
+                                  <button onClick={() => { setMonthlyGoal(0); localStorage.removeItem('bayup_monthly_goal'); }} className="opacity-25 hover:opacity-60 transition-opacity">
+                                    <RefreshCw size={9} className="text-white/60" />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Info box */}
+                    <div className="mx-5 mb-4 bg-white/[0.04] border border-white/[0.06] rounded-2xl px-4 py-3">
+                      <p className="text-[11px] text-white/40 leading-relaxed">
+                        Llevas {insightData.activeDays} días activos y acumulaste el{' '}
+                        <span className="text-white/65 font-semibold">{insightData.goalPct}%</span> de tu meta.
+                        {insightData.projectedPct > 0 && <> A este ritmo cerrarás en ~<span className="text-white/65 font-semibold">{insightData.projectedPct}%</span>.</>}
+                        {insightData.dailyNeeded > 0 && <> Sube tu venta diaria a <span className="text-amber-400 font-semibold">{insightData.fmt(insightData.dailyNeeded)}</span> para llegar a tiempo.</>}
+                      </p>
+                    </div>
+                    {/* Orders */}
+                    <div className="px-5 mb-3">
+                      <p className="text-[9px] text-white/25 uppercase tracking-widest font-semibold mb-2">
+                        PEDIDOS DEL MES · {insightData.monthOrders.length}
+                      </p>
+                      <div className="max-h-40 overflow-y-auto">
+                        {insightData.monthOrders.length === 0 ? (
+                          <p className="text-[11px] text-white/20 py-4 text-center">Sin pedidos este mes</p>
+                        ) : insightData.monthOrders.slice(0, 10).map((o: any, i: number) => {
+                          const dot: Record<string, string> = { pending: 'bg-amber-400', paid: 'bg-emerald-400', shipped: 'bg-blue-400', delivered: 'bg-green-400', cancelled: 'bg-rose-400' };
+                          return (
+                            <div key={i} className="flex items-center gap-2.5 py-2.5 border-b border-white/[0.04]">
+                              <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot[o.status || 'pending'] || 'bg-white/20'}`} />
+                              <span className="text-[11px] text-white/40 font-mono">#{String(o.id || i+1).slice(-7).toUpperCase()}</span>
+                              <span className="text-[11px] text-white/25">· {new Date(o.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}</span>
+                              <span className="flex-1 text-right text-[12px] font-semibold text-white/65">{insightData.fmt(o.total_price || 0)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  {/* CTAs */}
+                  <div className="px-4 py-4 shrink-0 flex gap-2.5">
+                    <button
+                      onClick={() => { setEditingGoal(true); setGoalInput(String(Math.round(insightData.goal))); }}
+                      className="flex-1 h-12 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 text-white text-[13px] font-black flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-lg shadow-rose-500/20"
+                    >
+                      <Edit3 size={14} />
+                      Ajustar meta
+                    </button>
+                    <button
+                      onClick={() => { setOpenInsight(null); router.push('/dashboard/orders'); }}
+                      className="h-12 px-4 rounded-2xl bg-white/[0.06] border border-white/[0.08] text-white/50 text-[13px] font-semibold flex items-center gap-1.5 hover:bg-white/10 transition-colors whitespace-nowrap"
+                    >
+                      Ver pedidos <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* ── MODAL 2: PRODUCTO LÍDER DEL MES ── */}
+        <AnimatePresence>
+          {openInsight === 'producto' && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 bg-black/90 backdrop-blur-md z-[300]"
+                onClick={() => setOpenInsight(null)}
+              />
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 30 }}
+                transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
+                className="fixed inset-0 flex items-center justify-center z-[301] p-4 pointer-events-none"
+              >
+                <div className="pointer-events-auto w-full max-w-sm bg-[#0e0e0e] border border-white/[0.08] rounded-[1.25rem] shadow-[0_30px_80px_rgba(0,0,0,0.8)] max-h-[88vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                  <div className="flex-1 overflow-y-auto">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-5 pt-5 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-11 w-11 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center shrink-0">
+                          <Trophy size={19} className="text-amber-400" />
+                        </div>
+                        <div>
+                          <h3 className="text-[17px] font-black text-white leading-tight">Producto líder</h3>
+                          <p className="text-[9px] text-amber-400 font-bold uppercase tracking-widest mt-0.5">
+                            DESTACADO · TOP VENTAS
+                          </p>
+                        </div>
+                      </div>
+                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/[0.06] hover:bg-white/10 flex items-center justify-center transition-colors shrink-0">
+                        <X size={14} className="text-white/50" />
+                      </button>
+                    </div>
+                    {insightData.topProducts.length === 0 ? (
+                      <div className="py-14 text-center px-5">
+                        <Trophy size={36} className="text-amber-400/20 mx-auto mb-3" />
+                        <p className="text-white/30 text-sm font-semibold">Sin ventas registradas aún</p>
+                        <p className="text-white/20 text-xs mt-1">Registra tu primera venta para ver el ranking.</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Hero card */}
+                        <div className="mx-5 mb-4 relative bg-gradient-to-br from-amber-500/10 to-amber-500/[0.04] border border-amber-500/20 rounded-2xl p-4 overflow-hidden">
+                          <div className="absolute top-2 right-3 text-[5rem] font-black text-amber-400/[0.06] leading-none select-none pointer-events-none">1</div>
+                          <div className="relative">
+                            <p className="text-[9px] text-amber-400/60 uppercase tracking-widest font-bold mb-1">Producto estrella</p>
+                            <p className="text-[15px] font-black text-white leading-tight mb-3">{insightData.topProducts[0].name}</p>
+                            <div className="grid grid-cols-3 gap-2">
+                              {[
+                                { label: 'Ingresos', value: insightData.fmt(insightData.topProducts[0].total) },
+                                { label: 'Unidades', value: String(insightData.topProducts[0].units) },
+                                { label: '% del total', value: `${insightData.leaderSharePct}%` },
+                              ].map((s, i) => (
+                                <div key={i} className="bg-black/25 rounded-xl p-2 text-center border border-amber-500/10">
+                                  <p className="text-[8px] text-amber-400/40 uppercase tracking-widest font-semibold mb-0.5">{s.label}</p>
+                                  <p className="text-[11px] font-black text-amber-300">{s.value}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        {/* Warning si precio $0 */}
+                        {insightData.topProducts[0].total === 0 && (
+                          <div className="mx-5 mb-4 bg-amber-500/[0.08] border border-amber-500/20 rounded-2xl px-4 py-3 flex items-start gap-2.5">
+                            <AlertCircle size={14} className="text-amber-400 shrink-0 mt-0.5" />
+                            <p className="text-[11px] text-amber-300/80 leading-relaxed">
+                              Este producto tiene precio en $0.{' '}
+                              <button onClick={() => { setOpenInsight(null); router.push('/dashboard/products'); }} className="text-amber-400 font-bold underline underline-offset-2">Configúralo</button>
+                              {' '}para que aparezca en tus estadísticas de ingresos.
+                            </p>
+                          </div>
+                        )}
+                        {/* Ranking */}
+                        {insightData.topProducts.length > 1 && (
+                          <div className="px-5 mb-4">
+                            <p className="text-[9px] text-white/25 uppercase tracking-widest font-semibold mb-2.5">TOP PRODUCTOS</p>
+                            <div className="space-y-2.5">
+                              {insightData.topProducts.slice(0, 6).map((p, i) => {
+                                const pct = insightData.topProducts[0]?.total > 0 ? (p.total / insightData.topProducts[0].total) * 100 : 0;
+                                const medals = ['🥇','🥈','🥉'];
+                                return (
+                                  <div key={i} className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="w-5 shrink-0 text-center text-sm leading-none">{i < 3 ? medals[i] : <span className="text-[10px] text-white/20 font-mono">{i+1}</span>}</span>
+                                      <span className="flex-1 text-[12px] text-white/65 font-semibold truncate">{p.name}</span>
+                                      <span className="text-[11px] font-bold text-white/75 shrink-0">{insightData.fmt(p.total)}</span>
+                                      <span className="text-[9px] text-white/25 shrink-0 w-6 text-right">{p.units}u</span>
+                                    </div>
+                                    <div className="ml-7 h-1 bg-white/[0.05] rounded-full overflow-hidden">
+                                      <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${pct}%` }}
+                                        transition={{ duration: 0.55, ease: 'easeOut', delay: i * 0.05 }}
+                                        className={`h-full rounded-full ${i === 0 ? 'bg-gradient-to-r from-amber-400 to-yellow-400' : i === 1 ? 'bg-white/30' : i === 2 ? 'bg-white/20' : 'bg-white/10'}`}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  {/* CTAs */}
+                  <div className="px-4 py-4 shrink-0 flex gap-2.5">
+                    <button
+                      onClick={() => { setOpenInsight(null); router.push('/dashboard/products'); }}
+                      className="flex-1 h-12 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 text-[#0e0e0e] text-[13px] font-black flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-lg shadow-amber-500/20"
+                    >
+                      <Edit3 size={14} />
+                      Configurar precio
+                    </button>
+                    <button
+                      onClick={() => { setOpenInsight(null); router.push('/dashboard/products'); }}
+                      className="h-12 px-4 rounded-2xl bg-white/[0.06] border border-white/[0.08] text-white/50 text-[13px] font-semibold flex items-center gap-1.5 hover:bg-white/10 transition-colors whitespace-nowrap"
+                    >
+                      Promocionar <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* ── MODAL 3: STOCK CRÍTICO ── */}
+        <AnimatePresence>
+          {openInsight === 'stock' && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 bg-black/90 backdrop-blur-md z-[300]"
+                onClick={() => setOpenInsight(null)}
+              />
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 30 }}
+                transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
+                className="fixed inset-0 flex items-center justify-center z-[301] p-4 pointer-events-none"
+              >
+                <div className="pointer-events-auto w-full max-w-sm bg-[#0e0e0e] border border-white/[0.08] rounded-[1.25rem] shadow-[0_30px_80px_rgba(0,0,0,0.8)] max-h-[88vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                  <div className="flex-1 overflow-y-auto">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-5 pt-5 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-11 w-11 rounded-xl bg-rose-500/15 border border-rose-500/20 flex items-center justify-center shrink-0">
+                          <AlertCircle size={19} className="text-rose-400" />
+                        </div>
+                        <div>
+                          <h3 className="text-[17px] font-black text-white leading-tight">Alerta de stock</h3>
+                          <p className="text-[9px] text-rose-400 font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1.5">
+                            <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse inline-block" />
+                            URGENTE · ACCIÓN REQUERIDA
+                          </p>
+                        </div>
+                      </div>
+                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/[0.06] hover:bg-white/10 flex items-center justify-center transition-colors shrink-0">
+                        <X size={14} className="text-white/50" />
+                      </button>
+                    </div>
+                    {/* Resumen 2 cajas */}
+                    {lowStockProducts.length > 0 && (() => {
+                      const agotados = lowStockProducts.filter(p => p.stockLevel === 0).length;
+                      const bajos = lowStockProducts.filter(p => p.stockLevel > 0).length;
+                      return (
+                        <div className="grid grid-cols-2 gap-2.5 px-5 mb-4">
+                          <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-3.5 text-center">
+                            <p className="text-[1.75rem] font-black text-rose-400 leading-none">{agotados}</p>
+                            <p className="text-[9px] text-rose-400/60 uppercase tracking-widest font-bold mt-1">Agotados</p>
+                          </div>
+                          <div className="bg-orange-500/[0.08] border border-orange-500/20 rounded-2xl p-3.5 text-center">
+                            <p className="text-[1.75rem] font-black text-orange-400 leading-none">{bajos}</p>
+                            <p className="text-[9px] text-orange-400/60 uppercase tracking-widest font-bold mt-1">Stock bajo</p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {/* Filter tabs */}
+                    <div className="flex gap-2 px-5 mb-3">
+                      {([
+                        { key: 'all' as const, label: 'Todos', count: lowStockProducts.length },
+                        { key: 'urgent' as const, label: 'Agotado', count: lowStockProducts.filter(p => p.stockLevel === 0).length },
+                        { key: 'low' as const, label: 'Stock bajo', count: lowStockProducts.filter(p => p.stockLevel > 0).length },
+                      ]).map(tab => (
+                        <button key={tab.key} onClick={() => setStockFilter(tab.key)}
+                          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border transition-all ${
+                            stockFilter === tab.key
+                              ? 'bg-rose-500/20 border-rose-500/30 text-rose-400'
+                              : 'bg-white/[0.03] border-white/[0.06] text-white/25 hover:text-white/40'
+                          }`}>
+                          {tab.label}
+                          <span className={`min-w-[16px] px-1 rounded-full text-[8px] font-black flex items-center justify-center ${stockFilter === tab.key ? 'bg-rose-500/30 text-rose-300' : 'bg-white/[0.05] text-white/20'}`}>{tab.count}</span>
+                        </button>
+                      ))}
+                    </div>
+                    {/* Product list */}
+                    <div className="px-5 pb-3">
+                      {lowStockProducts.length === 0 ? (
+                        <div className="py-10 text-center">
+                          <CheckCircle2 size={32} className="text-emerald-400/30 mx-auto mb-3" />
+                          <p className="text-white/30 text-sm font-semibold">Inventario en niveles óptimos</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 max-h-52 overflow-y-auto">
+                          {lowStockProducts
+                            .filter(p => stockFilter === 'all' ? true : stockFilter === 'urgent' ? p.stockLevel === 0 : p.stockLevel > 0)
+                            .map((p, i) => (
+                              <div key={i} className={`border rounded-2xl px-3.5 py-3 flex items-center gap-3 ${p.stockLevel === 0 ? 'bg-rose-500/[0.07] border-rose-500/20' : 'bg-orange-500/[0.05] border-orange-500/15'}`}>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[13px] font-semibold text-white/85 truncate">{p.name}</p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <div className="flex-1 h-1 bg-white/[0.06] rounded-full overflow-hidden">
+                                      <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${Math.min((p.stockLevel / 5) * 100, 100)}%` }}
+                                        transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.06 }}
+                                        className={`h-full rounded-full ${p.stockLevel === 0 ? 'bg-rose-600' : p.stockLevel <= 2 ? 'bg-rose-500' : 'bg-orange-400'}`}
+                                      />
+                                    </div>
+                                    <span className={`text-[10px] font-black shrink-0 ${p.stockLevel === 0 ? 'text-rose-400' : p.stockLevel <= 2 ? 'text-rose-400' : 'text-orange-400'}`}>
+                                      {p.stockLevel === 0 ? 'AGOTADO' : `${p.stockLevel} uds`}
+                                    </span>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => { setOpenInsight(null); router.push('/dashboard/products'); }}
+                                  className="shrink-0 h-8 px-3 rounded-xl bg-rose-500/15 border border-rose-500/25 text-rose-400 text-[10px] font-bold hover:bg-rose-500/25 transition-colors"
+                                >
+                                  Reponer
+                                </button>
+                              </div>
+                            ))}
+                          {lowStockProducts.filter(p => stockFilter === 'all' ? true : stockFilter === 'urgent' ? p.stockLevel === 0 : p.stockLevel > 0).length === 0 && (
+                            <p className="text-[11px] text-white/20 text-center py-6">Sin productos en esta categoría</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {/* CTA */}
+                  <div className="px-4 py-4 shrink-0">
+                    <button
+                      onClick={() => { setOpenInsight(null); router.push('/dashboard/products'); }}
+                      className="w-full h-12 rounded-2xl bg-gradient-to-r from-rose-500 to-rose-600 text-white text-[13px] font-black flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-lg shadow-rose-500/20"
+                    >
+                      <Package size={15} />
+                      Reponer inventario ahora
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* ── MODAL 4: ANÁLISIS DETALLADO ── */}
+        <AnimatePresence>
+          {openInsight === 'analisis' && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 bg-black/90 backdrop-blur-md z-[300]"
+                onClick={() => setOpenInsight(null)}
+              />
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 30 }}
+                transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
+                className="fixed inset-0 flex items-center justify-center z-[301] p-4 pointer-events-none"
+              >
+                <div className="pointer-events-auto w-full max-w-sm bg-[#0e0e0e] border border-white/[0.08] rounded-[1.25rem] shadow-[0_30px_80px_rgba(0,0,0,0.8)] max-h-[88vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                  <div className="flex-1 overflow-y-auto">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-5 pt-5 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-11 w-11 rounded-xl bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                          <BarChart3 size={19} className="text-emerald-400" />
+                        </div>
+                        <div>
+                          <h3 className="text-[17px] font-black text-white leading-tight">Análisis detallado</h3>
+                          <p className="text-[9px] text-emerald-400 font-bold uppercase tracking-widest mt-0.5">
+                            RESUMEN EJECUTIVO
+                          </p>
+                        </div>
+                      </div>
+                      <button onClick={() => setOpenInsight(null)} className="h-8 w-8 rounded-full bg-white/[0.06] hover:bg-white/10 flex items-center justify-center transition-colors shrink-0">
+                        <X size={14} className="text-white/50" />
+                      </button>
+                    </div>
+                    {/* 6 KPIs 2×3 */}
+                    <div className="grid grid-cols-2 gap-2 px-5 mb-4">
+                      {[
+                        { label: 'Total pedidos', sub: 'Histórico', value: String(insightData.totalOrders), color: 'text-white', accent: 'text-white/30' },
+                        { label: 'Ingresos totales', sub: 'Todos los tiempos', value: insightData.fmt(insightData.totalRevenue), color: 'text-emerald-400', accent: 'text-emerald-400/40' },
+                        { label: 'Ticket promedio', sub: 'Por pedido', value: insightData.fmt(insightData.avgTicket), color: 'text-cyan-400', accent: 'text-cyan-400/40' },
+                        { label: 'Completados', sub: `de ${insightData.totalOrders} pedidos`, value: String(insightData.completedOrders), color: 'text-green-400', accent: 'text-green-400/40' },
+                        { label: 'Tasa de éxito', sub: 'Pedidos exitosos', value: `${insightData.successRate}%`, color: 'text-amber-400', accent: 'text-amber-400/40' },
+                        { label: 'Día pico', sub: 'Más ventas', value: insightData.peakDay, color: 'text-purple-400', accent: 'text-purple-400/40' },
+                      ].map((k, i) => (
+                        <div key={i} className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-3">
+                          <p className="text-[9px] text-white/30 font-semibold mb-0.5">{k.label}</p>
+                          <p className={`text-[17px] font-black leading-none mb-0.5 ${k.color}`}>{k.value}</p>
+                          <p className={`text-[9px] font-medium ${k.accent}`}>{k.sub}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Gráfico barras por día */}
+                    <div className="px-5 mb-4">
+                      <div className="flex items-center justify-between mb-2.5">
+                        <p className="text-[9px] text-white/25 uppercase tracking-widest font-semibold">ACTIVIDAD POR DÍA</p>
+                        <p className="text-[9px] text-white/25">Pico: <span className="text-white/50 font-bold">{insightData.peakDay}</span></p>
+                      </div>
+                      <div className="flex items-end gap-1.5 h-14">
+                        {insightData.dayStats.map((d, i) => (
+                          <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+                            <div className="w-full flex items-end justify-center" style={{ height: '36px' }}>
+                              <motion.div
+                                initial={{ height: 0 }}
+                                animate={{ height: `${Math.max((d.pct / 100) * 36, 3)}px` }}
+                                transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.04 }}
+                                style={{ width: '100%' }}
+                                className={`rounded-t-[3px] ${d.day === insightData.peakDay ? 'bg-emerald-400' : 'bg-white/[0.08]'}`}
+                              />
+                            </div>
+                            <span className={`text-[8px] font-semibold ${d.day === insightData.peakDay ? 'text-emerald-400' : 'text-white/20'}`}>{d.day.slice(0,2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Top productos */}
+                    {insightData.topProducts.length > 0 && (
+                      <div className="px-5 mb-4">
+                        <p className="text-[9px] text-white/25 uppercase tracking-widest font-semibold mb-2.5">TOP PRODUCTOS</p>
+                        <div className="space-y-2">
+                          {insightData.topProducts.slice(0, 4).map((p, i) => {
+                            const maxT = insightData.topProducts[0]?.total || 1;
+                            return (
+                              <div key={i} className="flex items-center gap-2.5">
+                                <span className="text-[9px] text-white/20 font-mono w-3 shrink-0">{i+1}</span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <p className="text-[11px] text-white/65 font-semibold truncate">{p.name}</p>
+                                    <p className="text-[10px] font-bold text-white/75 shrink-0 ml-2">{insightData.fmt(p.total)}</p>
+                                  </div>
+                                  <div className="h-1 bg-white/[0.05] rounded-full overflow-hidden">
+                                    <motion.div
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${(p.total / maxT) * 100}%` }}
+                                      transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.06 }}
+                                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {/* Estado de pedidos */}
+                    <div className="px-5 mb-4">
+                      <p className="text-[9px] text-white/25 uppercase tracking-widest font-semibold mb-2.5">ESTADO DE PEDIDOS</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {Object.entries(insightData.statusCount).map(([status, count]) => {
+                          const st: Record<string, string> = { pending: 'bg-amber-500/15 border-amber-500/25 text-amber-400', paid: 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400', shipped: 'bg-blue-500/15 border-blue-500/25 text-blue-400', delivered: 'bg-green-500/15 border-green-500/25 text-green-400', cancelled: 'bg-rose-500/15 border-rose-500/25 text-rose-400' };
+                          const lb: Record<string, string> = { pending: 'Pendiente', paid: 'Pagado', shipped: 'Enviado', delivered: 'Entregado', cancelled: 'Cancelado' };
+                          return (
+                            <div key={status} className={`border rounded-full px-2.5 py-1 flex items-center gap-1.5 ${st[status] || 'bg-white/[0.05] border-white/10 text-white/40'}`}>
+                              <span className="text-[9px] font-semibold">{lb[status] || status}</span>
+                              <span className="text-[10px] font-black">{count}</span>
+                            </div>
+                          );
+                        })}
+                        {Object.keys(insightData.statusCount).length === 0 && <p className="text-[11px] text-white/20">Sin pedidos</p>}
+                      </div>
+                    </div>
+                    {/* Insight box */}
+                    {orders.length > 0 && (
+                      <div className="mx-5 mb-4 bg-emerald-500/[0.07] border border-emerald-500/15 rounded-2xl px-4 py-3 flex items-start gap-2.5">
+                        <Lightbulb size={13} className="text-emerald-400 shrink-0 mt-0.5" />
+                        <p className="text-[11px] text-white/40 leading-relaxed">
+                          Tu día más activo es <span className="text-emerald-400 font-semibold">{insightData.peakDay}</span>.{' '}
+                          {insightData.successRate >= 70 ? `Tasa de éxito ${insightData.successRate}% — operación excelente.` : insightData.successRate >= 40 ? `Tasa de éxito ${insightData.successRate}% — revisa pedidos cancelados.` : 'Registra más ventas para ver patrones.'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  {/* CTA */}
+                  <div className="px-4 py-4 shrink-0">
+                    <button
+                      onClick={() => showToast('Reporte PDF en desarrollo', 'info')}
+                      className="w-full h-12 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[13px] font-black flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-lg shadow-emerald-500/20"
+                    >
+                      <Download size={15} />
+                      Descargar reporte PDF
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         <MetricDetailModal isOpen={!!selectedMetric} onClose={() => setSelectedMetric(null)} metric={selectedMetric} />
 

@@ -7,7 +7,8 @@ import {
   Clock, Download, RefreshCw, Plus, ChevronRight, ExternalLink,
   Phone, MessageCircle, ArrowUpRight, ArrowDownRight, Edit3,
   Loader2, Activity, Target, Zap, RotateCcw, Eye, Calendar,
-  Hash, User, DollarSign, ShoppingBag, FileSpreadsheet, ChevronDown
+  Hash, User, DollarSign, ShoppingBag, FileSpreadsheet, ChevronDown,
+  SlidersHorizontal
 } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -57,14 +58,6 @@ const STATUS: Record<ShipStatus, { label: string; color: string; bg: string; bor
 const PIPELINE: ShipStatus[] = ['pendiente', 'guia_generada', 'en_transito', 'en_reparto', 'entregado'];
 const CARRIERS = ['Servientrega', 'Coordinadora', 'Envia', 'Deprisa', 'Fedex', 'DHL', 'TCC', 'Interrapidísimo', 'Otro'];
 
-// ── MAPA ESTADOS PEDIDOS → ENVÍOS ─────────────────────────────────────────
-function mapOrderStatus(orderStatus: string): ShipStatus {
-  if (orderStatus === 'pending')    return 'pendiente';
-  if (orderStatus === 'processing') return 'en_transito';
-  if (orderStatus === 'completed')  return 'entregado';
-  if (orderStatus === 'cancelled')  return 'incidencia';
-  return 'pendiente';
-}
 
 // ── KPI CARD ───────────────────────────────────────────────────────────────
 function KpiCard({ label, value, sub, icon, trend, trendUp, accent = '#004d4d' }: any) {
@@ -91,7 +84,7 @@ function KpiCard({ label, value, sub, icon, trend, trendUp, accent = '#004d4d' }
 
 // ── BADGE ESTADO ───────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: ShipStatus }) {
-  const s = STATUS[status];
+  const s = STATUS[status] ?? STATUS['pendiente'];
   return (
     <span className={`flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-1 rounded-full border ${s.bg} ${s.color} ${s.border}`}>
       <div className={`h-1.5 w-1.5 rounded-full ${s.dot}`}/>
@@ -150,7 +143,7 @@ function ShipmentTimeline({ shipment }: { shipment: Shipment }) {
 function ShipmentDrawer({ shipment, onClose, onUpdateStatus }: {
   shipment: Shipment;
   onClose: () => void;
-  onUpdateStatus: (id: string, status: ShipStatus, note?: string) => void;
+  onUpdateStatus: (id: string, status: ShipStatus, carrier: string, tracking: string, note?: string) => void;
 }) {
   const [newStatus, setNewStatus] = useState<ShipStatus>(shipment.status);
   const [carrier,   setCarrier]   = useState(shipment.carrier || '');
@@ -165,7 +158,7 @@ function ShipmentDrawer({ shipment, onClose, onUpdateStatus }: {
 
   const handleSave = async () => {
     setSaving(true);
-    await onUpdateStatus(shipment.order_id, newStatus, note || undefined);
+    await onUpdateStatus(shipment.id, newStatus, carrier, tracking, note || undefined);
     setSaving(false);
     onClose();
   };
@@ -299,55 +292,35 @@ export default function ShippingPage() {
   const [loading,   setLoading]   = useState(true);
   const [search,    setSearch]    = useState('');
   const [filterStatus, setFilterStatus] = useState<ShipStatus | 'todos'>('todos');
+  const [filterCarrier, setFilterCarrier] = useState('todos');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo,   setFilterDateTo]   = useState('');
+  const [showFilters,   setShowFilters]   = useState(false);
   const [drawerShipment, setDrawerShipment] = useState<Shipment | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
 
-  // ── CARGA: convierte órdenes en envíos ──
+  // ── CARGA DIRECTA DESDE /shipments ──
   const fetchShipments = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
-      const data = await apiRequest<any[]>('/orders', { token });
-      if (data) {
-        const mapped: Shipment[] = data.map(o => ({
-          id:               o.id,
-          order_id:         o.id,
-          order_number:     o.order_number || o.id.slice(0, 8).toUpperCase(),
-          tracking_number:  o.tracking_number || 'PENDIENTE',
-          carrier:          o.carrier || '',
-          status:           o.shipping_status || mapOrderStatus(o.status),
-          customer_name:    o.customer_name || 'Cliente',
-          customer_phone:   o.customer_phone || '',
-          customer_city:    o.shipping_city || o.customer_city || '',
-          customer_address: o.shipping_address || '',
-          total_price:      o.total_price || 0,
-          items_count:      (o.items || o.order_items || []).length,
-          created_at:       o.created_at,
-          updated_at:       o.updated_at || o.created_at,
-          estimated_delivery: o.estimated_delivery,
-          notes:            o.shipping_notes || '',
-        }));
-        setShipments(mapped);
-      }
+      const data = await apiRequest<Shipment[]>('/shipments', { token });
+      if (data) setShipments(data);
     } catch { showToast('Error al cargar envíos', 'error'); }
     finally { setLoading(false); }
   }, [token, showToast]);
 
   useEffect(() => { fetchShipments(); }, [fetchShipments]);
 
-  // ── ACTUALIZAR ESTADO ──
-  const handleUpdateStatus = async (orderId: string, newStatus: ShipStatus, note?: string) => {
-    const orderStatus =
-      newStatus === 'entregado'   ? 'completed'  :
-      newStatus === 'incidencia'  ? 'cancelled'  :
-      newStatus === 'pendiente'   ? 'pending'    : 'processing';
+  // ── ACTUALIZAR ENVÍO ──
+  const handleUpdateStatus = async (shipmentId: string, newStatus: ShipStatus, carrier: string, tracking: string, note?: string) => {
     try {
-      await apiRequest(`/orders/${orderId}`, {
+      await apiRequest(`/shipments/${shipmentId}`, {
         method: 'PUT', token,
-        body: JSON.stringify({ status: orderStatus, shipping_status: newStatus, shipping_notes: note }),
+        body: JSON.stringify({ status: newStatus, carrier, tracking_number: tracking, notes: note }),
       });
-      showToast('Estado actualizado ✓', 'success');
+      showToast('Envío actualizado ✓', 'success');
       fetchShipments();
     } catch { showToast('Error al actualizar', 'error'); }
   };
@@ -362,9 +335,14 @@ export default function ShippingPage() {
   }), [shipments]);
 
   // ── FILTROS ──
+  const availableCarriers = useMemo(() => Array.from(new Set(shipments.map(s => s.carrier).filter(Boolean))), [shipments]);
+
   const filtered = useMemo(() => {
     let list = [...shipments];
     if (filterStatus !== 'todos') list = list.filter(s => s.status === filterStatus);
+    if (filterCarrier !== 'todos') list = list.filter(s => s.carrier === filterCarrier);
+    if (filterDateFrom) list = list.filter(s => new Date(s.created_at) >= new Date(filterDateFrom));
+    if (filterDateTo)   list = list.filter(s => new Date(s.created_at) <= new Date(filterDateTo + 'T23:59:59'));
     if (search) list = list.filter(s =>
       s.customer_name.toLowerCase().includes(search.toLowerCase()) ||
       s.order_number.toLowerCase().includes(search.toLowerCase()) ||
@@ -372,7 +350,11 @@ export default function ShippingPage() {
       s.customer_city.toLowerCase().includes(search.toLowerCase())
     );
     return list.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
-  }, [shipments, filterStatus, search]);
+  }, [shipments, filterStatus, filterCarrier, filterDateFrom, filterDateTo, search]);
+
+  const activeFiltersCount = [filterCarrier !== 'todos', filterDateFrom, filterDateTo].filter(Boolean).length;
+
+  const clearAllFilters = () => { setFilterCarrier('todos'); setFilterDateFrom(''); setFilterDateTo(''); setFilterStatus('todos'); setSearch(''); };
 
   // ── PIPELINE COUNTS ──
   const pipelineCounts = useMemo(() => {
@@ -533,21 +515,67 @@ export default function ShippingPage() {
         </div>
       </div>
 
-      {/* ── BARRA BÚSQUEDA ── */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1 flex items-center gap-2 h-10 bg-white rounded-2xl border border-gray-200 shadow-sm px-3">
-          <Search size={14} className="text-gray-300 shrink-0"/>
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar por cliente, nº pedido, guía o ciudad…"
-            className="flex-1 bg-transparent outline-none text-sm text-gray-700 placeholder:text-gray-300"/>
-          {search && <button onClick={() => setSearch('')}><X size={12} className="text-gray-300"/></button>}
-        </div>
-        {filterStatus !== 'todos' && (
-          <button onClick={() => setFilterStatus('todos')}
-            className="h-10 flex items-center gap-2 px-4 rounded-2xl border border-[#004d4d]/30 bg-[#004d4d]/5 text-[10px] font-bold text-[#004d4d]">
-            {STATUS[filterStatus].label} <X size={11}/>
+      {/* ── BARRA BÚSQUEDA + FILTROS ── */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="flex-1 flex items-center gap-2 h-10 bg-white rounded-2xl border border-gray-200 shadow-sm px-3">
+            <Search size={14} className="text-gray-300 shrink-0"/>
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar por cliente, nº pedido, guía o ciudad…"
+              className="flex-1 bg-transparent outline-none text-sm text-gray-700 placeholder:text-gray-300"/>
+            {search && <button onClick={() => setSearch('')}><X size={12} className="text-gray-300"/></button>}
+          </div>
+          <button onClick={() => setShowFilters(v => !v)}
+            className={`h-10 flex items-center gap-2 px-4 rounded-2xl border text-[10px] font-bold transition-all shadow-sm relative ${
+              showFilters || activeFiltersCount > 0
+                ? 'bg-[#004d4d] border-[#004d4d] text-white'
+                : 'bg-white border-gray-200 text-gray-600 hover:border-[#004d4d]/30'
+            }`}>
+            <SlidersHorizontal size={13}/>
+            Filtros
+            {activeFiltersCount > 0 && (
+              <span className="h-4 w-4 rounded-full bg-white text-[#004d4d] text-[8px] font-black flex items-center justify-center ml-0.5">{activeFiltersCount}</span>
+            )}
           </button>
-        )}
+          {(activeFiltersCount > 0 || filterStatus !== 'todos') && (
+            <button onClick={clearAllFilters}
+              className="h-10 flex items-center gap-2 px-3 rounded-2xl border border-rose-200 bg-rose-50 text-[10px] font-bold text-rose-500 hover:bg-rose-100 transition-colors">
+              <X size={11}/> Limpiar
+            </button>
+          )}
+        </div>
+
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }} className="overflow-hidden">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* Operadora */}
+                <div>
+                  <label className="text-[9px] font-bold tracking-widest uppercase text-gray-400 mb-1.5 block">Operadora</label>
+                  <select value={filterCarrier} onChange={e => setFilterCarrier(e.target.value)}
+                    className="w-full h-9 px-3 rounded-xl border border-gray-200 text-[11px] text-gray-700 bg-white focus:outline-none focus:border-[#004d4d]/50">
+                    <option value="todos">Todas las operadoras</option>
+                    {CARRIERS.map(c => <option key={c} value={c}>{c}</option>)}
+                    {availableCarriers.filter(c => !CARRIERS.includes(c)).map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                {/* Desde */}
+                <div>
+                  <label className="text-[9px] font-bold tracking-widest uppercase text-gray-400 mb-1.5 block">Desde</label>
+                  <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)}
+                    className="w-full h-9 px-3 rounded-xl border border-gray-200 text-[11px] text-gray-700 bg-white focus:outline-none focus:border-[#004d4d]/50"/>
+                </div>
+                {/* Hasta */}
+                <div>
+                  <label className="text-[9px] font-bold tracking-widest uppercase text-gray-400 mb-1.5 block">Hasta</label>
+                  <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)}
+                    className="w-full h-9 px-3 rounded-xl border border-gray-200 text-[11px] text-gray-700 bg-white focus:outline-none focus:border-[#004d4d]/50"/>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* ── TABLA ── */}

@@ -102,6 +102,8 @@ async def get_current_user(
     user = crud.get_user_by_email(db, email=email)
     if user is None:
         raise credentials_exception
+    if user.status not in ("Activo", "active"):
+        raise HTTPException(status_code=403, detail="Cuenta suspendida")
     return user
 
 def get_super_admin_user(current_user: models.User = Depends(get_current_user)) -> models.User:

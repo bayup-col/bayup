@@ -23,6 +23,7 @@ const PAGE_TYPES = [
     totalAllowed: 1,
     editorKey: 'home',
     note: null,
+    comingSoon: false,
   },
   {
     key: 'nosotros',
@@ -34,6 +35,7 @@ const PAGE_TYPES = [
     totalAllowed: 1,
     editorKey: 'nosotros',
     note: null,
+    comingSoon: false,
   },
   {
     key: 'contacto',
@@ -45,6 +47,7 @@ const PAGE_TYPES = [
     totalAllowed: 1,
     editorKey: 'contacto',
     note: null,
+    comingSoon: false,
   },
   {
     key: 'catalogo',
@@ -56,6 +59,7 @@ const PAGE_TYPES = [
     totalAllowed: 1,
     editorKey: 'catalogo',
     note: null,
+    comingSoon: false,
   },
   {
     key: 'blog',

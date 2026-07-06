@@ -38,12 +38,24 @@ export default function SoportePage() {
     try {
       const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const res = await fetch(`${base}/super-admin/support/tickets`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) { const d = await res.json(); setTickets(Array.isArray(d) ? d : []); }
+      if (res.ok) {
+        const d = await res.json();
+        const list = Array.isArray(d) ? d : [];
+        setTickets(list);
+        // Si hay un ticket abierto en el drawer, actualizarlo con los mensajes nuevos
+        setSelected(prev => prev ? (list.find((t: Ticket) => t.id === prev.id) ?? prev) : null);
+      }
     } catch {}
     setLoading(false);
   }, [token]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Polling automático cada 15 s para ver nuevos tickets y mensajes sin recargar
+  useEffect(() => {
+    const id = setInterval(load, 15_000);
+    return () => clearInterval(id);
+  }, [load]);
 
   // Activa el overlay raíz de dashboard/layout.tsx (cubre TODO el viewport real
   // y oculta sidebar/header) en vez de animar un backdrop oscuro local — evita
