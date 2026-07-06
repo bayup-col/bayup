@@ -122,8 +122,8 @@ export default function LiquidacionPage() {
           <h2 className="text-5xl font-black tracking-tight text-[#00f2ff] leading-none">{fmtCOP(Math.max(0, pending.net))}</h2>
           <p className="text-[10px] text-white/25 mt-1.5 mb-5">
             {pending.net >= 0
-              ? 'Lo que Bayup te transferirá (ventas web neto − comisión POS)'
-              : 'Comisión POS acumulada — se cobrará en la próxima dispersión'}
+              ? 'Lo que Bayup te transferirá (ventas web neto − cargo Bayup pendiente)'
+              : 'Cargo Bayup pendiente — se cobrará en la próxima dispersión'}
           </p>
 
           {/* Divider */}
@@ -137,7 +137,7 @@ export default function LiquidacionPage() {
               <p className="text-[9px] text-white/20">{pending.web_count || 0} pedidos · neto {fmtCOP(pending.web_net || 0)}</p>
             </div>
             <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
-              <p className="text-[8px] text-amber-300/60 uppercase tracking-widest mb-1">Comisión POS por cobrar</p>
+              <p className="text-[8px] text-amber-300/60 uppercase tracking-widest mb-1">Cargo Bayup pendiente</p>
               <p className="text-base font-black text-amber-300">{fmtCOP(pending.pos_commission || 0)}</p>
               <p className="text-[9px] text-amber-300/30">{pending.pos_count || 0} ventas · bruto {fmtCOP(pending.pos_gross || 0)}</p>
             </div>
@@ -145,7 +145,7 @@ export default function LiquidacionPage() {
           <div className="bg-[#00f2ff]/10 border border-[#00f2ff]/20 rounded-xl p-3 flex items-center justify-between">
             <div>
               <p className="text-[8px] text-[#00f2ff]/50 uppercase tracking-widest mb-0.5">Te transferimos</p>
-              <p className="text-[9px] text-white/30">Web neto − comisión POS</p>
+              <p className="text-[9px] text-white/30">Web neto − cargo Bayup</p>
             </div>
             <p className="text-xl font-black text-[#00f2ff]">{fmtCOP(Math.max(0, pending.net))}</p>
           </div>
@@ -338,10 +338,10 @@ export default function LiquidacionPage() {
             className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
             <div className="flex items-center gap-2">
               <Store size={15} className="text-amber-500"/>
-              <p className="text-[11px] font-black text-gray-800 uppercase tracking-widest">Comisión POS</p>
+              <p className="text-[11px] font-black text-gray-800 uppercase tracking-widest">Cargo Bayup</p>
               {pending.pos_count > 0 && (
                 <span className="text-[9px] font-black text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                  {pending.pos_count} ventas sin cobrar · {fmtCOP(pending.pos_commission)}
+                  {pending.pos_count} ventas físicas · cargo pendiente {fmtCOP(pending.pos_commission)}
                 </span>
               )}
             </div>
@@ -355,14 +355,14 @@ export default function LiquidacionPage() {
                     <div className="px-5 py-3 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
                       <Store size={12} className="text-amber-600"/>
                       <p className="text-[10px] text-amber-700">
-                        Tienes <strong>{pending.pos_count}</strong> ventas POS con comisión pendiente de cobro por Bayup ({fmtCOP(pending.pos_commission)}).
+                        Tienes <strong>{pending.pos_count}</strong> ventas en punto físico con cargo pendiente de Bayup por {fmtCOP(pending.pos_commission)}.
                         Bayup la cobrará directamente o la descontará de tu próxima dispersión web.
                       </p>
                     </div>
                   )}
                   {posHistory.length === 0 ? (
                     <div className="flex items-center justify-center py-8 text-[11px] text-gray-300">
-                      Sin cobros de comisión POS registrados aún
+                      Sin cargos de Bayup registrados aún
                     </div>
                   ) : (
                     <>
