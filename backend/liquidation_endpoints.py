@@ -22,9 +22,153 @@ def _next_payment_dates():
     return dates
 
 
-def register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_admin):
+def register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_admin, _push_notification):
     import models
     from database import SessionLocal
+
+    # ── Tenant: historial de cobros de comisión POS ───────────────────────────
+    @app.get("/admin/pos-commissions")
+    async def get_pos_commission_history(request: Request):
+        db = SessionLocal()
+        try:
+            user = await _authenticate(request, db)
+            tid = _tenant_id(user)
+            records = (
+                db.query(models.Liquidation)
+                .filter(
+                    models.Liquidation.tenant_id == tid,
+                    models.Liquidation.liq_type == "pos_commission",
+                )
+                .order_by(models.Liquidation.created_at.desc())
+                .limit(50)
+                .all()
+            )
+            return [
+                {
+                    "id":               str(r.id),
+                    "gross_amount":     r.gross_amount,
+                    "bayup_commission": r.bayup_commission,
+                    "order_count":      r.order_count,
+                    "status":           r.status,
+                    "paid_date":        r.paid_date.isoformat() if r.paid_date else None,
+                    "transfer_reference": r.transfer_reference,
+                    "notes":            r.notes,
+                    "created_at":       r.created_at.isoformat(),
+                }
+                for r in records
+            ]
+        finally:
+            db.close()
+
+    # ── Super admin: listar comisiones POS pendientes por tenant ──────────────
+    @app.get("/super-admin/pos-commissions/pending")
+    async def sa_pos_commissions_pending(request: Request):
+        db = SessionLocal()
+        try:
+            caller = await _authenticate(request, db)
+            _require_super_admin(caller)
+            tenants = db.query(models.User).filter(
+                models.User.is_global_staff == False,
+                models.User.onboarding_completed == True,
+            ).all()
+            result = []
+            for t in tenants:
+                last_collected = (
+                    db.query(models.Liquidation)
+                    .filter(
+                        models.Liquidation.tenant_id == t.id,
+                        models.Liquidation.liq_type == "pos_commission",
+                        models.Liquidation.status == "paid",
+                    )
+                    .order_by(models.Liquidation.paid_date.desc())
+                    .first()
+                )
+                cutoff_pos = last_collected.paid_date if last_collected else None
+                q = db.query(models.Order).filter(
+                    models.Order.tenant_id == t.id,
+                    models.Order.source == "pos",
+                    models.Order.status.in_(["confirmed", "delivered", "completed", "pending"]),
+                )
+                if cutoff_pos:
+                    q = q.filter(models.Order.created_at > cutoff_pos)
+                pos_orders = q.all()
+                if not pos_orders:
+                    continue
+                gross_pos = sum(o.total_price for o in pos_orders)
+                commission = round(gross_pos * BAYUP_RATE, 2)
+                result.append({
+                    "tenant_id":    str(t.id),
+                    "tenant_name":  t.full_name or t.email,
+                    "tenant_email": t.email,
+                    "shop_slug":    t.shop_slug,
+                    "pos_gross":    round(gross_pos, 2),
+                    "commission":   commission,
+                    "pos_count":    len(pos_orders),
+                    "bank_accounts": t.bank_accounts or [],
+                    "last_collected": last_collected.paid_date.isoformat() if last_collected else None,
+                })
+            result.sort(key=lambda x: x["commission"], reverse=True)
+            return result
+        finally:
+            db.close()
+
+    # ── Super admin: registrar cobro de comisión POS ──────────────────────────
+    @app.post("/super-admin/pos-commissions/collect")
+    async def sa_collect_pos_commission(payload: dict, request: Request):
+        db = SessionLocal()
+        try:
+            caller = await _authenticate(request, db)
+            _require_super_admin(caller)
+            tenant_id_str = payload.get("tenant_id")
+            if not tenant_id_str:
+                raise HTTPException(status_code=400, detail="tenant_id requerido")
+            try:
+                tid = uuid_lib.UUID(tenant_id_str)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="tenant_id inválido")
+
+            gross_pos  = float(payload.get("pos_gross", 0))
+            commission = round(gross_pos * BAYUP_RATE, 2)
+            pos_count  = int(payload.get("pos_count", 0))
+
+            rec = models.Liquidation(
+                tenant_id        = tid,
+                liq_type         = "pos_commission",
+                gross_amount     = gross_pos,
+                bayup_commission = commission,
+                prix_fee         = 0.0,
+                net_amount       = 0.0,
+                order_count      = pos_count,
+                status           = "paid",
+                paid_date        = dt.datetime.utcnow(),
+                transfer_reference = payload.get("reference", ""),
+                notes            = payload.get("notes", ""),
+            )
+            db.add(rec)
+            db.commit()
+            db.refresh(rec)
+
+            fmt_cop = lambda v: f"${int(v):,}".replace(",", ".")
+            _push_notification(
+                db, tid,
+                title   = "💳 Cargo Bayup registrado",
+                message = (
+                    f"Bayup cobró {fmt_cop(commission)} de comisión "
+                    f"sobre {pos_count} venta{'s' if pos_count != 1 else ''} "
+                    f"en punto físico (bruto {fmt_cop(gross_pos)}). "
+                    f"Ref: {payload.get('reference') or 'sin referencia'}."
+                ),
+                type_   = "warning",
+            )
+
+            return {
+                "id":         str(rec.id),
+                "commission": commission,
+                "status":     "paid",
+                "paid_date":  rec.paid_date.isoformat(),
+            }
+        finally:
+            db.close()
 
     @app.get("/admin/liquidations/summary")
     async def get_liquidation_summary(request: Request):
@@ -33,26 +177,60 @@ def register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_a
             user = await _authenticate(request, db)
             tid = _tenant_id(user)
 
-            last_paid = (
+            # Cutoff web: última liquidación web pagada
+            last_paid_web = (
                 db.query(models.Liquidation)
-                .filter(models.Liquidation.tenant_id == tid, models.Liquidation.status == "paid")
+                .filter(
+                    models.Liquidation.tenant_id == tid,
+                    models.Liquidation.status == "paid",
+                    models.Liquidation.liq_type == "web",
+                )
                 .order_by(models.Liquidation.paid_date.desc())
                 .first()
             )
-            cutoff = last_paid.paid_date if last_paid else None
+            # Cutoff POS: último cobro de comisión POS pagado
+            last_paid_pos = (
+                db.query(models.Liquidation)
+                .filter(
+                    models.Liquidation.tenant_id == tid,
+                    models.Liquidation.status == "paid",
+                    models.Liquidation.liq_type == "pos_commission",
+                )
+                .order_by(models.Liquidation.paid_date.desc())
+                .first()
+            )
+            cutoff_web = last_paid_web.paid_date if last_paid_web else None
+            cutoff_pos = last_paid_pos.paid_date if last_paid_pos else None
 
-            q = db.query(models.Order).filter(
+            q_web = db.query(models.Order).filter(
                 models.Order.tenant_id == tid,
                 models.Order.status.in_(["confirmed", "delivered", "completed", "pending"]),
+                models.Order.source != "pos",
             )
-            if cutoff:
-                q = q.filter(models.Order.created_at > cutoff)
-            pending_orders = q.all()
+            if cutoff_web:
+                q_web = q_web.filter(models.Order.created_at > cutoff_web)
+            web_orders = q_web.all()
 
-            gross_pending = sum(o.total_price for o in pending_orders)
-            bayup_fee     = round(gross_pending * BAYUP_RATE, 2)
-            prix_fee      = round(gross_pending * PRIX_RATE, 2)
-            net_pending   = round(gross_pending - bayup_fee - prix_fee, 2)
+            q_pos = db.query(models.Order).filter(
+                models.Order.tenant_id == tid,
+                models.Order.status.in_(["confirmed", "delivered", "completed", "pending"]),
+                models.Order.source == "pos",
+            )
+            if cutoff_pos:
+                q_pos = q_pos.filter(models.Order.created_at > cutoff_pos)
+            pos_orders = q_pos.all()
+
+            pending_orders = web_orders + pos_orders
+
+            gross_web      = sum(o.total_price for o in web_orders)
+            bayup_fee_web  = round(gross_web * BAYUP_RATE, 2)
+            net_web        = round(gross_web - bayup_fee_web, 2)
+
+            gross_pos      = sum(o.total_price for o in pos_orders)
+            pos_commission = round(gross_pos * BAYUP_RATE, 2)  # lo que el tenant le debe a Bayup
+
+            # Lo que Bayup realmente transfiere = neto web - comisión POS pendiente
+            net_transfer   = round(net_web - pos_commission, 2)
 
             next_dates = _next_payment_dates()
 
@@ -69,11 +247,19 @@ def register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_a
 
             return {
                 "pending": {
-                    "gross":       gross_pending,
-                    "bayup_fee":   bayup_fee,
-                    "prix_fee":    prix_fee,
-                    "net":         net_pending,
-                    "order_count": len(pending_orders),
+                    # Totales generales (para backward-compat y stats cards)
+                    "gross":          round(gross_web + gross_pos, 2),
+                    "bayup_fee":      round(bayup_fee_web + pos_commission, 2),
+                    "prix_fee":       0.0,
+                    "net":            net_transfer,
+                    "order_count":    len(pending_orders),
+                    # Desglose por canal
+                    "web_gross":      gross_web,
+                    "web_net":        net_web,
+                    "web_count":      len(web_orders),
+                    "pos_gross":      gross_pos,
+                    "pos_commission": pos_commission,
+                    "pos_count":      len(pos_orders),
                 },
                 "next_payment_dates": [str(d) for d in next_dates],
                 "scheduled_liquidation": {
@@ -93,7 +279,11 @@ def register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_a
                         "id":           str(o.id),
                         "customer_name":o.customer_name,
                         "total_price":  o.total_price,
-                        "net":          round(o.total_price * (1 - BAYUP_RATE - PRIX_RATE), 2),
+                        "source":       o.source or 'web',
+                        # Para POS: el tenant ya cobró, Bayup solo toma comisión
+                        # Para web: Bayup transfiere el neto
+                        "net":          round(o.total_price * (1 - BAYUP_RATE), 2) if (o.source or 'web').lower() != 'pos' else 0,
+                        "commission":   round(o.total_price * BAYUP_RATE, 2),
                         "created_at":   o.created_at.isoformat(),
                         "status":       o.status,
                     }
@@ -144,7 +334,10 @@ def register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_a
         try:
             caller = await _authenticate(request, db)
             _require_super_admin(caller)
-            q = db.query(models.Liquidation)
+            # Solo liquidaciones web (no comisiones POS — esas tienen su propio endpoint)
+            q = db.query(models.Liquidation).filter(
+                models.Liquidation.liq_type.in_(["web", None])
+            )
             if status:
                 q = q.filter(models.Liquidation.status == status)
             lqs = q.order_by(models.Liquidation.created_at.desc()).limit(200).all()
@@ -161,6 +354,7 @@ def register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_a
                     "prix_fee":          l.prix_fee,
                     "net_amount":        l.net_amount,
                     "order_count":       l.order_count,
+                    "liq_type":          l.liq_type or "web",
                     "status":            l.status,
                     "scheduled_date":    l.scheduled_date.isoformat() if l.scheduled_date else None,
                     "paid_date":         l.paid_date.isoformat() if l.paid_date else None,
@@ -184,20 +378,28 @@ def register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_a
             ).all()
             result = []
             for t in tenants:
-                last_paid = (
+                # Solo órdenes web (POS tiene su propio flujo de cobro de comisión)
+                last_paid_web = (
                     db.query(models.Liquidation)
-                    .filter(models.Liquidation.tenant_id == t.id, models.Liquidation.status == "paid")
+                    .filter(
+                        models.Liquidation.tenant_id == t.id,
+                        models.Liquidation.status == "paid",
+                        models.Liquidation.liq_type == "web",
+                    )
                     .order_by(models.Liquidation.paid_date.desc())
                     .first()
                 )
-                cutoff = last_paid.paid_date if last_paid else None
+                cutoff = last_paid_web.paid_date if last_paid_web else None
                 q = db.query(models.Order).filter(
                     models.Order.tenant_id == t.id,
                     models.Order.status.in_(["confirmed", "delivered", "completed", "pending"]),
+                    models.Order.source != "pos",
                 )
                 if cutoff:
                     q = q.filter(models.Order.created_at > cutoff)
                 orders = q.all()
+                if not orders:
+                    continue
                 gross = sum(o.total_price for o in orders)
                 net = round(gross * (1 - BAYUP_RATE - PRIX_RATE), 2)
                 result.append({
@@ -241,6 +443,7 @@ def register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_a
 
             liq = models.Liquidation(
                 tenant_id          = tid,
+                liq_type           = "web",
                 gross_amount       = gross,
                 bayup_commission   = bayup_fee,
                 prix_fee           = prix_fee,

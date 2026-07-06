@@ -98,9 +98,22 @@ def _sync_postgres_schema() -> None:
                 notes VARCHAR,
                 created_at TIMESTAMP DEFAULT NOW()
             )""",
+            "ALTER TABLE liquidations ADD COLUMN IF NOT EXISTS liq_type VARCHAR(20) DEFAULT 'web'",
             "CREATE INDEX IF NOT EXISTS ix_liquidations_tenant_id ON liquidations (tenant_id)",
             "CREATE INDEX IF NOT EXISTS ix_liquidations_status ON liquidations (status)",
             "CREATE INDEX IF NOT EXISTS ix_liquidations_created_at ON liquidations (created_at)",
+            # email_jobs — cola persistente de emails (reemplaza threading.Thread)
+            """CREATE TABLE IF NOT EXISTS email_jobs (
+                id          BIGSERIAL PRIMARY KEY,
+                func        VARCHAR(120) NOT NULL,
+                kwargs_json TEXT         NOT NULL,
+                status      VARCHAR(20)  DEFAULT 'pending',
+                attempts    INTEGER      DEFAULT 0,
+                error       TEXT,
+                created_at  TIMESTAMP    DEFAULT NOW(),
+                updated_at  TIMESTAMP    DEFAULT NOW()
+            )""",
+            "CREATE INDEX IF NOT EXISTS ix_email_jobs_status ON email_jobs (status)",
         ]
         with engine.begin() as conn:
             for stmt in stmts:
@@ -121,6 +134,7 @@ def _sync_postgres_schema() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import email_queue as _eq
     db_url = os.getenv("DATABASE_URL", "sqlite:///./sql_app.db")
     if db_url.startswith("sqlite"):
         def init_sqlite():
@@ -135,6 +149,8 @@ async def lifespan(app: FastAPI):
     else:
         # PostgreSQL: garantiza columnas faltantes al arranque independientemente de Alembic
         threading.Thread(target=_sync_postgres_schema, daemon=True).start()
+    # Arranca el worker de emails persistente (procesa email_jobs cada 5s)
+    _eq.start_worker()
     yield
 
 app = FastAPI(title="Bayup OS Platinum", lifespan=lifespan)
@@ -984,8 +1000,9 @@ async def get_orders(request: Request, skip: int = Query(default=0, ge=0), limit
 
 @app.post("/orders")
 async def create_order_route(payload: OrderCreateRequest, request: Request):
-    import crud, schemas
+    import crud, schemas, email_service as _es, threading
     from database import SessionLocal
+    import models as _m
     db = SessionLocal()
     try:
         user = await _authenticate(request, db)
@@ -993,7 +1010,58 @@ async def create_order_route(payload: OrderCreateRequest, request: Request):
         order_in = schemas.OrderCreate(tenant_id=tenant_id, **payload.model_dump())
         db_order = crud.create_order(db, order=order_in, customer_id=user.id, tenant_id=tenant_id)
         total_fmt = f"${db_order.total_price:,.0f}".replace(",", ".")
-        _create_shipment_for_order(db, db_order, tenant_id)
+        if (payload.source or 'pos') != 'pos':
+            _create_shipment_for_order(db, db_order, tenant_id)
+
+        # Emails en hilo aparte para no bloquear la respuesta
+        tenant_user = db.query(_m.User).filter(_m.User.id == tenant_id).first()
+        shop_name = (tenant_user.full_name or tenant_user.shop_slug or "Tu tienda") if tenant_user else "Tu tienda"
+
+        items_info = []
+        for _item in db_order.items:
+            _variant = db.query(_m.ProductVariant).filter(_m.ProductVariant.id == _item.product_variant_id).first()
+            _product = db.query(_m.Product).filter(_m.Product.id == _variant.product_id).first() if _variant else None
+            _iname = (_product.name if _product else "Producto") + (f" — {_variant.name}" if _variant and _variant.name else "")
+            items_info.append({"name": _iname, "qty": _item.quantity, "price": float(_item.price_at_purchase)})
+
+        # 1. Confirmación al comprador (solo si hay email)
+        if payload.customer_email:
+            threading.Thread(
+                target=_es.send_order_confirmation,
+                kwargs=dict(
+                    email=payload.customer_email,
+                    name=payload.customer_name or "Cliente",
+                    order_id=str(db_order.id),
+                    items=items_info,
+                    total=float(db_order.total_price),
+                    payment_method=payload.payment_method or "Efectivo",
+                    customer_city=payload.customer_city or "",
+                    customer_phone=payload.customer_phone or "",
+                    shop_name=shop_name,
+                    source=payload.source or "pos",
+                ),
+                daemon=True,
+            ).start()
+
+        # 2. Notificación de nueva venta al tenant
+        if tenant_user and tenant_user.email:
+            threading.Thread(
+                target=_es.send_new_sale_notification,
+                kwargs=dict(
+                    owner_email=tenant_user.email,
+                    shop_name=shop_name,
+                    order_id=str(db_order.id),
+                    customer_name=payload.customer_name or "Cliente",
+                    customer_email=payload.customer_email or "",
+                    customer_phone=payload.customer_phone or "",
+                    customer_city=payload.customer_city or "",
+                    items=items_info,
+                    total=float(db_order.total_price),
+                    payment_method=payload.payment_method or "Efectivo",
+                ),
+                daemon=True,
+            ).start()
+
         _push_notification(db, tenant_id,
             "💰 Nuevo pedido creado",
             f"Pedido #{str(db_order.id)[:8].upper()} por {total_fmt}",
@@ -1041,115 +1109,105 @@ async def update_order_route(order_id: str, payload: OrderUpdateRequest, request
                     "❌ Pedido cancelado",
                     f"Pedido #{order_id[:8].upper()} fue cancelado",
                     "alert")
+            # Email al cliente en pedidos web cuando el estado cambia
+            is_web = (db_order.source or "pos") != "pos"
+            if is_web and db_order.customer_email and payload.status in ("processing", "completed", "cancelled"):
+                import email_service as _es_upd, threading as _th_upd
+                tenant_u = db.query(models.User).filter(models.User.id == tenant_id).first()
+                _shop = (tenant_u.full_name or tenant_u.shop_slug or "Tu tienda") if tenant_u else "Tu tienda"
+                _th_upd.Thread(
+                    target=_es_upd.send_order_status_update,
+                    kwargs=dict(
+                        email=db_order.customer_email,
+                        name=db_order.customer_name or "Cliente",
+                        order_id=str(db_order.id),
+                        new_status=payload.status,
+                        shop_name=_shop,
+                    ),
+                    daemon=True,
+                ).start()
         return {"id": str(db_order.id), "status": db_order.status}
     finally:
         db.close()
 
-# ── SHIPMENTS ────────────────────────────────────────────────────────────────
-
-VALID_SHIP_STATUSES = {"pendiente","guia_generada","en_transito","en_reparto","entregado","incidencia","devuelto"}
-
-class ShipmentUpdateRequest(BaseModel):
-    status: str | None = None
-    carrier: str | None = None
-    tracking_number: str | None = None
-    notes: str | None = None
-    estimated_delivery: str | None = None
-
-@app.get("/shipments")
-async def get_shipments(request: Request):
-    import models as _m
-    from database import SessionLocal
-    db = SessionLocal()
-    try:
-        user = await _authenticate(request, db)
-        tenant_id = _tenant_id(user)
-        rows = (
-            db.query(_m.Shipment, _m.Order)
-            .join(_m.Order, _m.Shipment.order_id == _m.Order.id)
-            .filter(_m.Shipment.tenant_id == tenant_id)
-            .order_by(_m.Shipment.updated_at.desc())
-            .all()
-        )
-        result = []
-        for ship, order in rows:
-            items_count = len(order.items) if order.items else 0
-            created = getattr(ship, 'created_at', None) or order.created_at
-            updated = getattr(ship, 'updated_at', None) or order.created_at
-            est_del = getattr(ship, 'estimated_delivery', None)
-            result.append({
-                "id":               str(ship.id),
-                "order_id":         str(ship.order_id),
-                "order_number":     str(order.id)[:8].upper(),
-                "tracking_number":  ship.tracking_number or "",
-                "carrier":          ship.carrier or "",
-                "status":           ship.status if ship.status in ("pendiente","guia_generada","en_transito","en_reparto","entregado","incidencia","devuelto") else "pendiente",
-                "customer_name":    order.customer_name or "Cliente",
-                "customer_phone":   order.customer_phone or "",
-                "customer_city":    order.customer_city or "",
-                "customer_address": order.shipping_address or order.customer_city or "",
-                "total_price":      order.total_price or 0,
-                "items_count":      items_count,
-                "created_at":       created.isoformat() if created else "",
-                "updated_at":       updated.isoformat() if updated else "",
-                "estimated_delivery": est_del.isoformat() if est_del else None,
-                "notes":            getattr(ship, 'notes', None),
-                "history":          getattr(ship, 'history', []) or [],
-            })
-        return result
-    finally:
-        db.close()
-
-@app.put("/shipments/{shipment_id}")
-async def update_shipment(shipment_id: str, payload: ShipmentUpdateRequest, request: Request):
-    import models as _m, uuid as _uuid, datetime as _dt
+@app.post("/orders/{order_id}/attach-invoice")
+async def send_invoice_by_email(order_id: str, payload: dict, request: Request):
+    import models, uuid as uuid_lib, email_service as _es, threading
     from database import SessionLocal
     db = SessionLocal()
     try:
         user = await _authenticate(request, db)
         tenant_id = _tenant_id(user)
         try:
-            ship_uuid = _uuid.UUID(shipment_id)
+            oid = uuid_lib.UUID(order_id)
         except ValueError:
-            raise HTTPException(status_code=400, detail="shipment_id inválido")
-        ship = db.query(_m.Shipment).filter(
-            _m.Shipment.id == ship_uuid,
-            _m.Shipment.tenant_id == tenant_id,
+            raise HTTPException(status_code=400, detail="order_id inválido")
+        order = db.query(models.Order).filter(
+            models.Order.id == oid,
+            models.Order.tenant_id == tenant_id,
         ).first()
-        if not ship:
-            raise HTTPException(status_code=404, detail="Envío no encontrado")
-        if payload.status and payload.status not in VALID_SHIP_STATUSES:
-            raise HTTPException(status_code=400, detail=f"status inválido: {payload.status}")
-        prev = ship.status
-        if payload.status and payload.status != prev:
-            ship.status = payload.status
-            history = list(getattr(ship, 'history', []) or [])
-            history.append({
-                "status": payload.status,
-                "date": _dt.datetime.utcnow().isoformat(),
-                "note": payload.notes or "",
-            })
-            ship.history = history
-            # Sincroniza estado del pedido en casos terminales
-            order = db.query(_m.Order).filter(_m.Order.id == ship.order_id).first()
-            if order and payload.status == "entregado":
-                order.status = "completed"
-        if payload.carrier is not None:
-            ship.carrier = payload.carrier
-        if payload.tracking_number is not None:
-            ship.tracking_number = payload.tracking_number
-        if payload.notes is not None:
-            ship.notes = payload.notes
-        if payload.estimated_delivery is not None:
-            try:
-                ship.estimated_delivery = _dt.datetime.fromisoformat(payload.estimated_delivery)
-            except ValueError:
-                pass
-        ship.updated_at = _dt.datetime.utcnow()
-        db.commit()
-        return {"ok": True, "id": str(ship.id), "status": ship.status}
+        if not order:
+            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+        customer_email = payload.get("customer_email") or order.customer_email
+        pdf_base64     = payload.get("pdf_base64", "")
+        if not customer_email or not pdf_base64:
+            raise HTTPException(status_code=400, detail="customer_email y pdf_base64 requeridos")
+        tenant_user = db.query(models.User).filter(models.User.id == tenant_id).first()
+        shop_name   = (tenant_user.full_name or tenant_user.shop_slug or "Tu tienda") if tenant_user else "Tu tienda"
+        threading.Thread(
+            target=_es.send_invoice_attachment,
+            kwargs=dict(
+                email=customer_email,
+                name=order.customer_name or "Cliente",
+                order_id=str(order.id),
+                shop_name=shop_name,
+                pdf_base64=pdf_base64,
+            ),
+            daemon=True,
+        ).start()
+        return {"ok": True}
     finally:
         db.close()
+
+@app.get("/public/orders/{order_id}")
+async def public_order_tracking(order_id: str):
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        try:
+            oid = uuid_lib.UUID(order_id)
+        except ValueError:
+            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+        order = db.query(models.Order).filter(models.Order.id == oid).first()
+        if not order:
+            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+        tenant = db.query(models.User).filter(models.User.id == order.tenant_id).first()
+        shop_name = (tenant.full_name or tenant.shop_slug or "Tienda") if tenant else "Tienda"
+        items = []
+        for item in order.items:
+            variant = db.query(models.ProductVariant).filter(models.ProductVariant.id == item.product_variant_id).first()
+            product = db.query(models.Product).filter(models.Product.id == variant.product_id).first() if variant else None
+            iname = (product.name if product else "Producto") + (f" — {variant.name}" if variant and variant.name else "")
+            items.append({"name": iname, "qty": item.quantity, "price": float(item.price_at_purchase)})
+        return {
+            "id":              str(order.id),
+            "short_id":        str(order.id)[:8].upper(),
+            "status":          order.status,
+            "source":          order.source or "web",
+            "customer_name":   order.customer_name,
+            "customer_city":   order.customer_city,
+            "total":           float(order.total_price),
+            "payment_method":  order.payment_method,
+            "created_at":      order.created_at.isoformat() if order.created_at else None,
+            "shop_name":       shop_name,
+            "shop_slug":       tenant.shop_slug if tenant else None,
+            "items":           items,
+        }
+    finally:
+        db.close()
+
+# ── SHIPMENTS ── migrado a routers/shipments.py ──────────────────────────────
 
 def _create_shipment_for_order(db, order, tenant_id):
     """Crea un envío vacío ligado al pedido. No lanza excepciones."""
@@ -1182,129 +1240,7 @@ def _push_notification(db, tenant_id, title: str, message: str, type_: str = "in
     except Exception as _e:
         logger.warning("No se pudo crear notificación: %s", _e)
 
-@app.get("/notifications")
-async def get_notifications(request: Request):
-    import models
-    from database import SessionLocal
-    db = SessionLocal()
-    try:
-        user = await _authenticate(request, db)
-        notifications = db.query(models.Notification).filter(
-            models.Notification.tenant_id == _tenant_id(user)
-        ).order_by(models.Notification.created_at.desc()).limit(50).all()
-        return [
-            {
-                "id": str(n.id), "title": n.title, "message": n.message,
-                "type": n.type, "is_read": n.is_read,
-                "created_at": n.created_at.isoformat() if n.created_at else None,
-            } for n in notifications
-        ]
-    finally:
-        db.close()
-
-@app.put("/notifications/read-all")
-async def mark_all_notifications_read(request: Request):
-    import models
-    from database import SessionLocal
-    db = SessionLocal()
-    try:
-        user = await _authenticate(request, db)
-        db.query(models.Notification).filter(
-            models.Notification.tenant_id == _tenant_id(user),
-            models.Notification.is_read == False
-        ).update({"is_read": True})
-        db.commit()
-        return {"success": True}
-    except Exception:
-        db.rollback()
-        raise
-    finally:
-        db.close()
-
-@app.put("/notifications/{notification_id}/read")
-async def mark_notification_read(notification_id: str, request: Request):
-    import models
-    import uuid as _uuid
-    from database import SessionLocal
-    db = SessionLocal()
-    try:
-        user = await _authenticate(request, db)
-        try:
-            nid = _uuid.UUID(notification_id)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="ID de notificación inválido")
-        notification = db.query(models.Notification).filter(
-            models.Notification.id == nid,
-            models.Notification.tenant_id == _tenant_id(user)
-        ).first()
-        if not notification:
-            raise HTTPException(status_code=404, detail="Notificación no encontrada")
-        notification.is_read = True
-        db.commit()
-        return {"success": True}
-    except HTTPException:
-        raise
-    except Exception:
-        db.rollback()
-        raise
-    finally:
-        db.close()
-
-class CollectionCreateRequest(BaseModel):
-    title: str
-    description: str | None = None
-    image_url: str | None = None
-    status: str = "active"
-
-@app.get("/collections")
-async def get_collections(request: Request, skip: int = Query(default=0, ge=0), limit: int = Query(default=200, ge=1)):
-    import crud, schemas
-    from database import SessionLocal
-    db = SessionLocal()
-    try:
-        user = await _authenticate(request, db)
-        collections = crud.get_collections_by_owner(db, owner_id=_tenant_id(user), skip=skip, limit=min(limit, 500))
-        return [schemas.Collection.model_validate(c).model_dump(mode="json") for c in collections]
-    finally:
-        db.close()
-
-@app.post("/collections")
-async def create_collection_route(payload: CollectionCreateRequest, request: Request):
-    import crud, schemas
-    from database import SessionLocal
-    db = SessionLocal()
-    try:
-        user = await _authenticate(request, db)
-        collection_in = schemas.CollectionCreate(**payload.model_dump())
-        db_collection = crud.create_collection(db, collection=collection_in, owner_id=_tenant_id(user))
-        return schemas.Collection.model_validate(db_collection).model_dump(mode="json")
-    finally:
-        db.close()
-
-@app.put("/collections/{collection_id}")
-async def update_collection_route(collection_id: str, payload: CollectionCreateRequest, request: Request):
-    import crud, schemas
-    from database import SessionLocal
-    db = SessionLocal()
-    try:
-        user = await _authenticate(request, db)
-        col = db.query(models.Collection).filter(
-            models.Collection.id == collection_id,
-            models.Collection.owner_id == _tenant_id(user)
-        ).first()
-        if not col:
-            raise HTTPException(status_code=404, detail="Categoría no encontrada")
-        for field, value in payload.model_dump(exclude_unset=True).items():
-            if value is not None:
-                setattr(col, field if field != 'title' else 'title', value)
-        # map title field
-        col.title = payload.title
-        if payload.description is not None: col.description = payload.description
-        if payload.image_url is not None: col.image_url = payload.image_url
-        db.commit(); db.refresh(col)
-        return schemas.Collection.model_validate(col).model_dump(mode="json")
-    finally:
-        db.close()
+# ── Notifications + Collections ── migrados a routers/ ───────────────────────
 
 # --- ENDPOINTS PÚBLICOS DE TIENDA (sin auth, para el storefront /shop/[slug]) ---
 @app.get("/public/shop/{slug}")
@@ -1481,7 +1417,47 @@ def create_public_order(request: Request, payload: PublicOrderCreateRequest):
             except Exception:
                 pass
 
-        # 2. Notificación al dueño de la tienda
+        # 2. Factura PDF al cliente
+        if payload.customer_email:
+            try:
+                import invoice_generator as _ig
+                tenant_user_inv = db.query(_m.User).filter(_m.User.id == tenant_uuid).first()
+                _shop_name_inv  = (tenant_user_inv.full_name or tenant_user_inv.shop_slug or "Tu tienda") if tenant_user_inv else "Tu tienda"
+                _shop_email_inv = (tenant_user_inv.email or "") if tenant_user_inv else ""
+                _shop_phone_inv = (tenant_user_inv.phone or "") if tenant_user_inv else ""
+
+                def _send_invoice_pdf():
+                    try:
+                        pdf_b64 = _ig.generate_invoice_base64(
+                            order_id       = str(db_order.id),
+                            shop_name      = _shop_name_inv,
+                            shop_email     = _shop_email_inv,
+                            shop_phone     = _shop_phone_inv,
+                            shop_city      = "",
+                            customer_name  = payload.customer_name or "Cliente",
+                            customer_email = payload.customer_email,
+                            customer_phone = payload.customer_phone or "",
+                            customer_city  = payload.customer_city or "",
+                            items          = items_info,
+                            total          = float(db_order.total_price),
+                            payment_method = payload.payment_method or "Online",
+                            created_at     = db_order.created_at,
+                        )
+                        _es.send_invoice_attachment(
+                            email      = payload.customer_email,
+                            name       = payload.customer_name or "Cliente",
+                            order_id   = str(db_order.id),
+                            shop_name  = _shop_name_inv,
+                            pdf_base64 = pdf_b64,
+                        )
+                    except Exception as _inv_err:
+                        logger.warning("Error enviando factura PDF web: %s", _inv_err)
+
+                threading.Thread(target=_send_invoice_pdf, daemon=True).start()
+            except Exception:
+                pass
+
+        # 3. Notificación al dueño de la tienda
         try:
             tenant_user = db.query(_m.User).filter(_m.User.id == tenant_uuid).first()
             if tenant_user and tenant_user.email:
@@ -4262,7 +4238,13 @@ async def get_public_shop_products(
 
 # ── Registrar rutas de Liquidación ───────────────────────────────────────
 from liquidation_endpoints import register_liquidation_routes
-register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_admin)
+register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_admin, _push_notification)
+
+# ── Routers refactorizados (patrón Depends — sin SessionLocal manual) ─────
+from routers import notifications as _r_notif, collections as _r_col, shipments as _r_ship
+app.include_router(_r_notif.router)
+app.include_router(_r_col.router)
+app.include_router(_r_ship.router)
 
 # ── Roadmap / Novedades ───────────────────────────────────────────────────
 class RoadmapItemIn(BaseModel):

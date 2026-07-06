@@ -313,7 +313,7 @@ export const generateInvoicesAuditPDF = async (data: { userName: string, invoice
     doc.save(`Auditoria_Ventas_${userName}_${new Date().getTime()}.pdf`);
 };
 
-export const generateInvoicePDF = async (data: { company: any, order: any, customer: any }) => {
+export const generateInvoicePDF = async (data: { company: any, order: any, customer: any, returnBase64?: boolean }): Promise<string | void> => {
     const { company, order, customer } = data;
     const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
     
@@ -382,11 +382,8 @@ export const generateInvoicePDF = async (data: { company: any, order: any, custo
     // --- RESUMEN FINAL ---
     const finalY = (doc as any).lastAutoTable.finalY + 15;
     
-    const commission = Math.round(order.total_price * 0.025);
-    const netTotal   = order.total_price - commission;
-
     doc.setFillColor(245, 245, 245);
-    doc.rect(120, finalY, 70, 43, 'F');
+    doc.rect(120, finalY, 70, 28, 'F');
 
     doc.setTextColor(100, 100, 100);
     doc.setFontSize(9);
@@ -396,18 +393,14 @@ export const generateInvoicePDF = async (data: { company: any, order: any, custo
     doc.text("IMPUESTOS (0%):", 125, finalY + 18);
     doc.text("$ 0", 185, finalY + 18, { align: 'right' });
 
-    doc.setTextColor(180, 30, 30);
-    doc.text("COMISIÓN BAYUP (2.5%):", 125, finalY + 26);
-    doc.text(`-$ ${commission.toLocaleString()}`, 185, finalY + 26, { align: 'right' });
-
     doc.setDrawColor(200, 200, 200);
-    doc.line(125, finalY + 30, 185, finalY + 30);
+    doc.line(125, finalY + 22, 185, finalY + 22);
 
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("TOTAL NETO:", 125, finalY + 38);
-    doc.text(`$ ${netTotal.toLocaleString()}`, 185, finalY + 38, { align: 'right' });
+    doc.text("TOTAL NETO:", 125, finalY + 30);
+    doc.text(`$ ${order.total_price.toLocaleString()}`, 185, finalY + 30, { align: 'right' });
 
     // Pie de página
     doc.setFontSize(8);
@@ -415,5 +408,8 @@ export const generateInvoicePDF = async (data: { company: any, order: any, custo
     doc.text("Gracias por su compra. Este documento es un soporte válido de la operación comercial.", 20, 285);
     doc.text("Generado por Bayup Interactive UP", 190, 285, { align: 'right' });
 
+    if (data.returnBase64) {
+        return doc.output('datauristring').split(',')[1];
+    }
     doc.save(`Factura_${String(order.id).slice(-4).toUpperCase()}_${customer.name.replace(/\s+/g, '_')}.pdf`);
 };

@@ -410,8 +410,8 @@ export default function InvoicingPage() {
         customer_type: customerInfo.type || 'final',
         seller_name: customerInfo.seller || null,
         total_price: subtotal,
-        commission_amount: 0,
-        commission_rate_snapshot: 0,
+        commission_amount: Math.round(subtotal * 0.025),
+        commission_rate_snapshot: 0.025,
         payment_method: paymentMethod === 'cash' ? 'cash' : 'transfer',
         source: customerInfo.source === 'Tienda Física' ? 'pos'
                : customerInfo.source === 'WhatsApp'    ? 'whatsapp'
@@ -428,13 +428,33 @@ export default function InvoicingPage() {
       if (res) {
         showToast("Venta exitosa 🚀", "success");
         const { generateInvoicePDF } = await import('@/lib/report-generator');
+        // Genera y descarga el PDF localmente
         await generateInvoicePDF({ company: companyData, order: res, customer: customerInfo });
+        // Si hay email, genera base64 y envía al cliente por correo
+        if (customerInfo.email) {
+          try {
+            const pdfBase64 = await generateInvoicePDF({
+              company: companyData, order: res, customer: customerInfo, returnBase64: true,
+            }) as string;
+            if (pdfBase64) {
+              await apiRequest(`/orders/${res.id}/attach-invoice`, {
+                method: 'POST', token,
+                body: JSON.stringify({ pdf_base64: pdfBase64, customer_email: customerInfo.email }),
+              });
+            }
+          } catch { /* silencioso — el PDF local ya se descargó */ }
+        }
         if (customerInfo.phone)
           window.open(`https://wa.me/57${customerInfo.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Factura #${String(res.id).slice(-4).toUpperCase()} de ${companyData?.full_name}: $${calculateSubtotal().toLocaleString()}`)}`, '_blank');
         setInvoiceItems([]); setIsPOSActive(false); loadData();
       }
     } catch (err: any) {
-      showToast(err?.message || 'Error al crear la factura', 'error');
+      const raw = err?.message || '';
+      const stockMatch = raw.match(/Stock insuficiente para (.+?)\. Disponible: (\d+)/i);
+      const friendly = stockMatch
+        ? `Sin stock para "${stockMatch[1]}". Actualiza el inventario en Productos antes de facturar.`
+        : (raw || 'Error al crear la factura');
+      showToast(friendly, 'error');
     } finally { setIsProcessing(false); }
   };
 
@@ -1030,13 +1050,9 @@ export default function InvoicingPage() {
                         <span className="text-[8px] font-black text-gray-400 uppercase">Impuesto IVA (0%)</span>
                         <span className="text-[9px] font-black text-gray-800">$0</span>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-[8px] font-black text-gray-400 uppercase">Comisión Bayup (2.5%)</span>
-                        <span className="text-[9px] font-black text-red-500">-{fmtCOP(calculateSubtotal() * 0.025)}</span>
-                      </div>
                       <div className="bg-[#001a1a] rounded-xl px-3 py-2.5 flex items-center justify-between mt-1">
                         <span className="text-[8px] font-black text-white uppercase tracking-widest">Total Neto</span>
-                        <span className="text-base font-black text-white">{fmtCOP(calculateSubtotal() * 0.975)}</span>
+                        <span className="text-base font-black text-white">{fmtCOP(calculateSubtotal())}</span>
                       </div>
                     </div>
                   </div>
