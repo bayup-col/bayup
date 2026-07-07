@@ -4290,14 +4290,14 @@ async def get_roadmap_admin(request: Request):
 
 @app.post("/super-admin/roadmap")
 async def create_roadmap_item(request: Request, body: RoadmapItemIn):
-    import models as _rm
+    import models as _rm, uuid as _uuid
     from database import SessionLocal
     db = SessionLocal()
     try:
         caller = await _authenticate(request, db)
         _require_super_admin(caller)
         data = {k: (v if v != "" else None) for k, v in body.dict().items()}
-        item = _rm.RoadmapItem(id=uuid.uuid4(), **data)
+        item = _rm.RoadmapItem(id=_uuid.uuid4(), **data)
         db.add(item)
         db.commit()
         db.refresh(item)

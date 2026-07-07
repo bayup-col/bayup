@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Edit2, Trash2, X, Save, Eye, EyeOff,
@@ -62,7 +63,7 @@ function CardPreview({ item }: { item: Partial<RoadmapItem> }) {
   return (
     <div
       className="relative rounded-3xl overflow-hidden"
-      style={{ width: 180, height: 240, flexShrink: 0, background: item.gradient || GRADIENTS[0].g }}
+      style={{ width: 220, height: 115, flexShrink: 0, background: item.gradient || GRADIENTS[0].g }}
     >
       {/* Imagen de fondo completa */}
       {item.image_url && (
@@ -106,6 +107,9 @@ function CardPreview({ item }: { item: Partial<RoadmapItem> }) {
 function ItemModal({
   item, onClose, onSave, token,
 }: { item: Partial<RoadmapItem> | null; onClose: () => void; onSave: () => void; token: string }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); return () => setMounted(false); }, []);
+
   const [form, setForm] = useState<Omit<RoadmapItem, 'id' | 'votes'>>({
     ...EMPTY,
     ...(item ? {
@@ -187,73 +191,74 @@ function ItemModal({
     }
   }
 
-  return (
+  const modalContent = (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[9999] flex items-center justify-center"
+      style={{ padding: 0 }}
       onClick={onClose}>
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <motion.div
-        initial={{ scale: 0.95, y: 16, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden z-10 max-h-[90vh] overflow-y-auto"
+        initial={{ scale: 0.96, y: 20, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
+        exit={{ scale: 0.96, opacity: 0 }} transition={{ type: 'spring', damping: 28, stiffness: 380 }}
+        className="relative w-full bg-white shadow-2xl z-10 flex flex-col"
+        style={{ maxWidth: 660, maxHeight: 'calc(100vh - 100px)', borderRadius: 28, margin: '50px 16px' }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-7 py-5 border-b border-gray-100">
-          <h2 className="text-[16px] font-black text-gray-900">{isEdit ? 'Editar card' : 'Nueva card'}</h2>
-          <button onClick={onClose} className="h-8 w-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200">
-            <X size={14} />
+        {/* Header premium */}
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-2xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg,#001a1a,#004d4d)' }}>
+              {isEdit ? <Edit2 size={14} color="#00c2c2" /> : <Plus size={16} color="#00c2c2" />}
+            </div>
+            <div>
+              <h2 className="text-[16px] font-black text-gray-900 leading-none">{isEdit ? 'Editar card' : 'Nueva card'}</h2>
+              <p className="text-[10px] text-gray-400 mt-0.5">Novedades / Roadmap</p>
+            </div>
+          </div>
+          <button onClick={onClose}
+            className="h-9 w-9 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200 hover:text-gray-700 transition-all">
+            <X size={15} />
           </button>
         </div>
 
-        <div className="p-7 space-y-6">
+        {/* Body scrollable */}
+        <div className="overflow-y-auto flex-1 p-5 space-y-3">
           <div className="flex gap-6">
-            {/* Preview */}
-            <div className="flex flex-col items-center gap-3">
+            {/* Preview + imagen */}
+            <div className="flex flex-col items-center gap-3 flex-shrink-0">
               <CardPreview item={form} />
               <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden"
                 onChange={e => { const f = e.target.files?.[0]; if (f) uploadImage(f); }} />
-              <button
-                onClick={() => fileRef.current?.click()}
-                disabled={uploading}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold text-gray-500 border border-gray-200 hover:bg-gray-50 transition-all"
-              >
+              <button onClick={() => fileRef.current?.click()} disabled={uploading}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-bold text-gray-600 border border-gray-200 hover:border-[#004d4d]/40 hover:text-[#004d4d] hover:bg-[#004d4d]/5 transition-all w-full justify-center">
                 <Upload size={11} /> {uploading ? 'Subiendo...' : 'Subir imagen'}
               </button>
               {form.image_url && (
                 <button onClick={() => setForm(f => ({ ...f, image_url: null }))}
-                  className="text-[9px] text-red-400 hover:text-red-600">Quitar imagen</button>
+                  className="text-[9px] text-red-400 hover:text-red-600 transition-colors">Quitar imagen</button>
               )}
             </div>
 
-            {/* Fields */}
+            {/* Campos */}
             <div className="flex-1 space-y-4">
               <div>
                 <label className="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Título *</label>
-                <input
-                  value={form.title}
-                  onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                   placeholder="ej. Agente IA"
-                  className="w-full px-4 py-2.5 rounded-xl text-[13px] text-gray-900 outline-none border border-gray-200 focus:border-[#004d4d] transition-all"
-                />
+                  className="w-full px-4 py-2.5 rounded-xl text-[13px] text-gray-900 outline-none border border-gray-200 focus:border-[#004d4d] bg-gray-50 focus:bg-white transition-all" />
               </div>
               <div>
                 <label className="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Subtítulo</label>
-                <input
-                  value={form.tagline}
-                  onChange={e => setForm(f => ({ ...f, tagline: e.target.value }))}
+                <input value={form.tagline} onChange={e => setForm(f => ({ ...f, tagline: e.target.value }))}
                   placeholder="ej. Tu vendedor que nunca duerme"
-                  className="w-full px-4 py-2.5 rounded-xl text-[13px] text-gray-900 outline-none border border-gray-200 focus:border-[#004d4d] transition-all"
-                />
+                  className="w-full px-4 py-2.5 rounded-xl text-[13px] text-gray-900 outline-none border border-gray-200 focus:border-[#004d4d] bg-gray-50 focus:bg-white transition-all" />
               </div>
               <div>
                 <label className="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Descripción</label>
-                <textarea
-                  rows={3} value={form.description}
-                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                <textarea rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   placeholder="Describe la funcionalidad…"
-                  className="w-full px-4 py-2.5 rounded-xl text-[13px] text-gray-900 outline-none border border-gray-200 focus:border-[#004d4d] transition-all resize-none"
-                />
+                  className="w-full px-4 py-2.5 rounded-xl text-[13px] text-gray-900 outline-none border border-gray-200 focus:border-[#004d4d] bg-gray-50 focus:bg-white transition-all resize-none" />
               </div>
             </div>
           </div>
@@ -263,8 +268,7 @@ function ItemModal({
             <label className="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">Tiempo de lanzamiento</label>
             <div className="grid grid-cols-2 gap-2">
               {PHASE_OPTIONS.map(p => (
-                <button key={p.value} type="button"
-                  onClick={() => setForm(f => ({ ...f, phase: p.value }))}
+                <button key={p.value} type="button" onClick={() => setForm(f => ({ ...f, phase: p.value }))}
                   className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[11px] font-bold transition-all text-left"
                   style={form.phase === p.value
                     ? { background: '#001a1a', color: '#00c2c2', border: '1.5px solid rgba(0,194,194,0.3)' }
@@ -275,19 +279,14 @@ function ItemModal({
             </div>
           </div>
 
-          {/* Color theme */}
+          {/* Color */}
           <div>
             <label className="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">Color de la card</label>
             <div className="flex flex-wrap gap-2">
               {GRADIENTS.map((g, i) => (
-                <button key={i} type="button" onClick={() => setGradient(g)}
-                  title={g.name}
-                  className="h-10 w-10 rounded-xl border-2 transition-all"
-                  style={{
-                    background: g.g,
-                    borderColor: form.gradient === g.g ? g.c : 'transparent',
-                    boxShadow: form.gradient === g.g ? `0 0 0 2px ${g.c}55` : 'none',
-                  }} />
+                <button key={i} type="button" onClick={() => setGradient(g)} title={g.name}
+                  className="h-10 w-10 rounded-xl border-2 transition-all hover:scale-110"
+                  style={{ background: g.g, borderColor: form.gradient === g.g ? g.c : 'transparent', boxShadow: form.gradient === g.g ? `0 0 0 2px ${g.c}55` : 'none' }} />
               ))}
             </div>
           </div>
@@ -298,28 +297,23 @@ function ItemModal({
             <div className="flex flex-wrap gap-1.5 mb-2">
               {form.tags.map(t => (
                 <span key={t} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-bold bg-[#004d4d]/10 text-[#004d4d]">
-                  {t}
-                  <button onClick={() => removeTag(t)}><X size={9} /></button>
+                  {t}<button onClick={() => removeTag(t)}><X size={9} /></button>
                 </span>
               ))}
             </div>
-            <input
-              value={tagInput}
-              onChange={e => setTagInput(e.target.value)}
-              onKeyDown={addTag}
+            <input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={addTag}
               placeholder="ej. IA, Ventas…"
-              className="w-full px-4 py-2.5 rounded-xl text-[13px] text-gray-900 outline-none border border-gray-200 focus:border-[#004d4d] transition-all"
-            />
+              className="w-full px-4 py-2.5 rounded-xl text-[13px] text-gray-900 outline-none border border-gray-200 focus:border-[#004d4d] bg-gray-50 focus:bg-white transition-all" />
           </div>
 
-          {/* Visible toggle */}
+          {/* Toggle visible */}
           <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100">
             <div>
               <p className="text-[12px] font-bold text-gray-800">Visible para clientes</p>
               <p className="text-[10px] text-gray-400">Si está desactivado, la card no aparece en la página de Novedades</p>
             </div>
             <button onClick={() => setForm(f => ({ ...f, is_active: !f.is_active }))}
-              className="relative w-11 h-6 rounded-full transition-colors"
+              className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0"
               style={{ background: form.is_active ? '#004d4d' : '#e5e7eb' }}>
               <div className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
                 style={{ left: form.is_active ? 'calc(100% - 22px)' : '2px' }} />
@@ -327,21 +321,30 @@ function ItemModal({
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-7 py-5 border-t border-gray-100 bg-gray-50">
-          <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-[12px] font-bold text-gray-500 hover:bg-gray-100 transition-all">
+        {/* Footer premium */}
+        <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 flex-shrink-0"
+          style={{ background: 'linear-gradient(to right, #f9fafb, #f3f8f8)' }}>
+          <button onClick={onClose}
+            className="px-5 py-2.5 rounded-xl text-[12px] font-semibold text-gray-500 hover:bg-gray-200/70 hover:text-gray-700 transition-all">
             Cancelar
           </button>
-          <button
-            onClick={handleSave} disabled={saving}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-[12px] font-black text-white transition-all disabled:opacity-60"
-            style={{ background: '#004d4d' }}>
-            <Save size={14} /> {saving ? 'Guardando...' : 'Guardar'}
+          <button onClick={handleSave} disabled={saving}
+            className="relative flex items-center gap-2.5 px-7 py-3 rounded-2xl text-[13px] font-black text-white transition-all disabled:opacity-50 overflow-hidden group"
+            style={{ background: 'linear-gradient(135deg, #001a1a 0%, #004d4d 50%, #007a7a 100%)', boxShadow: '0 4px 20px rgba(0,77,77,0.4)' }}>
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ background: 'linear-gradient(135deg, #002a2a 0%, #006060 50%, #009090 100%)' }} />
+            <Save size={15} className="relative z-10" />
+            <span className="relative z-10">{saving ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Crear card'}</span>
+            {saving && (
+              <div className="relative z-10 h-3.5 w-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+            )}
           </button>
         </div>
       </motion.div>
     </motion.div>
   );
+
+  return mounted ? createPortal(modalContent, document.body) : null;
 }
 
 interface Voter {
@@ -493,9 +496,14 @@ export default function SuperAdminNovedadesPage() {
         </div>
         <button
           onClick={() => setEditing('new')}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[12px] font-black text-white"
-          style={{ background: '#004d4d' }}>
-          <Plus size={15} /> Nueva card
+          className="relative flex items-center gap-2.5 px-6 py-3 rounded-2xl text-[12px] font-black text-white overflow-hidden group transition-all hover:scale-[1.02] active:scale-[0.98]"
+          style={{ background: 'linear-gradient(135deg, #001a1a 0%, #004d4d 50%, #007a7a 100%)', boxShadow: '0 4px 18px rgba(0,77,77,0.45)' }}>
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{ background: 'linear-gradient(135deg, #002a2a 0%, #006060 50%, #009090 100%)' }} />
+          <div className="relative z-10 h-5 w-5 rounded-lg bg-white/15 flex items-center justify-center">
+            <Plus size={13} />
+          </div>
+          <span className="relative z-10 tracking-wide" style={{ color: '#ffffff' }}>Nueva card</span>
         </button>
       </div>
 
