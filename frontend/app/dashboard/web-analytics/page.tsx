@@ -346,269 +346,461 @@ export default function WebAnalyticsPage() {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
-    const teal: [number, number, number] = [0, 77, 77];
-    const tealMid: [number, number, number] = [0, 178, 189];
-    const white: [number, number, number] = [255, 255, 255];
-    const gray50: [number, number, number] = [247, 250, 250];
-    const companyName = userName || userEmail || '';
-    const dateStr = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+    const now2 = new Date();
 
-    const addPageHeader = (title: string) => {
-      doc.setFillColor(...teal);
-      doc.rect(0, 0, W, 26, 'F');
-      doc.setFillColor(...tealMid);
-      doc.rect(0, 24, W, 2, 'F');
-      doc.setTextColor(...white);
-      doc.setFontSize(20);
-      doc.setFont('helvetica', 'bold');
-      doc.text('BayUP.', 14, 16);
-      doc.setFontSize(13);
-      doc.setFont('helvetica', 'bold');
-      doc.text(title, W / 2, 11, { align: 'center' });
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Reporte de analítica e inteligencia comercial', W / 2, 17, { align: 'center' });
-      if (companyName) doc.text(companyName, W / 2, 22, { align: 'center' });
-      doc.setFontSize(8);
-      doc.text(`Generado: ${dateStr}`, W - 14, 16, { align: 'right' });
-      doc.setFontSize(7);
-      doc.text(periodLabel, W - 14, 22, { align: 'right' });
+    // ── Paleta ───────────────────────────────────────────────────────────
+    const Cdark:   [number,number,number] = [10,26,26];
+    const Cteal:   [number,number,number] = [0,77,77];
+    const CtealM:  [number,number,number] = [0,178,189];
+    const CtealL:  [number,number,number] = [232,250,249];
+    const Cwhite:  [number,number,number] = [255,255,255];
+    const Cgray:   [number,number,number] = [248,250,250];
+    const Cgray2:  [number,number,number] = [220,228,228];
+    const Cgreen:  [number,number,number] = [22,163,74];
+    const Cred:    [number,number,number] = [220,38,38];
+    const Cpurple: [number,number,number] = [109,40,217];
+    const Camber:  [number,number,number] = [180,83,9];
+    const CblueL:  [number,number,number] = [239,246,255];
+    const Cblue:   [number,number,number] = [37,99,235];
+    const companyName = userName || userEmail || '';
+
+    // ── Helpers ──────────────────────────────────────────────────────────
+    const fmtK = (n: number) => n >= 1e6 ? `$${(n/1e6).toFixed(1)}M` : n >= 1000 ? `$${(n/1000).toFixed(0)}K` : fmt(n);
+
+    const pageHeader = (pg: number, title: string, sub: string, accent: [number,number,number] = CtealM) => {
+      doc.setFillColor(...Cdark); doc.rect(0, 0, W, 44, 'F');
+      doc.setFillColor(...accent); doc.rect(0, 0, 5, 44, 'F');
+      doc.setFillColor(...accent); doc.rect(0, 42, W, 2, 'F');
+      doc.setFillColor(...accent); doc.roundedRect(W-26, 7, 18, 8, 2, 2, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...Cwhite);
+      doc.text(`PÁG ${pg}`, W-17, 12.5, { align:'center' });
+      doc.setFontSize(18); doc.setTextColor(...Cwhite);
+      doc.text(title, 13, 19);
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...accent);
+      doc.text(sub, 13, 27);
+      doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(160,200,200);
+      const meta = `${periodLabel.toUpperCase()}  ·  ${now2.toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric'})}`;
+      doc.text(meta, 13, 35);
+      if (companyName) { doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(120,160,160); doc.text(companyName, W-14, 35, { align:'right' }); }
     };
 
-    const now2 = new Date();
+    const secLabel = (label: string, yy: number) => {
+      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...Cteal);
+      doc.text(label, 14, yy);
+      doc.setFillColor(...CtealM); doc.rect(14, yy+1.5, Math.min(label.length*1.55, W-28), 0.5, 'F');
+    };
+
+    const kpiBox = (x: number, yy: number, bw: number, bh: number, label: string, val: string, sub: string, hl: boolean, accent?: [number,number,number]) => {
+      const acc = accent || (hl ? CtealL : Cgray);
+      const border = accent || (hl ? CtealM : Cgray2);
+      doc.setFillColor(...acc); doc.setDrawColor(...border); doc.setLineWidth(hl ? 0.5 : 0.3);
+      doc.roundedRect(x, yy, bw, bh, 2.5, 2.5, 'FD');
+      if (hl) { doc.setFillColor(...(accent ? accent : CtealM)); doc.rect(x, yy, 3, bh, 'F'); }
+      const tx = x + (hl ? 6 : 4);
+      doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(120,135,135);
+      doc.text(label.toUpperCase(), tx, yy+6);
+      doc.setFont('helvetica','bold'); doc.setFontSize(10);
+      if (hl) { doc.setTextColor(...Cteal); } else { doc.setTextColor(...Cdark); }
+      doc.text(val, tx, yy+13);
+      if (sub) { doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(155,165,165); doc.text(sub, tx, yy+18); }
+    };
+
+    const hBar = (x: number, yy: number, bw: number, label: string, val: number, maxVal: number, pct: string, col: [number,number,number], isTop: boolean) => {
+      if (isTop) { doc.setFillColor(...CtealL); } else { doc.setFillColor(...Cgray); }
+      doc.setDrawColor(...Cgray2); doc.setLineWidth(0.2);
+      doc.roundedRect(x, yy, bw, 9, 1.5, 1.5, 'FD');
+      doc.setFont('helvetica', isTop?'bold':'normal'); doc.setFontSize(7.5); doc.setTextColor(...Cdark);
+      const lbl = label.length > 22 ? label.slice(0,22)+'…' : label;
+      doc.text(lbl, x+3, yy+6);
+      const barX = x+50; const barW = bw-50-28;
+      doc.setFillColor(228,235,235); doc.roundedRect(barX, yy+2.5, barW, 4, 1,1,'F');
+      if (val > 0) { doc.setFillColor(...col); doc.roundedRect(barX, yy+2.5, Math.max((val/maxVal)*barW, 1.5), 4, 1,1,'F'); }
+      doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...Cteal);
+      doc.text(pct, x+bw-2, yy+6, { align:'right' });
+    };
+
+    const pageFooter = () => {
+      doc.setFillColor(...Cdark); doc.rect(0, H-10, W, 10, 'F');
+      doc.setFillColor(...CtealM); doc.rect(0, H-10, 4, 10, 'F');
+      doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(135,170,170);
+      doc.text(`Reporte de Analítica Comercial · BayUP · bayup.com.co`, 8, H-4);
+    };
+
+    // Datos mensuales
     const monthlyForPDF = Array.from({ length: 6 }, (_, i) => {
       const d = new Date(now2.getFullYear(), now2.getMonth() - 5 + i, 1);
       const m = d.getMonth();
-      const monthOrders = orders.filter(o => {
-        const od = new Date(o.created_at);
-        return od.getMonth() === m && od.getFullYear() === d.getFullYear();
-      });
-      return {
-        mes: MONTHS_LABELS[m],
-        pedidos: monthOrders.length,
-        ventas: monthOrders.reduce((a, o) => a + (o.total_price || 0), 0),
-      };
+      const mo = orders.filter(o => { const od = new Date(o.created_at); return od.getMonth()===m && od.getFullYear()===d.getFullYear(); });
+      return { mes: MONTHS_LABELS[m], pedidos: mo.length, ventas: mo.reduce((a,o)=>a+(o.total_price||0),0) };
     });
 
-    // ── PÁGINA 1: RESUMEN ─────────────────────────────────────────────────
-    addPageHeader('ESTADÍSTICAS — RESUMEN');
-    let y = 34;
+    // ════════════════════════════════════════════════════════════════════════
+    // PÁGINA 1 — RESUMEN EJECUTIVO
+    // ════════════════════════════════════════════════════════════════════════
+    pageHeader(1, 'ANALÍTICA COMERCIAL', 'Resumen ejecutivo · Inteligencia de negocio BayUP');
+    let y = 54;
 
-    doc.setTextColor(...teal);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text('INDICADORES PRINCIPALES', 14, y);
-    y += 5;
+    // KPIs fila
+    const kW1 = (W-28-9)/4;
+    kpiBox(14,          y, kW1, 24, 'Pedidos totales',   fmtN(totalOrders),                  `${period==='7d'?'7':'30'} días`,                    true);
+    kpiBox(14+kW1+3,    y, kW1, 24, 'Ingresos totales',  totalRevenue>0?fmt(totalRevenue):'$0','Del período actual',                               true);
+    kpiBox(14+2*(kW1+3),y, kW1, 24, 'Ticket promedio',   avgTicket>0?fmt(avgTicket):'$0',     'Por pedido',                                        false);
+    kpiBox(14+3*(kW1+3),y, kW1, 24, 'Hora pico',          peakHour.hour||'—',                  peakHour.ventas>0?`${fmt(peakHour.ventas)} en esa hora`:'Sin datos', false);
+    y += 30;
 
-    const kpis = [
-      { label: 'PEDIDOS TOTALES',  value: fmtN(totalOrders) },
-      { label: 'INGRESOS TOTALES', value: totalRevenue > 0 ? fmt(totalRevenue) : '$0' },
-      { label: 'TICKET PROMEDIO',  value: avgTicket > 0 ? fmt(avgTicket) : '$0' },
+    // Gráfica barras mensuales
+    secLabel('EVOLUCIÓN DE VENTAS — ÚLTIMOS 6 MESES', y); y += 5;
+    const mH = 45; const mY = y; const mX = 20; const mW = W-40;
+    doc.setFillColor(...Cgray); doc.setDrawColor(...Cgray2); doc.setLineWidth(0.15);
+    doc.roundedRect(14, y, W-28, mH+10, 2,2,'FD');
+    const maxM = Math.max(...monthlyForPDF.map(m=>m.ventas), 1);
+    const mbW = mW/monthlyForPDF.length;
+    monthlyForPDF.forEach((m,i) => {
+      const bh = Math.max((m.ventas/maxM)*(mH-6), 1);
+      const bx = mX+i*mbW+mbW*0.2; const bw = mbW*0.6;
+      if (i===monthlyForPDF.length-1) { doc.setFillColor(...Cteal); } else { doc.setFillColor(...CtealM); }
+      doc.roundedRect(bx, mY+mH-bh+2, bw, bh, 0.8,0.8,'F');
+      if (m.ventas > 0) {
+        doc.setFont('helvetica','bold'); doc.setFontSize(5.5); doc.setTextColor(...Cteal);
+        doc.text(fmtK(m.ventas), bx+bw/2, mY+mH-bh, { align:'center' });
+      }
+      doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(120,130,130);
+      doc.text(m.mes, bx+bw/2, mY+mH+9, { align:'center' });
+    });
+    y += mH+16;
+
+    // Día pico y tendencia
+    const wkMax = Math.max(...realData.weeklyData.map(d=>d.ventas),1);
+    const wkW2 = (W-28-6)/2;
+    secLabel('DISTRIBUCIÓN SEMANAL', y); y += 5;
+    realData.weeklyData.forEach((d,i) => {
+      const col: [number,number,number] = d.day===peakDayName ? Cteal : CtealM;
+      const bx2 = 14+(i%4)*(wkW2/2+1.5); const by2 = y+Math.floor(i/4)*11;
+      const bwk = wkW2/2;
+      hBar(bx2, by2, bwk, d.day, d.ventas, wkMax, fmt(d.ventas), col, d.day===peakDayName);
+    });
+    y += Math.ceil(realData.weeklyData.length/4)*11+6;
+
+    // Insight
+    if (y < H-25) {
+      doc.setFillColor(...Cdark); doc.roundedRect(14, y, W-28, 14, 2.5, 2.5, 'F');
+      doc.setFillColor(...CtealM); doc.rect(14, y, 4, 14, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...CtealM);
+      doc.text('INSIGHT CLAVE', 21, y+6);
+      doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(200,225,225);
+      const ins = totalOrders>0
+        ? `${peakDayName} y ${secondDayName} concentran el ${topTwoDaysPct}% de las ventas semanales. La hora de mayor actividad es ${peakHour.hour}. Ticket promedio: ${fmt(avgTicket)}.`
+        : 'Aún no hay pedidos registrados. Los insights aparecerán aquí cuando tus clientes comiencen a comprar.';
+      doc.text(doc.splitTextToSize(ins, W-55), 21, y+11.5);
+    }
+    pageFooter();
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PÁGINA 2 — TRÁFICO
+    // ════════════════════════════════════════════════════════════════════════
+    doc.addPage();
+    pageHeader(2, 'TRÁFICO', 'Análisis de actividad · Distribución horaria y semanal', [37,99,235]);
+    y = 54;
+
+    // KPIs tráfico
+    const peakOrders = realData.hourlyData.reduce((b,h)=>h.sessions>b.sessions?h:b, realData.hourlyData[0]||{hour:'—',sessions:0,ventas:0});
+    const totalDayOrders = realData.weeklyData.reduce((a,d)=>a+d.sessions,0);
+    const tkW = (W-28-9)/4;
+    kpiBox(14,           y, tkW, 22, 'Pedidos totales',   fmtN(totalOrders),          'En el período',           true, [37,99,235] as [number,number,number]);
+    kpiBox(14+tkW+3,     y, tkW, 22, 'Hora más activa',   peakOrders.hour||'—',       `${peakOrders.sessions} pedidos`, false);
+    kpiBox(14+2*(tkW+3), y, tkW, 22, 'Día más activo',    peakDayName||'—',            `${topTwoDaysPct}% de ventas sem.`, false);
+    kpiBox(14+3*(tkW+3), y, tkW, 22, 'Ticket promedio',   avgTicket>0?fmt(avgTicket):'$0','Por transacción',      false);
+    y += 28;
+
+    // Barras horarias
+    secLabel('VENTAS POR HORA DEL DÍA', y); y += 5;
+    const hZoneH = 50;
+    doc.setFillColor(...Cgray); doc.setDrawColor(...Cgray2); doc.setLineWidth(0.15);
+    doc.roundedRect(14, y, W-28, hZoneH+12, 2,2,'FD');
+    const maxH = Math.max(...realData.hourlyData.map(h=>h.ventas),1);
+    const hbW = (W-40)/realData.hourlyData.length;
+    realData.hourlyData.forEach((h,i) => {
+      const bh = Math.max((h.ventas/maxH)*(hZoneH-4),1);
+      const bx = 20+i*hbW+hbW*0.15; const bw = hbW*0.7;
+      const isP = h.hour===peakHour.hour;
+      if (isP) { doc.setFillColor(...Cteal); } else { doc.setFillColor(0,178,189); }
+      doc.roundedRect(bx, y+hZoneH-bh+2, bw, bh, 0.5,0.5,'F');
+      if (isP && h.ventas>0) {
+        doc.setFillColor(239,246,255); doc.roundedRect(bx-2, y+hZoneH-bh-5, bw+4, 5, 1,1,'F');
+        doc.setFont('helvetica','bold'); doc.setFontSize(5); doc.setTextColor(...Cteal);
+        doc.text('PICO', bx+bw/2, y+hZoneH-bh-1.5, { align:'center' });
+      }
+      doc.setFont('helvetica','normal'); doc.setFontSize(5.5); doc.setTextColor(140,150,150);
+      doc.text(h.hour, bx+bw/2, y+hZoneH+8, { align:'center' });
+    });
+    y += hZoneH+18;
+
+    // Tabla horaria + tabla semanal en 2 cols
+    secLabel('DETALLE HORARIO', y); y += 4;
+    autoTable(doc, {
+      startY: y,
+      head: [['HORA','PEDIDOS','INGRESOS']],
+      body: realData.hourlyData.filter(h=>h.sessions>0||h.ventas>0).map(h=>[h.hour,fmtN(h.sessions),fmt(h.ventas)]),
+      styles:{ fontSize:7.5, cellPadding:2.5 },
+      headStyles:{ fillColor:Cdark, textColor:Cwhite, fontStyle:'bold', fontSize:7, halign:'center' },
+      alternateRowStyles:{ fillColor:Cgray },
+      columnStyles:{ 0:{cellWidth:22,halign:'center'}, 1:{cellWidth:24,halign:'center'}, 2:{halign:'right',fontStyle:'bold',textColor:Cteal} },
+      margin:{ left:14, right:W/2+4 },
+    });
+
+    secLabel('DISTRIBUCIÓN SEMANAL', y); y += 4;
+    autoTable(doc, {
+      startY: y,
+      head: [['DÍA','PEDIDOS','INGRESOS','% DE LA SEMANA']],
+      body: realData.weeklyData.map(d=>[
+        d.day, fmtN(d.sessions), fmt(d.ventas),
+        totalDayOrders>0?`${((d.sessions/totalDayOrders)*100).toFixed(1)}%`:'—',
+      ]),
+      styles:{ fontSize:8, cellPadding:3 },
+      headStyles:{ fillColor:Cdark, textColor:Cwhite, fontStyle:'bold', fontSize:7.5, halign:'center' },
+      alternateRowStyles:{ fillColor:Cgray },
+      didParseCell:(data)=>{ if(data.section==='body'&&data.column.index===0&&String(data.cell.raw)===peakDayName){ data.cell.styles.fontStyle='bold'; data.cell.styles.textColor=Cteal; } },
+      columnStyles:{ 0:{cellWidth:22,halign:'center'}, 1:{cellWidth:24,halign:'center'}, 2:{halign:'right',fontStyle:'bold',textColor:Cteal}, 3:{cellWidth:32,halign:'center'} },
+      margin:{ left:W/2+4, right:14 },
+    });
+    pageFooter();
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PÁGINA 3 — AUDIENCIA
+    // ════════════════════════════════════════════════════════════════════════
+    doc.addPage();
+    pageHeader(3, 'AUDIENCIA', 'Comportamiento de clientes · Estrategia publicitaria', Cpurple);
+    y = 54;
+
+    // KPIs audiencia
+    const uniqueCust = new Set(orders.map(o=>o.customer_email||o.customer_name||o.customer)).size;
+    const recurrentes = orders.reduce((acc,o)=>{const k=o.customer_email||o.customer_name||o.customer;if(k)acc[k]=(acc[k]||0)+1;return acc;},{} as Record<string,number>);
+    const recCount = Object.values(recurrentes).filter(v=>v>1).length;
+    const newCount = uniqueCust - recCount;
+    const recPct = uniqueCust>0 ? Math.round((recCount/uniqueCust)*100) : 0;
+    const aW = (W-28-9)/4;
+    kpiBox(14,           y, aW, 22, 'Clientes únicos',    fmtN(uniqueCust),             'Distintos compradores',  true, [109,40,217] as [number,number,number]);
+    kpiBox(14+aW+3,      y, aW, 22, 'Clientes recurrentes',fmtN(recCount),              `${recPct}% del total`,   false);
+    kpiBox(14+2*(aW+3),  y, aW, 22, 'Clientes nuevos',    fmtN(newCount),              `${100-recPct}% del total`,false);
+    kpiBox(14+3*(aW+3),  y, aW, 22, 'Ticket promedio',    avgTicket>0?fmt(avgTicket):'$0','Por compra',           false);
+    y += 28;
+
+    // Nuevos vs recurrentes — barras horizontales
+    secLabel('NUEVOS VS CLIENTES RECURRENTES', y); y += 5;
+    const nrData = [
+      { label:'Nuevos clientes',      val:newCount,  col:CtealM  as [number,number,number], note:`${100-recPct}%` },
+      { label:'Clientes recurrentes', val:recCount,  col:Cpurple as [number,number,number], note:`${recPct}%` },
     ];
-    const boxW = (W - 28 - 8) / 3;
-    kpis.forEach((kpi, i) => {
-      const x = 14 + i * (boxW + 4);
-      doc.setFillColor(...gray50);
-      doc.roundedRect(x, y, boxW, 18, 2, 2, 'F');
-      doc.setDrawColor(...teal);
-      doc.setLineWidth(0.4);
-      doc.roundedRect(x, y, boxW, 18, 2, 2, 'S');
-      doc.setTextColor(130, 130, 130);
-      doc.setFontSize(6.5);
-      doc.setFont('helvetica', 'bold');
-      doc.text(kpi.label, x + boxW / 2, y + 7, { align: 'center' });
-      doc.setTextColor(...teal);
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text(kpi.value, x + boxW / 2, y + 14, { align: 'center' });
+    const maxNR = Math.max(newCount, recCount, 1);
+    nrData.forEach((r,i)=>{
+      const bx = 14+48; const bMaxW = W-28-48-25;
+      if (i===0) { doc.setFillColor(...CtealL); } else { doc.setFillColor(243,232,255); }
+      doc.setDrawColor(...Cgray2); doc.setLineWidth(0.2);
+      doc.roundedRect(14, y+i*14, W-28, 12, 2,2,'FD');
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(...Cdark);
+      doc.text(r.label, 18, y+i*14+7.5);
+      doc.setFillColor(228,235,235); doc.roundedRect(bx, y+i*14+3, bMaxW, 6, 1,1,'F');
+      if(r.val>0){ doc.setFillColor(...r.col); doc.roundedRect(bx, y+i*14+3, Math.max((r.val/maxNR)*bMaxW,2), 6, 1,1,'F'); }
+      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...r.col);
+      doc.text(`${fmtN(r.val)}  (${r.note})`, W-16, y+i*14+7.5, { align:'right' });
     });
-    y += 25;
+    y += nrData.length*14+10;
 
-    doc.setTextColor(...teal);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text('VENTAS MENSUALES — ÚLTIMOS 6 MESES', 14, y);
-    y += 4;
-    autoTable(doc, {
-      startY: y,
-      head: [['MES', 'PEDIDOS', 'INGRESOS (COP)']],
-      body: monthlyForPDF.map(m => [m.mes, fmtN(m.pedidos), fmt(m.ventas)]),
-      styles: { fontSize: 9, cellPadding: 3.5 },
-      headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 8, halign: 'center' },
-      alternateRowStyles: { fillColor: gray50 },
-      columnStyles: {
-        0: { cellWidth: 28, halign: 'center' },
-        1: { cellWidth: 28, halign: 'center' },
-        2: { halign: 'right', fontStyle: 'bold' },
-      },
-      margin: { left: 14, right: W / 2 },
-    });
-
-    // ── PÁGINA 2: TRÁFICO ─────────────────────────────────────────────────
-    doc.addPage();
-    addPageHeader('ESTADÍSTICAS — TRÁFICO');
-    y = 34;
-
-    doc.setTextColor(...teal);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text('DISTRIBUCIÓN HORARIA DE PEDIDOS', 14, y);
-    y += 4;
-    autoTable(doc, {
-      startY: y,
-      head: [['HORA', 'PEDIDOS', 'INGRESOS (COP)']],
-      body: realData.hourlyData.map(h => [h.hour, fmtN(h.sessions), fmt(h.ventas)]),
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 7.5, halign: 'center' },
-      alternateRowStyles: { fillColor: gray50 },
-      columnStyles: {
-        0: { cellWidth: 25, halign: 'center' },
-        1: { cellWidth: 25, halign: 'center' },
-        2: { halign: 'right', fontStyle: 'bold' },
-      },
-      margin: { left: 14, right: W / 2 },
-    });
-
-    doc.setTextColor(...teal);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text('DISTRIBUCIÓN POR DÍA DE LA SEMANA', W / 2 + 4, 34);
-    autoTable(doc, {
-      startY: 38,
-      head: [['DÍA', 'PEDIDOS', 'INGRESOS (COP)']],
-      body: realData.weeklyData.map(d => [d.day, fmtN(d.sessions), fmt(d.ventas)]),
-      styles: { fontSize: 8.5, cellPadding: 3.5 },
-      headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 8, halign: 'center' },
-      alternateRowStyles: { fillColor: gray50 },
-      columnStyles: {
-        0: { cellWidth: 28, halign: 'center' },
-        1: { cellWidth: 28, halign: 'center' },
-        2: { halign: 'right', fontStyle: 'bold' },
-      },
-      margin: { left: W / 2 + 4, right: 14 },
-    });
-
-    // ── PÁGINA 3: AUDIENCIA ───────────────────────────────────────────────
-    doc.addPage();
-    addPageHeader('ESTADÍSTICAS — AUDIENCIA');
-    y = 34;
-
-    doc.setTextColor(...teal);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text('INSIGHTS DE AUDIENCIA', 14, y);
-    y += 4;
-
-    const audienceRows: [string, string][] = [
-      ['Total de pedidos registrados', fmtN(totalOrders)],
-      ['Ingresos totales generados', totalRevenue > 0 ? fmt(totalRevenue) : '$0'],
-      ['Ticket promedio por pedido', avgTicket > 0 ? fmt(avgTicket) : '$0'],
-      ['Hora pico de ventas', peakHour.hour || '—'],
-      ['Día más activo', peakDayName || '—'],
-      ['Segundo día más activo', secondDayName || '—'],
-      ['Top 2 días vs total semanal', `${topTwoDaysPct}%`],
+    // Comportamiento por hora — tabla de insights
+    secLabel('COMPORTAMIENTO DE COMPRA POR FRANJA HORARIA', y); y += 4;
+    const franjas = [
+      { f:'Mañana (6am–11am)',   ords:realData.hourlyData.filter((_,i)=>i<=5).reduce((a,h)=>a+h.sessions,0),  rev:realData.hourlyData.filter((_,i)=>i<=5).reduce((a,h)=>a+h.ventas,0) },
+      { f:'Mediodía (12pm–2pm)', ords:realData.hourlyData.filter((_,i)=>i>=6&&i<=8).reduce((a,h)=>a+h.sessions,0), rev:realData.hourlyData.filter((_,i)=>i>=6&&i<=8).reduce((a,h)=>a+h.ventas,0) },
+      { f:'Tarde (3pm–6pm)',     ords:realData.hourlyData.filter((_,i)=>i>=9&&i<=12).reduce((a,h)=>a+h.sessions,0), rev:realData.hourlyData.filter((_,i)=>i>=9&&i<=12).reduce((a,h)=>a+h.ventas,0) },
+      { f:'Noche (7pm–10pm)',    ords:realData.hourlyData.filter((_,i)=>i>=13).reduce((a,h)=>a+h.sessions,0), rev:realData.hourlyData.filter((_,i)=>i>=13).reduce((a,h)=>a+h.ventas,0) },
     ];
+    const totalFOrds = franjas.reduce((a,f)=>a+f.ords,0);
     autoTable(doc, {
       startY: y,
-      head: [['MÉTRICA', 'VALOR']],
-      body: audienceRows,
-      styles: { fontSize: 10, cellPadding: 4 },
-      headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 9, halign: 'center' },
-      alternateRowStyles: { fillColor: gray50 },
-      columnStyles: {
-        0: { cellWidth: 120 },
-        1: { fontStyle: 'bold', halign: 'right' },
-      },
-      margin: { left: 14, right: 14 },
+      head: [['FRANJA HORARIA','PEDIDOS','INGRESOS (COP)','% ACTIVIDAD','ESTRATEGIA']],
+      body: franjas.map(f=>{
+        const pct = totalFOrds>0 ? ((f.ords/totalFOrds)*100).toFixed(1) : '0.0';
+        const strat = Number(pct)>=35?'✓ Invierte más anuncios aquí':Number(pct)>=20?'~ Franja con potencial':'↓ Bajo rendimiento';
+        return [f.f, fmtN(f.ords), fmt(f.rev), `${pct}%`, strat];
+      }),
+      styles:{ fontSize:8.5, cellPadding:3.5 },
+      headStyles:{ fillColor:Cdark, textColor:Cwhite, fontStyle:'bold', fontSize:8, halign:'center' },
+      alternateRowStyles:{ fillColor:Cgray },
+      columnStyles:{ 0:{cellWidth:55}, 1:{cellWidth:24,halign:'center'}, 2:{halign:'right',fontStyle:'bold',textColor:Cteal}, 3:{cellWidth:28,halign:'center'}, 4:{halign:'left'} },
+      didParseCell:(data)=>{ if(data.section==='body'&&data.column.index===4){ const v=String(data.cell.raw||''); if(v.startsWith('✓'))data.cell.styles.textColor=Cgreen; else if(v.startsWith('↓'))data.cell.styles.textColor=Cred; else data.cell.styles.textColor=Camber; } },
+      margin:{ left:14, right:14 },
     });
 
-    // ── PÁGINA 4: PRODUCTOS ───────────────────────────────────────────────
-    doc.addPage();
-    addPageHeader('ESTADÍSTICAS — PRODUCTOS');
-    y = 34;
+    // Box recomendaciones de campaña
+    const fy3 = (doc as any).lastAutoTable.finalY + 7;
+    if (fy3 < H-28) {
+      doc.setFillColor(...Cdark); doc.roundedRect(14, fy3, W-28, 18, 2.5, 2.5, 'F');
+      doc.setFillColor(...Cpurple); doc.rect(14, fy3, 4, 18, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(200,180,255);
+      doc.text('RECOMENDACIONES PARA CAMPAÑAS PUBLICITARIAS', 21, fy3+7);
+      doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(190,200,210);
+      const rec1 = totalOrders>0
+        ? `· Concentra tu presupuesto publicitario en ${peakDayName}${secondDayName?` y ${secondDayName}`:''} (${topTwoDaysPct}% de ventas semanales).`
+        : '· Empieza a registrar pedidos para obtener recomendaciones personalizadas.';
+      const rec2 = `· Hora pico: ${peakHour.hour}. Programa tus anuncios digitales 1-2h antes para capturar intención de compra.`;
+      const rec3 = recPct>0 ? `· El ${recPct}% de clientes son recurrentes — activa campañas de retención y programa de fidelidad.` : '';
+      doc.text([rec1, rec2, ...(rec3?[rec3]:[])], 21, fy3+13);
+    }
+    pageFooter();
 
-    doc.setTextColor(...teal);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text('TOP PRODUCTOS POR INGRESOS', 14, y);
-    y += 4;
+    // ════════════════════════════════════════════════════════════════════════
+    // PÁGINA 4 — PRODUCTOS
+    // ════════════════════════════════════════════════════════════════════════
+    doc.addPage();
+    pageHeader(4, 'PRODUCTOS', 'Rendimiento de catálogo · Top productos y rentabilidad', Camber);
+    y = 54;
+
+    // KPIs productos
+    const topProd = realData.topProducts[0];
+    const totalUnits = realData.topProducts.reduce((a,p)=>a+p.units,0);
+    const pW = (W-28-9)/4;
+    kpiBox(14,          y, pW, 22, 'Productos vendidos', fmtN(realData.topProducts.length), 'Con al menos 1 venta', false);
+    kpiBox(14+pW+3,     y, pW, 22, 'Unidades totales',   fmtN(totalUnits),                  'Artículos despachados', false);
+    kpiBox(14+2*(pW+3), y, pW, 22, 'Producto estrella',  topProd?topProd.name.split(' ').slice(0,3).join(' '):'—', topProd?fmt(topProd.revenue):'Sin ventas', true, [180,83,9] as [number,number,number]);
+    kpiBox(14+3*(pW+3), y, pW, 22, 'Ingresos totales',   totalRevenue>0?fmt(totalRevenue):'$0', 'De todos los productos', false);
+    y += 28;
 
     if (realData.topProducts.length === 0) {
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(9);
-      doc.setTextColor(180, 180, 180);
-      doc.text('Sin datos de productos para el período seleccionado.', 14, y + 8);
+      doc.setFont('helvetica','italic'); doc.setFontSize(9); doc.setTextColor(180,180,180);
+      doc.text('Sin datos de productos para el período seleccionado.', 14, y+10);
     } else {
+      // Barras horizontales top productos
+      secLabel('TOP PRODUCTOS POR INGRESOS', y); y += 5;
+      const maxProd = realData.topProducts[0].revenue;
+      const halfW = (W-32)/2;
+      realData.topProducts.slice(0,8).forEach((p,i) => {
+        const col = i<3 ? Cteal as [number,number,number] : CtealM as [number,number,number];
+        hBar(14, y+i*10, halfW, `#${i+1} ${p.name}`, p.revenue, maxProd, fmt(p.revenue), col, i<3);
+      });
+
+      // Tabla derecha — unidades y participación
+      const totalProdRev = realData.topProducts.reduce((a,p)=>a+p.revenue,0);
       autoTable(doc, {
         startY: y,
-        head: [['#', 'PRODUCTO', 'UNIDADES VENDIDAS', 'INGRESOS (COP)']],
-        body: realData.topProducts.map((p, i) => [`${i + 1}`, p.name, fmtN(p.units), fmt(p.revenue)]),
-        styles: { fontSize: 9, cellPadding: 4 },
-        headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 8.5, halign: 'center' },
-        alternateRowStyles: { fillColor: gray50 },
-        columnStyles: {
-          0: { cellWidth: 15, halign: 'center' },
-          1: {},
-          2: { cellWidth: 45, halign: 'center' },
-          3: { cellWidth: 55, halign: 'right', fontStyle: 'bold' },
+        head: [['PRODUCTO','UNIADES','INGRESOS','%']],
+        body: realData.topProducts.slice(0,8).map((p,i)=>[
+          `#${i+1} ${p.name.length>22?p.name.slice(0,22)+'…':p.name}`,
+          fmtN(p.units),
+          fmt(p.revenue),
+          totalProdRev>0?`${((p.revenue/totalProdRev)*100).toFixed(1)}%`:'—',
+        ]),
+        styles:{ fontSize:7.5, cellPadding:2.8 },
+        headStyles:{ fillColor:Cdark, textColor:Cwhite, fontStyle:'bold', fontSize:7, halign:'center' },
+        alternateRowStyles:{ fillColor:Cgray },
+        columnStyles:{
+          0:{cellWidth:70},
+          1:{cellWidth:20,halign:'center'},
+          2:{halign:'right',fontStyle:'bold',textColor:Cteal},
+          3:{cellWidth:20,halign:'center'},
         },
-        margin: { left: 14, right: 14 },
+        margin:{ left:W/2+4, right:14 },
       });
+      y += realData.topProducts.slice(0,8).length*10+8;
+
+      // Participación acumulada top 3
+      const top3Rev = realData.topProducts.slice(0,3).reduce((a,p)=>a+p.revenue,0);
+      const top3Pct = totalProdRev>0 ? Math.round((top3Rev/totalProdRev)*100) : 0;
+      if (y < H-28) {
+        doc.setFillColor(...Cdark); doc.roundedRect(14, y, W-28, 14, 2.5, 2.5, 'F');
+        doc.setFillColor(180,83,9); doc.rect(14, y, 4, 14, 'F');
+        doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(254,215,170);
+        doc.text('CONCENTRACIÓN DE INGRESOS', 21, y+6.5);
+        doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(245,225,200);
+        const prodIns = `Los 3 productos más vendidos concentran el ${top3Pct}% de los ingresos del período (${fmt(top3Rev)}). Refuerza stock y publicidad de ${topProd?.name||'tu producto estrella'}.`;
+        doc.text(doc.splitTextToSize(prodIns, W-55), 21, y+12);
+      }
     }
+    pageFooter();
 
-    // ── PÁGINA 5: GEOGRÁFICO ──────────────────────────────────────────────
+    // ════════════════════════════════════════════════════════════════════════
+    // PÁGINA 5 — GEOGRÁFICO
+    // ════════════════════════════════════════════════════════════════════════
     doc.addPage();
-    addPageHeader('ESTADÍSTICAS — GEOGRÁFICO');
-    y = 34;
-
-    doc.setTextColor(...teal);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text('PEDIDOS POR CIUDAD / REGIÓN', 14, y);
-    y += 4;
+    pageHeader(5, 'GEOGRAFÍA', 'Análisis por ciudad · Foco publicitario y logístico', Cgreen);
+    y = 54;
 
     if (realData.cities.length === 0) {
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(9);
-      doc.setTextColor(180, 180, 180);
-      doc.text('Sin datos geográficos para el período seleccionado.', 14, y + 8);
-    } else {
-      autoTable(doc, {
-        startY: y,
-        head: [['#', 'CIUDAD', 'PEDIDOS', 'INGRESOS (COP)', 'TICKET PROMEDIO']],
-        body: realData.cities.map((c, i) => [
-          `${i + 1}`, c.city, fmtN(c.orders), fmt(c.revenue), fmt(c.avg),
-        ]),
-        styles: { fontSize: 9.5, cellPadding: 4.5 },
-        headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 9, halign: 'center' },
-        alternateRowStyles: { fillColor: gray50 },
-        columnStyles: {
-          0: { cellWidth: 14, halign: 'center' },
-          1: {},
-          2: { cellWidth: 35, halign: 'center' },
-          3: { cellWidth: 55, halign: 'right', fontStyle: 'bold' },
-          4: { cellWidth: 55, halign: 'right' },
-        },
-        margin: { left: 14, right: 14 },
-      });
+      doc.setFont('helvetica','italic'); doc.setFontSize(9); doc.setTextColor(180,180,180);
+      doc.text('Sin datos geográficos para el período seleccionado.', 14, y+10);
+      pageFooter();
+      const pc = doc.getNumberOfPages();
+      for(let i=1;i<=pc;i++){doc.setPage(i);pageFooter();}
+      doc.save(`estadisticas_bayup_${now2.toISOString().slice(0,10)}.pdf`);
+      setShowExportMenu(false); showToast('PDF generado ✓', 'success'); return;
     }
 
-    // ── Footer en todas las páginas ───────────────────────────────────────
+    // KPIs geo
+    const gW = (W-28-9)/4;
+    const totalCityOrd = realData.cities.reduce((a,c)=>a+c.orders,0);
+    kpiBox(14,          y, gW, 22, 'Ciudad principal',   realData.cities[0].city,           `${realData.cities[0].orders} pedidos`,          true, [22,163,74] as [number,number,number]);
+    kpiBox(14+gW+3,     y, gW, 22, 'Ciudades activas',   fmtN(realData.cities.length),      'Con al menos 1 pedido',                         false);
+    kpiBox(14+2*(gW+3), y, gW, 22, 'Ingresos ciudad 1',  fmt(realData.cities[0].revenue),  `${totalRevenue>0?Math.round((realData.cities[0].revenue/totalRevenue)*100):0}% del total`, false);
+    kpiBox(14+3*(gW+3), y, gW, 22, 'Ticket prom. top',   fmt(realData.cities[0].avg),       'Ciudad principal',                              false);
+    y += 28;
+
+    // Barras horizontales ciudades
+    secLabel('INGRESOS POR CIUDAD', y); y += 5;
+    const maxCity = realData.cities[0].revenue;
+    const cHalfW = (W-32)/2;
+    realData.cities.forEach((c,i) => {
+      const col: [number,number,number] = i===0 ? Cteal : CtealM;
+      const pctStr = totalRevenue>0 ? `${((c.revenue/totalRevenue)*100).toFixed(1)}%` : '—';
+      hBar(14, y+i*10, cHalfW, c.city, c.revenue, maxCity, `${fmt(c.revenue)}  (${pctStr})`, col, i===0);
+    });
+
+    // Tabla completa ciudades (mitad derecha)
+    autoTable(doc, {
+      startY: y,
+      head: [['#','CIUDAD','PEDIDOS','INGRESOS','TICKET PROM.','% TOTAL']],
+      body: realData.cities.map((c,i)=>{
+        const pct = totalRevenue>0 ? `${((c.revenue/totalRevenue)*100).toFixed(1)}%` : '—';
+        return [`${i+1}`, c.city, fmtN(c.orders), fmt(c.revenue), fmt(c.avg), pct];
+      }),
+      styles:{ fontSize:7.8, cellPadding:3 },
+      headStyles:{ fillColor:Cdark, textColor:Cwhite, fontStyle:'bold', fontSize:7.5, halign:'center' },
+      alternateRowStyles:{ fillColor:Cgray },
+      columnStyles:{
+        0:{cellWidth:10,halign:'center'},
+        1:{cellWidth:40},
+        2:{cellWidth:22,halign:'center'},
+        3:{halign:'right',fontStyle:'bold',textColor:Cteal},
+        4:{halign:'right'},
+        5:{cellWidth:22,halign:'center'},
+      },
+      didParseCell:(data)=>{ if(data.section==='body'&&data.row.index===0){ data.cell.styles.fontStyle='bold'; } },
+      margin:{ left:W/2+4, right:14 },
+    });
+    y += realData.cities.length*10+8;
+
+    // Insight estratégico
+    const top3Cities = realData.cities.slice(0,3);
+    const top3CityRev = top3Cities.reduce((a,c)=>a+c.revenue,0);
+    const top3CityPct = totalRevenue>0 ? Math.round((top3CityRev/totalRevenue)*100) : 0;
+    const fy5 = (doc as any).lastAutoTable?.finalY || y;
+    if (fy5 < H-28) {
+      doc.setFillColor(...Cdark); doc.roundedRect(14, fy5+5, W-28, 18, 2.5, 2.5, 'F');
+      doc.setFillColor(...Cgreen); doc.rect(14, fy5+5, 4, 18, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(134,239,172);
+      doc.text('ESTRATEGIA GEOGRÁFICA RECOMENDADA', 21, fy5+12);
+      doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(185,225,195);
+      const geoIns1 = `· ${top3Cities.map(c=>c.city).join(', ')} concentran el ${top3CityPct}% de los ingresos — prioriza estos mercados en campañas pagadas.`;
+      const geoIns2 = `· Ciudad con mayor ticket promedio: ${[...realData.cities].sort((a,b)=>b.avg-a.avg)[0]?.city||'—'} (${fmt([...realData.cities].sort((a,b)=>b.avg-a.avg)[0]?.avg||0)}) — ideal para campañas de producto premium.`;
+      const geoIns3 = realData.cities.length>3 ? `· Hay ${realData.cities.length-3} ciudades secundarias con potencial sin explotar — considera testing de anuncios localizados.` : '';
+      doc.text([geoIns1, geoIns2, ...(geoIns3?[geoIns3]:[])], 21, fy5+19);
+    }
+
+    // ── Footer todas las páginas ──────────────────────────────────────────
     const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFillColor(...teal);
-      doc.rect(0, H - 8, W, 8, 'F');
-      doc.setTextColor(...white);
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Generado por BayUP • bayup.com.co', W / 2, H - 3, { align: 'center' });
-      doc.text(`Pág. ${i} / ${pageCount}`, W - 14, H - 3, { align: 'right' });
-    }
+    for (let i=1; i<=pageCount; i++) { doc.setPage(i); pageFooter(); }
 
-    doc.save(`estadisticas_bayup_${new Date().toISOString().slice(0, 10)}.pdf`);
+    doc.save(`estadisticas_bayup_${now2.toISOString().slice(0,10)}.pdf`);
     setShowExportMenu(false);
-    showToast('PDF generado ✓', 'success');
+    showToast('PDF de estadísticas generado ✓', 'success');
   };
 
   const periodLabel = { '7d': 'Últimos 7 días', '30d': 'Últimos 30 días', '90d': 'Últimos 90 días' }[period];
