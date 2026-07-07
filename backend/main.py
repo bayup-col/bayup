@@ -2651,6 +2651,55 @@ def _last_n_months(n: int = 12):
 
 _MONTH_LABELS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
 
+@app.post("/super-admin/impersonate/{company_id}")
+@limiter.limit("20/minute")
+async def impersonate_company(company_id: str, request: Request):
+    """Genera un token de acceso para una empresa específica (solo super admin)."""
+    import models, uuid as uuid_lib, security as sec_mod
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        caller = await _authenticate(request, db)
+        _require_super_admin(caller)
+        try:
+            target_uuid = uuid_lib.UUID(company_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="company_id inválido")
+        company = db.query(models.User).filter(
+            models.User.id == target_uuid,
+            models.User.role == "admin_tienda",
+            models.User.owner_id.is_(None),
+        ).first()
+        if not company:
+            raise HTTPException(status_code=404, detail="Empresa no encontrada")
+
+        access_token = sec_mod.create_access_token(data={"sub": company.email})
+        payload = {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "email": company.email,
+                "full_name": getattr(company, 'full_name', ""),
+                "role": getattr(company, 'role', "admin_tienda"),
+                "is_global_staff": False,
+                "permissions": getattr(company, 'permissions', {}) or {},
+                "plan": {
+                    "id": str(company.plan.id) if getattr(company, 'plan', None) else None,
+                    "name": company.plan.name if getattr(company, 'plan', None) else "Básico"
+                } if getattr(company, 'plan', None) else None,
+                "shop_slug": getattr(company, 'shop_slug', ""),
+                "logo_url": getattr(company, 'logo_url', ""),
+                "onboarding_completed": bool(getattr(company, 'onboarding_completed', False)),
+                "status": getattr(company, 'status', 'Activo'),
+                "nit": getattr(company, 'nit', "") or "",
+                "address": getattr(company, 'address', "") or "",
+            }
+        }
+        return JSONResponse(content=payload)
+    finally:
+        db.close()
+
+
 @app.get("/super-admin/treasury")
 @limiter.limit("30/minute")
 async def get_super_admin_treasury(request: Request):

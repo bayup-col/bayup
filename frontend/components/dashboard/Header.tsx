@@ -90,7 +90,7 @@ export const DashboardHeader = ({
 
     // Polling de Notificaciones para super admin
     useEffect(() => {
-        if (!isSuperAdminZone || !token) return;
+        if (!isSuperAdminZone || !token || !isGlobalStaff) return;
         let intervalId: any = null;
         const fetchAdminNotifications = async () => {
             try {

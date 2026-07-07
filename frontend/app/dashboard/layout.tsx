@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect, useState, memo, Fragment } from 'react';
+import { ReactNode, useEffect, useState, memo, Fragment, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -16,7 +16,8 @@ import {
   LogOut, Eye, ShieldCheck, Building2, UserPlus, Users, Wallet, Headset,
   Layout, BarChart3, Code, Activity,
   ChevronLeft, ChevronRight,
-  UserCheck, Coins, HelpCircle, Lock, Menu, X, CreditCard, Send, Sparkles, Globe
+  UserCheck, Coins, HelpCircle, Lock, Menu, X, CreditCard, Send, Sparkles, Globe,
+  ArrowLeftCircle
 } from 'lucide-react';
 
 // Componente externo memoizado — evita re-mount en cada render del layout
@@ -87,6 +88,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     shopSlug: authSlug,
     token,
     logout,
+    login,
     userPlan,
     isGlobalStaff,
     onboardingCompleted,
@@ -107,6 +109,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isAnyModalOpen, setIsAnyModalOpen] = useState(false);
   const [isSidebarHidden, setIsSidebarHidden] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [impersonatingAs, setImpersonatingAs] = useState<string | null>(null);
 
   // Cierra el drawer móvil al navegar
   useEffect(() => { setIsMobileSidebarOpen(false); }, [pathname]);
@@ -170,6 +173,29 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           router.replace('/dashboard/super-admin');
       }
   }, [isLoading, isAuthenticated, isSuperAdminZone, isStaffAccount, router]);
+
+  // Detectar sesión de impersonación activa
+  useEffect(() => {
+    setImpersonatingAs(sessionStorage.getItem('impersonating_as'));
+  }, [pathname]);
+
+  const handleReturnSession = useCallback(() => {
+    const raw = sessionStorage.getItem('original_admin_session');
+    if (!raw) return;
+    try {
+      const orig = JSON.parse(raw);
+      login(orig.token, orig.email, orig.role, orig.permissions, orig.plan,
+        true, orig.shopSlug, orig.name, orig.logo, orig.nit, orig.address,
+        orig.onboardingCompleted, orig.status);
+      sessionStorage.removeItem('impersonating_as');
+      sessionStorage.removeItem('original_admin_session');
+      router.push('/dashboard/super-admin/empresas');
+    } catch {
+      sessionStorage.removeItem('impersonating_as');
+      sessionStorage.removeItem('original_admin_session');
+      router.push('/login');
+    }
+  }, [login, router]);
 
   const isStaffMisrouted = isAuthenticated && !isSuperAdminZone && isStaffAccount;
   if (isLoading || !isAuthenticated || isPendingApproval || needsOnboarding || (!isStaffAccount && isStudioRoute) || isStaffMisrouted) {
@@ -390,6 +416,23 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {/* Oculto temporalmente para el MVP — no es necesario aún, se retoma después. No borrar. */}
       {false && isGlobalStaff && !isSuperAdminZone && <BaytAssistant isOpen={isBaytOpen} setIsOpen={setIsBaytOpen} />}
       <SupportWidget isSupportOpen={isSupportOpen} setIsSupportOpen={setIsSupportOpen} />
+
+      {/* Banner de impersonación — visible cuando el super admin está viendo como empresa */}
+      {impersonatingAs && (
+        <div className="fixed bottom-0 left-0 right-0 z-[9990] flex justify-center pb-4 pointer-events-none">
+          <div className="pointer-events-auto flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl border border-[#00f2ff]/30"
+            style={{ background: 'linear-gradient(135deg,#001a1a,#004d4d)', backdropFilter: 'blur(12px)' }}>
+            <div className="h-2 w-2 rounded-full bg-[#00f2ff] animate-pulse" />
+            <span className="text-[11px] font-bold text-white/70">
+              Viendo como: <span className="text-[#00f2ff]">{impersonatingAs}</span>
+            </span>
+            <button onClick={handleReturnSession}
+              className="flex items-center gap-1.5 ml-2 px-3 py-1.5 rounded-xl bg-[#00f2ff]/15 hover:bg-[#00f2ff]/25 text-[#00f2ff] text-[10px] font-black uppercase tracking-widest transition-all">
+              <ArrowLeftCircle size={12} /> Volver a mi sesión
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Overlay raíz — cubre TODO el viewport sin interferencias de overflow/transform */}
       <AnimatePresence>
