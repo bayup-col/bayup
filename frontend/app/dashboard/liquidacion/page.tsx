@@ -79,8 +79,226 @@ export default function LiquidacionPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-10">
 
-      {/* ── Header ── */}
-      <div className="flex items-start justify-between">
+      {/* ══════════ MOBILE VIEW (solo < sm) ══════════ */}
+      <div className="block sm:hidden -mx-3 space-y-3 pt-2">
+
+        {/* Hero card */}
+        <div className="mx-3 rounded-3xl p-5 relative overflow-hidden"
+          style={{ background: 'linear-gradient(145deg,#001a1a 0%,#003333 50%,#005252 100%)' }}>
+          <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full"
+            style={{ background: 'radial-gradient(circle,rgba(0,242,255,0.12),transparent 70%)' }}/>
+          <div className="absolute -bottom-6 -left-6 h-28 w-28 rounded-full"
+            style={{ background: 'radial-gradient(circle,rgba(0,178,189,0.08),transparent 70%)' }}/>
+          <div className="absolute top-4 right-5 opacity-[0.05]"><Wallet size={80}/></div>
+
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="h-6 w-6 rounded-lg bg-[#00f2ff]/15 flex items-center justify-center">
+                <Wallet size={12} className="text-[#00f2ff]"/>
+              </div>
+              <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[#00f2ff]/70">Liquidación</p>
+            </div>
+            <button onClick={load} className="flex items-center gap-1.5 h-7 px-2.5 rounded-xl bg-white/10 border border-white/15 text-white/60 text-[9px] font-bold active:bg-white/20 transition-colors">
+              <RefreshCw size={9}/> Actualizar
+            </button>
+          </div>
+
+          <p className="text-[11px] font-bold text-white/30 mb-0.5">Próxima transferencia</p>
+          <p className="text-[38px] font-black text-[#00f2ff] leading-none tracking-tight -mt-0.5">
+            {fmtCOP(Math.max(0, pending.net))}
+          </p>
+          <p className="text-[9px] text-white/25 mt-1">
+            {pending.net >= 0 ? 'Web neto − cargo Bayup pendiente' : 'Cargo Bayup pendiente próxima dispersión'}
+          </p>
+
+          <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-white/[0.08]">
+            <div className="bg-white/5 rounded-2xl p-3">
+              <p className="text-[8px] text-white/30 uppercase tracking-widest mb-1">Ventas web</p>
+              <p className="text-[14px] font-black text-white/80">{fmtCOP(pending.web_gross || 0)}</p>
+              <p className="text-[8px] text-white/20">{pending.web_count || 0} pedidos</p>
+            </div>
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3">
+              <p className="text-[8px] text-amber-300/60 uppercase tracking-widest mb-1">Cargo Bayup</p>
+              <p className="text-[14px] font-black text-amber-300">{fmtCOP(pending.pos_commission || 0)}</p>
+              <p className="text-[8px] text-amber-300/30">{pending.pos_count || 0} ventas POS</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Aviso */}
+        <div className="mx-3 flex items-start gap-2.5 p-3 bg-[#004d4d]/6 border border-[#004d4d]/15 rounded-2xl">
+          <Info size={13} className="text-[#004d4d] mt-0.5 shrink-0"/>
+          <p className="text-[10px] text-[#004d4d]/80 leading-relaxed">
+            Comisión <strong>2.5%</strong> por venta. Web: Bayup te transfiere el neto. POS: tú cobras, Bayup descuenta su comisión de la próxima dispersión.
+          </p>
+        </div>
+
+        {/* 4 mini stats */}
+        <div className="grid grid-cols-2 gap-2 mx-3">
+          {[
+            { label: 'Total recibido',   value: fmtCOP(hist.total_paid_net),   icon: <TrendingUp size={13} className="text-emerald-500"/>,  bg: 'bg-emerald-50' },
+            { label: 'Pagos realizados', value: `${hist.payment_count || 0}`,  icon: <CheckCircle2 size={13} className="text-blue-500"/>,   bg: 'bg-blue-50' },
+            { label: 'Ventas totales',   value: fmtCOP((hist.total_paid_gross || 0) + (pending.web_gross || 0) + (pending.pos_gross || 0)), icon: <DollarSign size={13} className="text-violet-500"/>, bg: 'bg-violet-50' },
+            { label: 'Comisión Bayup',   value: fmtCOP((hist.total_bayup_earned || 0) + ((pending.web_gross || 0) - (pending.web_net || 0)) + (pending.pos_commission || 0)), icon: <Building2 size={13} className="text-gray-400"/>, bg: 'bg-gray-100' },
+          ].map((s, i) => (
+            <div key={i} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100/80 flex flex-col gap-1.5">
+              <div className={`h-7 w-7 rounded-xl ${s.bg} flex items-center justify-center`}>{s.icon}</div>
+              <p className="text-[15px] font-black text-gray-900 leading-none truncate">{s.value}</p>
+              <p className="text-[8px] font-black text-gray-400 uppercase tracking-wide">{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Próximo pago */}
+        {(scheduled || nextDates.length > 0) && (
+          <div className="mx-3 bg-white rounded-3xl border border-gray-100 shadow-sm p-4">
+            <p className="text-[9px] font-bold tracking-widest uppercase text-gray-400 flex items-center gap-1.5 mb-3">
+              <Calendar size={10}/> Próximos pagos
+            </p>
+            {scheduled ? (
+              <div className="flex items-center justify-between">
+                <div>
+                  <StatusBadge status={scheduled.status}/>
+                  <p className="text-[20px] font-black text-[#004d4d] mt-1">{fmtCOP(scheduled.net_amount)}</p>
+                  <p className="text-[9px] text-gray-400 mt-0.5">{fmtDate(scheduled.scheduled_date)}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {nextDates.slice(0, 2).map((d: string, i: number) => (
+                  <div key={i} className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+                    <div className="h-6 w-6 rounded-lg bg-[#004d4d]/10 flex items-center justify-center shrink-0">
+                      <Calendar size={11} className="text-[#004d4d]"/>
+                    </div>
+                    <p className="text-[11px] font-bold text-gray-700">{fmtDate(d)}</p>
+                    {i === 0 && <span className="ml-auto text-[8px] font-black text-[#004d4d] bg-[#004d4d]/10 px-1.5 py-0.5 rounded-md">Próximo</span>}
+                  </div>
+                ))}
+                <p className="text-[8px] text-gray-300 pt-1">Pagos los martes y viernes</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Ventas pendientes de cobro */}
+        {orders.length > 0 && (
+          <div className="mx-3 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+            <button onClick={() => setShowOrders(!showOrders)}
+              className="w-full flex items-center justify-between px-4 py-3.5">
+              <div className="flex items-center gap-2">
+                <Package size={14} className="text-[#004d4d]"/>
+                <p className="text-[11px] font-black text-gray-800">Ventas pendientes de cobro</p>
+                <span className="text-[9px] font-black text-[#004d4d] bg-[#004d4d]/10 px-2 py-0.5 rounded-full">{orders.length}</span>
+              </div>
+              <ChevronDown size={14} className={`text-gray-400 transition-transform ${showOrders ? '' : '-rotate-90'}`}/>
+            </button>
+            <AnimatePresence>
+              {showOrders && (
+                <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
+                  <div className="divide-y divide-gray-50 max-h-[320px] overflow-y-auto border-t border-gray-100">
+                    {orders.map((o: any) => {
+                      const isPos = (o.source || '').toLowerCase() === 'pos';
+                      return (
+                        <div key={o.id} className="flex items-center gap-3 px-4 py-3">
+                          <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 text-[8px] font-black ${isPos ? 'bg-violet-50 text-violet-600' : 'bg-blue-50 text-blue-600'}`}>
+                            {isPos ? 'POS' : 'Web'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-bold text-gray-800 truncate">{o.customer_name || '—'}</p>
+                            <p className="text-[9px] text-gray-400">{fmtDate(o.created_at)}</p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-[12px] font-black text-gray-900">{fmtCOP(o.total_price)}</p>
+                            {isPos
+                              ? <p className="text-[8px] text-amber-600">−{fmtCOP(o.commission)} comisión</p>
+                              : <p className="text-[8px] text-emerald-600">+{fmtCOP(o.net)} neto</p>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 flex justify-between">
+                    <p className="text-[10px] font-bold text-gray-500">Próxima transferencia neta</p>
+                    <p className="text-[10px] font-black text-[#004d4d]">{fmtCOP(Math.max(0, pending.net))}</p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {/* Historial de pagos */}
+        <div className="mx-3 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-4 pt-4 pb-3 border-b border-gray-50 flex items-center gap-2">
+            <ShieldCheck size={14} className="text-[#004d4d]"/>
+            <p className="text-[13px] font-black text-gray-900">Historial de pagos</p>
+            <span className="text-[10px] font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full ml-auto">{history.length}</span>
+          </div>
+          {history.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2">
+              <Wallet size={20} className="text-gray-200"/>
+              <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Sin pagos aún</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50 max-h-[360px] overflow-y-auto">
+              {history.map((l: any) => (
+                <div key={l.id}>
+                  <button onClick={() => setActiveHistId(activeHistId === l.id ? null : l.id)}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 transition-colors text-left">
+                    <div className="h-9 w-9 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+                      <CheckCircle2 size={14} className="text-emerald-500"/>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-bold text-gray-800">{l.period_start ? fmtDate(l.period_start) : fmtDate(l.created_at)}</p>
+                      <p className="text-[9px] text-gray-400">{l.order_count} órdenes</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[14px] font-black text-emerald-600">{fmtCOP(l.net_amount)}</p>
+                      <StatusBadge status={l.status}/>
+                    </div>
+                  </button>
+                  <AnimatePresence>
+                    {activeHistId === l.id && (
+                      <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
+                        <div className="px-4 pb-4 pt-2 bg-gray-50 border-t border-gray-100 grid grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-[8px] text-gray-400 uppercase tracking-widest">Fecha de pago</p>
+                            <p className="text-[11px] font-bold text-gray-700 mt-0.5">{fmtDate(l.paid_date)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[8px] text-gray-400 uppercase tracking-widest">Ventas brutas</p>
+                            <p className="text-[11px] font-bold text-gray-700 mt-0.5">{fmtCOP(l.gross_amount)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[8px] text-gray-400 uppercase tracking-widest">Comisión Bayup</p>
+                            <p className="text-[11px] font-bold text-rose-500 mt-0.5">-{fmtCOP(l.bayup_commission + l.prix_fee)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[8px] text-gray-400 uppercase tracking-widest">Referencia</p>
+                            <p className="text-[11px] font-bold text-gray-700 mt-0.5 truncate">{l.transfer_reference || '—'}</p>
+                          </div>
+                          {l.notes && (
+                            <div className="col-span-2">
+                              <p className="text-[8px] text-gray-400 uppercase tracking-widest">Notas</p>
+                              <p className="text-[11px] text-gray-600 mt-0.5">{l.notes}</p>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="h-4"/>
+      </div>
+      {/* ══════════ FIN MOBILE VIEW ══════════ */}
+
+      {/* ── Header (solo desktop) ── */}
+      <div className="hidden sm:flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-black text-gray-900 tracking-tight">Liquidación</h1>
           <p className="text-sm text-gray-400 mt-0.5">Seguimiento de tus ventas y pagos de Bayup</p>
@@ -90,8 +308,8 @@ export default function LiquidacionPage() {
         </button>
       </div>
 
-      {/* ── Aviso de cómo funciona ── */}
-      <div className="flex items-start gap-3 p-4 bg-[#004d4d]/5 border border-[#004d4d]/15 rounded-2xl">
+      {/* ── Aviso de cómo funciona (solo desktop) ── */}
+      <div className="hidden sm:flex items-start gap-3 p-4 bg-[#004d4d]/5 border border-[#004d4d]/15 rounded-2xl">
         <Info size={15} className="text-[#004d4d] mt-0.5 shrink-0"/>
         <p className="text-[11px] text-[#004d4d]/80 leading-relaxed">
           Bayup aplica una comisión del <strong>2.5%</strong> sobre todas tus ventas.
@@ -100,8 +318,8 @@ export default function LiquidacionPage() {
         </p>
       </div>
 
-      {/* ── Cards principales ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* ── Cards principales (solo desktop) ── */}
+      <div className="hidden sm:grid sm:grid-cols-1 md:grid-cols-3 gap-4">
 
         {/* Saldo pendiente */}
         <div className="md:col-span-2 bg-gradient-to-br from-[#001a1a] via-[#002626] to-[#003333] rounded-2xl p-7 text-white relative overflow-hidden">
@@ -182,8 +400,8 @@ export default function LiquidacionPage() {
         </div>
       </div>
 
-      {/* ── Stats acumuladas (históricas + pendientes) ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* ── Stats acumuladas (solo desktop) ── */}
+      <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: 'Total recibido',   value: fmtCOP(hist.total_paid_net),  icon: <TrendingUp size={14}/>, color: 'text-emerald-600', sub: 'liquidaciones pagadas' },
           { label: 'Pagos realizados', value: `${hist.payment_count || 0}`,  icon: <BadgeCheck size={14}/>, color: 'text-blue-600',    sub: 'dispersiones completas' },
@@ -199,9 +417,9 @@ export default function LiquidacionPage() {
         ))}
       </div>
 
-      {/* ── Órdenes pendientes de liquidar ── */}
+      {/* ── Órdenes pendientes de liquidar (solo desktop) ── */}
       {orders.length > 0 && (
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="hidden sm:block bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
           <button
             onClick={() => setShowOrders(!showOrders)}
             className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
@@ -258,8 +476,8 @@ export default function LiquidacionPage() {
         </div>
       )}
 
-      {/* ── Historial de liquidaciones ── */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+      {/* ── Historial de liquidaciones (solo desktop) ── */}
+      <div className="hidden sm:block bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
           <ShieldCheck size={15} className="text-[#004d4d]"/>
           <p className="text-[11px] font-black text-gray-800 uppercase tracking-widest">Historial de pagos</p>
@@ -330,9 +548,9 @@ export default function LiquidacionPage() {
         )}
       </div>
 
-      {/* ── Historial de comisiones POS cobradas ── */}
+      {/* ── Historial de comisiones POS cobradas (solo desktop) ── */}
       {(posHistory.length > 0 || pending.pos_count > 0) && (
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="hidden sm:block bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
           <button
             onClick={() => setShowPosHistory(!showPosHistory)}
             className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">

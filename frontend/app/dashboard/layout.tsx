@@ -224,17 +224,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       data-sa-theme={isSuperAdminZone ? saTheme : undefined}
       className={`h-screen w-full flex overflow-hidden ${isSuperAdminZone ? (saTheme === 'light' ? 'bg-[#F4F6F7]' : 'bg-[#001212]') : theme === 'dark' ? 'bg-[#001212]' : 'bg-[#F0F2F5]'}`}>
 
-      {/* Botón hamburguesa — solo móvil */}
-      {!isMobileSidebarOpen && (
-        <button
-          onClick={() => setIsMobileSidebarOpen(true)}
-          className="md:hidden fixed top-5 left-5 z-[60] h-10 w-10 rounded-2xl bg-[#001e1e] border border-white/10 shadow-lg flex items-center justify-center text-white/70"
-          title="Abrir menú"
-        >
-          <Menu size={18} />
-        </button>
-      )}
-
       {/* Overlay — solo móvil, cierra el drawer al tocar fuera */}
       {isMobileSidebarOpen && (
         <div
@@ -406,8 +395,27 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
       {/* ── MAIN CONTENT ── */}
       <div className="flex-1 flex flex-col min-w-0 relative overflow-hidden">
-        <DashboardHeader pathname={pathname} userEmail={authEmail} userRole={authRole} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} logout={logout} setIsUserSettingsOpen={setIsUserSettingsOpen} isBaytOpen={isBaytOpen} setIsBaytOpen={setIsBaytOpen} />
-        <main className={`flex-1 overflow-y-auto overflow-x-hidden pt-20 sm:pt-24 px-3 sm:px-6 pb-6 relative ${isSuperAdminZone ? (saTheme === 'light' ? 'bg-[#F4F6F7]' : 'bg-[#001212]') : ''}`}>
+        {/* Barra mobile — solo visible en pantallas < md */}
+        <div className="md:hidden flex items-center justify-between px-4 h-14 bg-white border-b border-gray-100 shadow-sm shrink-0 z-[55] relative">
+          <button
+            onClick={() => setIsMobileSidebarOpen(true)}
+            className="h-9 w-9 rounded-xl bg-[#001e1e] flex items-center justify-center text-white/70"
+          >
+            <Menu size={17} />
+          </button>
+          <div className="flex flex-col items-center">
+            {authName && <span className="text-[13px] font-black text-gray-900 leading-none truncate max-w-[160px]">{authName}</span>}
+            <span className="text-[9px] font-bold text-[#004d4d]/60 uppercase tracking-widest mt-0.5">
+              {authRole === 'admin_tienda' ? 'Mi tienda' : authRole || 'Dashboard'}
+            </span>
+          </div>
+          <DashboardHeader pathname={pathname} userEmail={authEmail} userRole={authRole} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} logout={logout} setIsUserSettingsOpen={setIsUserSettingsOpen} isBaytOpen={isBaytOpen} setIsBaytOpen={setIsBaytOpen} mobileMode />
+        </div>
+        {/* Header desktop (oculto en mobile) */}
+        <div className="hidden md:block">
+          <DashboardHeader pathname={pathname} userEmail={authEmail} userRole={authRole} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} logout={logout} setIsUserSettingsOpen={setIsUserSettingsOpen} isBaytOpen={isBaytOpen} setIsBaytOpen={setIsBaytOpen} />
+        </div>
+        <main className={`flex-1 overflow-y-auto overflow-x-hidden pt-0 md:pt-20 lg:pt-24 px-3 sm:px-6 pb-6 relative ${isSuperAdminZone ? (saTheme === 'light' ? 'bg-[#F4F6F7]' : 'bg-[#001212]') : ''}`}>
           <div className="max-w-[1600px] mx-auto">{children}</div>
         </main>
       </div>

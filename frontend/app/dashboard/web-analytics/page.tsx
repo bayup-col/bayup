@@ -816,8 +816,193 @@ export default function WebAnalyticsPage() {
   return (
     <div className="space-y-6 pb-20">
 
-      {/* ── HEADER ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* ══════════ MOBILE VIEW (solo < sm) ══════════ */}
+      <div className="block sm:hidden -mx-3 space-y-3 pt-2">
+
+        {/* Hero card */}
+        <div className="mx-3 rounded-3xl p-5 relative overflow-hidden"
+          style={{ background: 'linear-gradient(145deg,#001a1a 0%,#003333 50%,#005252 100%)' }}>
+          <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full"
+            style={{ background: 'radial-gradient(circle,rgba(0,242,255,0.12),transparent 70%)' }}/>
+          <div className="absolute -bottom-6 -left-6 h-28 w-28 rounded-full"
+            style={{ background: 'radial-gradient(circle,rgba(0,178,189,0.08),transparent 70%)' }}/>
+
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="h-6 w-6 rounded-lg bg-[#00f2ff]/15 flex items-center justify-center">
+                <BarChart3 size={12} className="text-[#00f2ff]"/>
+              </div>
+              <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[#00f2ff]/70">Estadísticas</p>
+            </div>
+            {/* Selector de período */}
+            <div className="relative">
+              <button onClick={() => setIsPeriodOpen(v => !v)}
+                className="flex items-center gap-1.5 h-7 px-2.5 rounded-xl bg-white/10 border border-white/15 text-white/70 text-[9px] font-bold">
+                <Calendar size={9}/> {periodLabel} <ChevronDown size={8} className={`transition-transform ${isPeriodOpen ? 'rotate-180' : ''}`}/>
+              </button>
+              <AnimatePresence>
+                {isPeriodOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsPeriodOpen(false)}/>
+                    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
+                      className="absolute right-0 top-9 z-50 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden min-w-[150px]">
+                      {(['7d','30d','90d'] as const).map(p => (
+                        <button key={p} onClick={() => { setPeriod(p); setIsPeriodOpen(false); }}
+                          className={`w-full text-left px-4 py-2.5 text-[11px] font-medium transition-colors ${period === p ? 'bg-[#004d4d]/5 text-[#004d4d] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>
+                          {{ '7d': 'Últimos 7 días', '30d': 'Últimos 30 días', '90d': 'Últimos 90 días' }[p]}
+                        </button>
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+
+          <div className="mb-1">
+            <p className="text-[11px] font-bold text-white/30">Ingresos totales</p>
+            <p className="text-[38px] font-black text-white leading-none tracking-tight -mt-0.5">
+              {totalRevenue > 0 ? fmt(totalRevenue) : '$0'}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/[0.08]">
+            <div className="flex items-center gap-1.5">
+              <div className="h-1.5 w-1.5 rounded-full bg-[#00f2ff] animate-pulse"/>
+              <p className="text-[9px] text-white/40">{totalOrders} pedidos</p>
+            </div>
+            <div className="ml-auto text-[9px] text-white/35 font-bold">
+              Ticket: {avgTicket > 0 ? fmt(avgTicket) : '$0'}
+            </div>
+          </div>
+        </div>
+
+        {/* 3 mini stats */}
+        <div className="grid grid-cols-3 gap-2 mx-3">
+          {[
+            { label: 'Pedidos',   value: fmtN(totalOrders),                  icon: <ShoppingCart size={13} className="text-blue-500"/>,   bg: 'bg-blue-50' },
+            { label: 'Ingresos',  value: totalRevenue > 0 ? fmt(totalRevenue) : '$0', icon: <DollarSign size={13} className="text-emerald-500"/>, bg: 'bg-emerald-50' },
+            { label: 'Ticket',    value: avgTicket > 0 ? fmt(avgTicket) : '$0', icon: <Target size={13} className="text-violet-500"/>,      bg: 'bg-violet-50' },
+          ].map((s, i) => (
+            <div key={i} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100/80 flex flex-col gap-1.5">
+              <div className={`h-7 w-7 rounded-xl ${s.bg} flex items-center justify-center`}>{s.icon}</div>
+              <p className="text-[18px] font-black text-gray-900 leading-none truncate">{s.value}</p>
+              <p className="text-[8px] font-black text-gray-400 uppercase tracking-wide">{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Tabs */}
+        <div className="mx-3 grid grid-cols-3 gap-1.5">
+          {tabs.map(t => (
+            <button key={t.id} onClick={() => setActiveTab(t.id)}
+              className={`py-2 rounded-xl text-[8px] font-black uppercase tracking-wide transition-all ${
+                activeTab === t.id ? 'bg-[#004d4d] text-white' : 'bg-white border border-gray-100 text-gray-400 shadow-sm'
+              }`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Gráfica mensual — solo tab Resumen */}
+        {activeTab === 'resumen' && (
+          <div className="mx-3 bg-white rounded-3xl border border-gray-100 shadow-sm p-4">
+            <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest mb-0.5">Ventas mensuales</p>
+            <p className="text-[9px] text-gray-400 mb-3">Evolución de ingresos por mes</p>
+            {realData.monthlyData.some(m => m.ventas > 0) ? (
+              <div style={{ height: 160 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={realData.monthlyData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="gVentasMob" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#004d4d" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#004d4d" stopOpacity={0.01}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" vertical={false}/>
+                    <XAxis dataKey="mes" tick={{ fontSize: 9, fill: '#9ca3af' }} axisLine={false} tickLine={false}/>
+                    <Tooltip content={<ChartTooltip/>}/>
+                    <Area type="monotone" dataKey="ventas" name="Ventas" stroke="#004d4d" strokeWidth={2} fill="url(#gVentasMob)" dot={false} activeDot={{ r: 3, fill: '#004d4d' }}/>
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 gap-2">
+                <TrendingUp size={22} className="text-gray-200"/>
+                <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Sin ventas aún</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Top productos — solo tab Productos */}
+        {activeTab === 'productos' && (
+          <div className="mx-3 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-4 pt-4 pb-3 border-b border-gray-50">
+              <p className="text-[13px] font-black text-gray-900">Top productos</p>
+              <p className="text-[9px] text-gray-400 mt-0.5">Por ingresos generados</p>
+            </div>
+            {realData.topProducts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-2">
+                <Package size={18} className="text-gray-300"/>
+                <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Sin datos</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {realData.topProducts.slice(0, 8).map((p: any, i: number) => (
+                  <div key={i} className="flex items-center gap-3 px-4 py-3">
+                    <div className="h-7 w-7 rounded-lg bg-[#004d4d]/8 flex items-center justify-center shrink-0">
+                      <span className="text-[10px] font-black text-[#004d4d]">#{i+1}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-bold text-gray-800 truncate">{p.name}</p>
+                      <p className="text-[9px] text-gray-400">{p.units} uds</p>
+                    </div>
+                    <p className="text-[12px] font-black text-[#004d4d] shrink-0">{fmt(p.revenue)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Pedidos recientes — tab Resumen / Audiencia */}
+        {(activeTab === 'resumen' || activeTab === 'audiencia') && orders.length > 0 && (
+          <div className="mx-3 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-50">
+              <div>
+                <p className="text-[13px] font-black text-gray-900">Pedidos recientes</p>
+                <p className="text-[9px] text-gray-400 mt-0.5">{orders.length} en total</p>
+              </div>
+              <span className="text-[10px] font-black text-[#004d4d] bg-[#004d4d]/8 px-2.5 py-1 rounded-full">{orders.length}</span>
+            </div>
+            <div className="divide-y divide-gray-50 max-h-[340px] overflow-y-auto">
+              {[...orders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 20).map((o: any) => {
+                const diffH = Math.floor((Date.now() - new Date(o.created_at).getTime()) / 3600000);
+                const dateLabel = diffH < 24 ? `Hoy · ${new Date(o.created_at).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})}` : diffH < 48 ? 'Ayer' : new Date(o.created_at).toLocaleDateString('es-CO',{day:'2-digit',month:'short'});
+                return (
+                  <div key={o.id} className="flex items-center gap-3 px-4 py-3.5">
+                    <div className="h-9 w-9 rounded-xl bg-[#004d4d]/8 flex items-center justify-center shrink-0">
+                      <ShoppingCart size={13} className="text-[#004d4d]"/>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-bold text-gray-800 truncate">{o.customer_name || 'Cliente'}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{dateLabel}</p>
+                    </div>
+                    <p className="text-[13px] font-black text-gray-900 shrink-0">{fmt(o.total_price || 0)}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="h-4"/>
+      </div>
+      {/* ══════════ FIN MOBILE VIEW ══════════ */}
+
+      {/* ── HEADER (solo desktop) ── */}
+      <div className="hidden sm:flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <p className={`flex items-center gap-2 text-[10px] font-bold tracking-[0.22em] uppercase mb-1 ${dark ? 'text-white/30' : 'text-gray-400'}`}>
             <span className="h-1.5 w-1.5 rounded-full bg-[#004d4d] inline-block"/>
@@ -886,15 +1071,15 @@ export default function WebAnalyticsPage() {
         </div>
       </div>
 
-      {/* ── KPIs PRINCIPALES ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* ── KPIs PRINCIPALES (solo desktop) ── */}
+      <div className="hidden sm:grid sm:grid-cols-3 gap-4">
         <StatCard label="Pedidos" value={fmtN(totalOrders)} sub={totalOrders === 0 ? 'Sin pedidos aún' : undefined} icon={<ShoppingCart/>} color="blue"/>
         <StatCard label="Ingresos totales" value={totalRevenue > 0 ? fmt(totalRevenue) : '$0'} icon={<DollarSign/>} color="emerald"/>
         <StatCard label="Ticket promedio" value={avgTicket > 0 ? fmt(avgTicket) : '$0'} icon={<Target/>} color="purple"/>
       </div>
 
-      {/* ── TABS ── */}
-      <div className={`flex p-1 rounded-2xl gap-1 w-fit ${dark ? 'bg-white/5' : 'bg-gray-100'}`}>
+      {/* ── TABS (solo desktop) ── */}
+      <div className={`hidden sm:flex p-1 rounded-2xl gap-1 w-fit ${dark ? 'bg-white/5' : 'bg-gray-100'}`}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id)}
             className={`px-4 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-widest transition-all duration-150 ${
@@ -907,9 +1092,9 @@ export default function WebAnalyticsPage() {
         ))}
       </div>
 
-      {/* ── TAB: RESUMEN ── */}
+      {/* ── TAB: RESUMEN (solo desktop) ── */}
       {activeTab === 'resumen' && (
-        <div className="space-y-6">
+        <div className="hidden sm:block space-y-6">
           {/* Ventas mensuales */}
           <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-6">
             <SectionTitle sub="Evolución de ingresos por mes">Ventas mensuales</SectionTitle>
@@ -997,9 +1182,9 @@ export default function WebAnalyticsPage() {
         </div>
       )}
 
-      {/* ── TAB: TRÁFICO ── */}
+      {/* ── TAB: TRÁFICO (solo desktop) ── */}
       {activeTab === 'trafico' && (
-        <div className="space-y-6">
+        <div className="hidden sm:block space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-6">
               <SectionTitle sub="¿De dónde viene tu tráfico?">Fuentes de tráfico</SectionTitle>
@@ -1038,9 +1223,9 @@ export default function WebAnalyticsPage() {
         </div>
       )}
 
-      {/* ── TAB: AUDIENCIA ── */}
+      {/* ── TAB: AUDIENCIA (solo desktop) ── */}
       {activeTab === 'audiencia' && (
-        <div className="space-y-6">
+        <div className="hidden sm:block space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-6">
               <SectionTitle sub="Distribución por género">Género</SectionTitle>
@@ -1062,9 +1247,9 @@ export default function WebAnalyticsPage() {
         </div>
       )}
 
-      {/* ── TAB: PRODUCTOS ── */}
+      {/* ── TAB: PRODUCTOS (solo desktop) ── */}
       {activeTab === 'productos' && (
-        <div className="space-y-6">
+        <div className="hidden sm:block space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Top productos por ingresos — dato real */}
             <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-6">
@@ -1121,9 +1306,9 @@ export default function WebAnalyticsPage() {
         </div>
       )}
 
-      {/* ── TAB: GEOGRÁFICO ── */}
+      {/* ── TAB: GEOGRÁFICO (solo desktop) ── */}
       {activeTab === 'geografico' && (
-        <div className="space-y-6">
+        <div className="hidden sm:block space-y-6">
           {realData.cities.length > 0 ? (
             <>
               {/* KPIs geo — derivados de pedidos reales */}

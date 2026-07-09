@@ -39,7 +39,7 @@ function Modal({ feature, onClose, voted, onVote }: {
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center sm:p-6"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-5 sm:p-6"
       onClick={onClose}
     >
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
@@ -48,7 +48,7 @@ function Modal({ feature, onClose, voted, onVote }: {
         animate={{ scale: 1, rotateY: 0, opacity: 1, transformPerspective: 1200 }}
         exit={{ scale: 0.88, opacity: 0, y: 24 }}
         transition={{ type: 'spring', damping: 26, stiffness: 300 }}
-        className="relative w-full sm:max-w-sm rounded-t-[2.5rem] sm:rounded-[2.5rem] overflow-hidden shadow-[0_32px_80px_-8px_rgba(0,0,0,0.6)] z-10"
+        className="relative w-full max-w-sm rounded-[2.5rem] overflow-hidden shadow-[0_32px_80px_-8px_rgba(0,0,0,0.6)] z-10"
         onClick={e => e.stopPropagation()}
       >
         {/* Hero — imagen o gradiente a altura fija */}
@@ -368,7 +368,7 @@ export default function NovedadesPage() {
 
       {/* HERO */}
       <div
-        className="relative rounded-3xl overflow-hidden px-10 py-11 text-center"
+        className="relative rounded-3xl overflow-hidden px-6 py-8 sm:px-10 sm:py-11 text-center"
         style={{
           background: 'linear-gradient(160deg,#001010 0%,#001a1a 60%,#002a2a 100%)',
           boxShadow: '0 32px 80px -16px rgba(0,77,77,0.5), 0 8px 24px -4px rgba(0,0,0,0.6), inset 0 1px 0 rgba(0,178,189,0.15)',
@@ -423,27 +423,27 @@ export default function NovedadesPage() {
       </div>
 
       {/* FILTERS */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2">
         {(['all', ...allPhases] as const).map(p => (
           <button
             key={p}
             onClick={() => handlePhase(p as Phase | 'all')}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-[0.15em] transition-all duration-200"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 sm:px-4 rounded-2xl text-[8px] sm:text-[9px] font-black uppercase tracking-[0.12em] transition-all duration-200"
             style={activePhase === p
               ? { background: '#001a1a', color: '#00b2bd', border: '1px solid rgba(0,77,77,0.4)' }
               : { background: '#fff', color: '#9ca3af', border: '1px solid #f3f4f6' }}
           >
-            {p === 'all' ? 'Todas' : <>{getPhaseLabel(p as string).icon} {getPhaseLabel(p as string).label}{p !== 'proximamente' ? ` · ${p}` : ''}</>}
+            {p === 'all' ? 'Todas' : <><span className="hidden sm:inline">{getPhaseLabel(p as string).icon}</span>{' '}{getPhaseLabel(p as string).label}<span className="hidden sm:inline">{p !== 'proximamente' ? ` · ${p}` : ''}</span></>}
           </button>
         ))}
       </div>
 
       {/* CAROUSEL */}
-      <div className="relative">
+      <div className="relative overflow-hidden sm:overflow-visible -mx-3 sm:mx-0 px-3 sm:px-0">
         {/* Arrow left */}
         <button
           onClick={prev} disabled={safeIdx === 0}
-          className="absolute -left-5 top-1/2 -translate-y-6 z-20 h-10 w-10 rounded-full bg-white border border-gray-200 shadow-md flex items-center justify-center text-gray-500 hover:text-gray-900 hover:shadow-lg transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+          className="hidden sm:flex absolute -left-5 top-1/2 -translate-y-6 z-20 h-10 w-10 rounded-full bg-white border border-gray-200 shadow-md items-center justify-center text-gray-500 hover:text-gray-900 hover:shadow-lg transition-all disabled:opacity-20 disabled:cursor-not-allowed"
         >
           <ChevronLeft size={18} />
         </button>
@@ -580,7 +580,7 @@ export default function NovedadesPage() {
         {/* Arrow right */}
         <button
           onClick={next} disabled={safeIdx === filtered.length - 1}
-          className="absolute -right-5 top-1/2 -translate-y-6 z-20 h-10 w-10 rounded-full bg-white border border-gray-200 shadow-md flex items-center justify-center text-gray-500 hover:text-gray-900 hover:shadow-lg transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+          className="hidden sm:flex absolute -right-5 top-1/2 -translate-y-6 z-20 h-10 w-10 rounded-full bg-white border border-gray-200 shadow-md items-center justify-center text-gray-500 hover:text-gray-900 hover:shadow-lg transition-all disabled:opacity-20 disabled:cursor-not-allowed"
         >
           <ChevronRight size={18} />
         </button>

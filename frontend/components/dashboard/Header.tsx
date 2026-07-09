@@ -19,6 +19,7 @@ interface HeaderProps {
     setIsUserSettingsOpen: (open: boolean) => void;
     isBaytOpen: boolean;
     setIsBaytOpen: (open: boolean) => void;
+    mobileMode?: boolean;
 }
 
 export const DashboardHeader = ({
@@ -30,7 +31,8 @@ export const DashboardHeader = ({
     logout,
     setIsUserSettingsOpen,
     isBaytOpen,
-    setIsBaytOpen
+    setIsBaytOpen,
+    mobileMode = false,
 }: HeaderProps) => {
     const router = useRouter();
     const { theme, toggleTheme } = useTheme();
@@ -214,6 +216,65 @@ export const DashboardHeader = ({
     };
 
     const visible = scrollVisible && !shouldHide;
+
+    // Modo mobile: solo campana inline para la barra superior del layout
+    if (mobileMode) {
+        return (
+            <div className="relative">
+                <button
+                    onClick={() => setNotificationsOpen(!notificationsOpen)}
+                    className="h-9 w-9 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-[#004d4d]/60 hover:text-[#004d4d] transition-all relative"
+                >
+                    <Bell size={16} />
+                    {unreadCount > 0 && (
+                        <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-500 border-2 border-white animate-ping" />
+                    )}
+                </button>
+                <AnimatePresence>
+                    {notificationsOpen && (
+                        <>
+                            <div className="fixed inset-0 z-40" onClick={() => setNotificationsOpen(false)} />
+                            <motion.div
+                                initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                                transition={{ duration: 0.18 }}
+                                className="absolute right-0 mt-2 w-80 bg-white/95 backdrop-blur-3xl rounded-3xl shadow-2xl border border-gray-100 overflow-hidden z-[110]"
+                            >
+                                <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                                    <h3 className="text-[10px] font-semibold tracking-[0.2em] uppercase text-[#004d4d]">Notificaciones</h3>
+                                    {unreadCount > 0 && (
+                                        <button onClick={markAllAsRead} className="text-[9px] font-bold text-gray-400 hover:text-[#004d4d]">
+                                            Marcar todo leído
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="max-h-80 overflow-y-auto divide-y divide-gray-50">
+                                    {notifications.length === 0
+                                        ? <p className="px-5 py-6 text-center text-[11px] text-gray-400">Sin notificaciones</p>
+                                        : notifications.map(n => {
+                                            const { icon, bg } = getNotificationStyles(n.type);
+                                            return (
+                                                <div key={n.id} className={`flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors ${!n.is_read ? 'bg-[#004d4d]/3' : ''}`}
+                                                    onClick={() => { markAsRead(n.id); if (n.href) { setNotificationsOpen(false); window.location.href = n.href; } }}>
+                                                    <div className={`h-7 w-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${bg}`}>{icon}</div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-[11px] font-bold text-gray-800 truncate">{n.title}</p>
+                                                        <p className="text-[10px] text-gray-400 line-clamp-2">{n.message}</p>
+                                                    </div>
+                                                    {!n.is_read && <div className="h-1.5 w-1.5 rounded-full bg-[#004d4d] mt-1.5 shrink-0" />}
+                                                </div>
+                                            );
+                                        })
+                                    }
+                                </div>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
+            </div>
+        );
+    }
 
     return (
         <>
