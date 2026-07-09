@@ -372,8 +372,175 @@ export default function ShippingPage() {
   return (
     <div className="space-y-6 pb-20">
 
-      {/* ── HEADER ── */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      {/* ══════════ MOBILE VIEW (solo < sm) ══════════ */}
+      <div className="block sm:hidden -mx-3 space-y-3 pt-2">
+
+        {/* Hero card */}
+        <div className="mx-3 rounded-3xl p-5 relative overflow-hidden"
+          style={{ background: 'linear-gradient(145deg,#001a1a 0%,#003333 50%,#005252 100%)' }}>
+          <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full"
+            style={{ background: 'radial-gradient(circle,rgba(0,242,255,0.12),transparent 70%)' }}/>
+          <div className="absolute -bottom-6 -left-6 h-28 w-28 rounded-full"
+            style={{ background: 'radial-gradient(circle,rgba(0,178,189,0.08),transparent 70%)' }}/>
+
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="h-6 w-6 rounded-lg bg-[#00f2ff]/15 flex items-center justify-center">
+                <Truck size={12} className="text-[#00f2ff]"/>
+              </div>
+              <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[#00f2ff]/70">Logística</p>
+            </div>
+            <button onClick={fetchShipments} className="h-7 w-7 rounded-lg bg-white/10 flex items-center justify-center text-white/50 active:bg-white/20 transition-colors">
+              <RefreshCw size={12}/>
+            </button>
+          </div>
+
+          <div className="mb-1">
+            <p className="text-[11px] font-bold text-white/30">Total</p>
+            <p className="text-[42px] font-black text-white leading-none tracking-tight -mt-1">
+              {stats.total}
+              <span className="text-[18px] text-white/25 ml-2 font-bold">envíos</span>
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/[0.08]">
+            <div className="flex items-center gap-1.5">
+              <div className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse"/>
+              <p className="text-[9px] text-white/40">{stats.activos} en ruta</p>
+            </div>
+            {stats.alertas > 0 && (
+              <span className="ml-auto flex items-center gap-1 text-[9px] font-black text-rose-400 bg-rose-500/15 border border-rose-500/20 px-2 py-0.5 rounded-full">
+                <AlertCircle size={8}/> {stats.alertas} alertas
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* 4 mini stats */}
+        <div className="grid grid-cols-2 gap-2.5 mx-3">
+          {[
+            { label: 'En ruta',      value: stats.activos,    sub: 'Guía + tránsito', icon: <Truck size={13} className="text-blue-500"/>,        bg: 'bg-blue-50' },
+            { label: 'Entregados',   value: stats.entregados, sub: `${stats.total > 0 ? ((stats.entregados/stats.total)*100).toFixed(0) : 0}% éxito`, icon: <CheckCircle2 size={13} className="text-emerald-500"/>, bg: 'bg-emerald-50' },
+            { label: 'Pendientes',   value: stats.pendientes, sub: 'Sin guía',         icon: <Clock size={13} className="text-amber-500"/>,         bg: 'bg-amber-50' },
+            { label: 'Alertas',      value: stats.alertas,    sub: 'Requieren atención', icon: <AlertCircle size={13} className="text-rose-500"/>, bg: 'bg-rose-50', badge: stats.alertas > 0 },
+          ].map((s, i) => (
+            <div key={i} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100/80">
+              <div className="flex items-center justify-between mb-2.5">
+                <div className={`h-7 w-7 rounded-xl ${s.bg} flex items-center justify-center`}>{s.icon}</div>
+                {(s as any).badge && <span className="text-[7px] font-black text-rose-500 bg-rose-50 border border-rose-100 px-1.5 py-0.5 rounded-full uppercase">¡Atención!</span>}
+              </div>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">{s.label}</p>
+              <p className="text-[22px] font-black text-gray-900 leading-none">{s.value}</p>
+              <p className="text-[9px] text-gray-400 mt-1.5">{s.sub}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Pipeline compacto */}
+        <div className="mx-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
+          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2.5">Pipeline de envíos</p>
+          <div className="grid grid-cols-5 gap-1">
+            {PIPELINE.map(st => {
+              const s = STATUS[st];
+              const count = pipelineCounts[st] || 0;
+              const isActive = filterStatus === st;
+              const barColor = st === 'pendiente' ? '#9ca3af' : st === 'guia_generada' ? '#60a5fa' : st === 'en_transito' ? '#a78bfa' : st === 'en_reparto' ? '#fbbf24' : '#34d399';
+              return (
+                <button key={st} onClick={() => setFilterStatus(isActive ? 'todos' : st)}
+                  className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${isActive ? `${s.bg} ring-1 ring-gray-200` : 'hover:bg-gray-50'}`}>
+                  <div className={`h-7 w-7 rounded-lg flex items-center justify-center [&_svg]:w-3 [&_svg]:h-3 ${s.bg} ${s.color}`}>{s.icon}</div>
+                  <p className={`text-[13px] font-black ${isActive ? s.color : 'text-gray-700'}`}>{count}</p>
+                  <div className="w-full h-1 rounded-full bg-gray-100 overflow-hidden">
+                    <div className="h-full rounded-full transition-all" style={{ width: stats.total > 0 ? `${(count/stats.total)*100}%` : '0%', backgroundColor: barColor }}/>
+                  </div>
+                  <p className="text-[6px] font-black text-gray-400 uppercase tracking-wide text-center leading-tight">{s.label}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Lista de envíos */}
+        <div className="mx-3 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-50">
+            <div>
+              <p className="text-[13px] font-black text-gray-900">Envíos</p>
+              <p className="text-[9px] text-gray-400 mt-0.5">Toca un envío para ver el detalle</p>
+            </div>
+            <span className="text-[10px] font-black text-[#004d4d] bg-[#004d4d]/8 px-2.5 py-1 rounded-full">
+              {filtered.length}
+            </span>
+          </div>
+
+          {/* Búsqueda */}
+          <div className="px-3 pt-3 pb-2">
+            <div className="flex items-center gap-2 h-9 bg-gray-50 rounded-xl border border-gray-100 px-3">
+              <Search size={13} className="text-gray-300 shrink-0"/>
+              <input value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Buscar envío…"
+                className="flex-1 bg-transparent outline-none text-sm text-gray-700 placeholder:text-gray-300"/>
+              {search && <button onClick={() => setSearch('')}><X size={12} className="text-gray-300"/></button>}
+            </div>
+          </div>
+
+          {/* Filtros de estado: grid */}
+          <div className="grid grid-cols-3 gap-1.5 px-3 pb-2">
+            {([['todos','Todos'], ['pendiente','Pendiente'], ['guia_generada','Con guía'], ['en_transito','En tránsito'], ['en_reparto','En reparto'], ['entregado','Entregado']] as [string,string][]).map(([key, label]) => {
+              const isActive = filterStatus === key;
+              return (
+                <button key={key} onClick={() => setFilterStatus(isActive ? 'todos' : key as ShipStatus)}
+                  className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-[8px] font-black uppercase tracking-wide transition-all ${
+                    isActive ? 'bg-[#004d4d] text-white' : 'bg-gray-50 text-gray-400'
+                  }`}>
+                  <span className="truncate">{label}</span>
+                  <span className={`shrink-0 text-[7px] min-w-[16px] text-center px-1 py-0.5 rounded-full font-black ${isActive ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                    {key === 'todos' ? shipments.length : pipelineCounts[key] || 0}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 gap-2">
+              <div className="h-12 w-12 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center">
+                <Truck size={18} className="text-gray-300"/>
+              </div>
+              <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Sin envíos</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50/80 max-h-[420px] overflow-y-auto">
+              {filtered.map(s => {
+                const st = STATUS[s.status];
+                const diffH = Math.floor((Date.now() - new Date(s.updated_at).getTime()) / 3600000);
+                const dateLabel = diffH < 24 ? `Hoy · ${new Date(s.updated_at).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})}` : diffH < 48 ? 'Ayer' : fmtDate(s.updated_at);
+                return (
+                  <div key={s.id} onClick={() => setSelected(s)}
+                    className="flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 transition-colors cursor-pointer">
+                    <div className={`h-9 w-9 rounded-xl ${st.bg} flex items-center justify-center shrink-0 ${st.color}`}>
+                      {st.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-bold text-gray-800 truncate">{s.customer_name}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{s.customer_city || '—'} · {dateLabel}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[13px] font-black text-gray-900">{fmt(s.total_price)}</p>
+                      <span className={`text-[8px] font-black uppercase tracking-wide ${st.color}`}>{st.label}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="h-4"/>
+      </div>
+      {/* ══════════ FIN MOBILE VIEW ══════════ */}
+
+      {/* ── HEADER (solo desktop) ── */}
+      <div className="hidden sm:flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="flex items-center gap-2 text-[10px] font-bold tracking-[0.22em] uppercase mb-1 text-gray-400">
             <span className="h-1.5 w-1.5 rounded-full bg-[#004d4d] inline-block"/>
@@ -462,8 +629,8 @@ export default function ShippingPage() {
         </div>
       </div>
 
-      {/* ── KPIs ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* ── KPIs (solo desktop) ── */}
+      <div className="hidden sm:grid grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard label="Total envíos"   value={fmtN(stats.total)}      sub="Este período"          icon={<Package/>}       accent="#004d4d"/>
         <KpiCard label="En ruta"        value={fmtN(stats.activos)}    sub="Guía + tránsito + reparto" icon={<Truck/>}     trendUp trend={stats.activos > 0 ? 'Live' : null} accent="#3b82f6"/>
         <KpiCard label="Entregados"     value={fmtN(stats.entregados)} sub={`${stats.total > 0 ? ((stats.entregados/stats.total)*100).toFixed(0) : 0}% éxito`} icon={<CheckCircle2/>} trendUp accent="#10b981"/>
@@ -471,8 +638,8 @@ export default function ShippingPage() {
         <KpiCard label="Alertas"        value={fmtN(stats.alertas)}    sub="Requieren atención"    icon={<AlertCircle/>}   trendUp={false} trend={stats.alertas > 0 ? `${stats.alertas}` : null} accent="#ef4444"/>
       </div>
 
-      {/* ── PIPELINE VISUAL ── */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-5">
+      {/* ── PIPELINE VISUAL (solo desktop) ── */}
+      <div className="hidden sm:block bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-5">
         <p className="text-[9px] font-bold tracking-widest uppercase text-gray-400 mb-4">Pipeline de envíos</p>
         <div className="flex items-stretch gap-2">
           {PIPELINE.map((st, i) => {
@@ -515,8 +682,8 @@ export default function ShippingPage() {
         </div>
       </div>
 
-      {/* ── BARRA BÚSQUEDA + FILTROS ── */}
-      <div className="space-y-3">
+      {/* ── BARRA BÚSQUEDA + FILTROS (solo desktop) ── */}
+      <div className="hidden sm:block space-y-3">
         <div className="flex items-center gap-3">
           <div className="flex-1 flex items-center gap-2 h-10 bg-white rounded-2xl border border-gray-200 shadow-sm px-3">
             <Search size={14} className="text-gray-300 shrink-0"/>
@@ -578,8 +745,8 @@ export default function ShippingPage() {
         </AnimatePresence>
       </div>
 
-      {/* ── TABLA ── */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] overflow-hidden">
+      {/* ── TABLA (solo desktop) ── */}
+      <div className="hidden sm:block bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] overflow-hidden">
         {/* Cabecera */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">

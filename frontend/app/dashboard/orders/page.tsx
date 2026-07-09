@@ -216,8 +216,175 @@ export default function OrdersPage() {
   return (
     <div className="max-w-[1400px] mx-auto pb-20 space-y-6">
 
-      {/* ── HEADER ─────────────────────────────────────────────────────── */}
-      <div className="flex items-end justify-between">
+      {/* ── MOBILE VIEW (solo < sm) ─────────────────────────────────────── */}
+      <div className="block sm:hidden -mx-3 space-y-3 pt-2">
+
+        {/* Hero card */}
+        <div className="mx-3 rounded-3xl p-5 relative overflow-hidden"
+          style={{ background: 'linear-gradient(145deg,#001a1a 0%,#003333 50%,#005252 100%)' }}>
+          <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full"
+            style={{ background: 'radial-gradient(circle,rgba(0,242,255,0.12),transparent 70%)' }}/>
+          <div className="absolute -bottom-6 -left-6 h-28 w-28 rounded-full"
+            style={{ background: 'radial-gradient(circle,rgba(0,178,189,0.08),transparent 70%)' }}/>
+
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="h-6 w-6 rounded-lg bg-[#00f2ff]/15 flex items-center justify-center">
+                <Globe size={12} className="text-[#00f2ff]"/>
+              </div>
+              <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[#00f2ff]/70">Pedidos web</p>
+            </div>
+            <button onClick={fetchAll} className="h-7 w-7 rounded-lg bg-white/10 flex items-center justify-center text-white/50 active:bg-white/20 transition-colors">
+              <RefreshCw size={12}/>
+            </button>
+          </div>
+
+          <div className="mb-1">
+            <p className="text-[11px] font-bold text-white/30">Total</p>
+            <p className="text-[42px] font-black text-white leading-none tracking-tight -mt-1">
+              {orders.length}
+              <span className="text-[18px] text-white/25 ml-2 font-bold">pedidos</span>
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/[0.08]">
+            <div className="flex items-center gap-1.5">
+              <div className="h-1.5 w-1.5 rounded-full bg-[#00f2ff] animate-pulse"/>
+              <p className="text-[9px] text-white/40">En tiempo real</p>
+            </div>
+            {counts.pending > 0 && (
+              <span className="ml-auto flex items-center gap-1 text-[9px] font-black text-amber-400 bg-amber-500/15 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                <Clock size={8}/> {counts.pending} por atender
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Mini stats: 3 columnas */}
+        <div className="grid grid-cols-3 gap-2 mx-3">
+          {[
+            { label: 'Pendientes', value: counts.pending, color: 'text-amber-500', bg: 'bg-amber-50', icon: <Clock size={13} className="text-amber-500"/> },
+            { label: 'En proceso', value: counts.processing, color: 'text-blue-500', bg: 'bg-blue-50', icon: <Zap size={13} className="text-blue-500"/> },
+            { label: 'Completados', value: counts.completed, color: 'text-emerald-500', bg: 'bg-emerald-50', icon: <CheckCircle2 size={13} className="text-emerald-500"/> },
+          ].map(s => (
+            <div key={s.label} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100/80 flex flex-col gap-1.5">
+              <div className={`h-7 w-7 rounded-xl ${s.bg} flex items-center justify-center`}>{s.icon}</div>
+              <p className="text-[22px] font-black text-gray-900 leading-none">{s.value}</p>
+              <p className="text-[8px] font-black text-gray-400 uppercase tracking-wide leading-tight">{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Pipeline mini */}
+        <div className="mx-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
+          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2.5">Flujo de pedidos</p>
+          <div className="flex items-center gap-1">
+            {(['pending','processing','completed'] as OrderStatus[]).map((st, i) => {
+              const s = STATUS[st];
+              const cnt = counts[st];
+              const pct = orders.length > 0 ? (cnt / orders.length) * 100 : 0;
+              const barColor = st === 'pending' ? '#f59e0b' : st === 'processing' ? '#3b82f6' : '#10b981';
+              return (
+                <React.Fragment key={st}>
+                  <button onClick={() => setActiveTab(st)}
+                    className="flex-1 flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`}/>
+                      <p className="text-[10px] font-black text-gray-800">{cnt}</p>
+                    </div>
+                    <div className="h-1 w-full rounded-full bg-gray-100 overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: barColor }}/>
+                    </div>
+                    <p className="text-[7px] font-bold text-gray-400 uppercase tracking-wide">{s.label}</p>
+                  </button>
+                  {i < 2 && <ChevronRight size={12} className="text-gray-200 shrink-0 mx-0.5"/>}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Lista de pedidos */}
+        <div className="mx-3 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-50">
+            <div>
+              <p className="text-[13px] font-black text-gray-900">Pedidos recientes</p>
+              <p className="text-[9px] text-gray-400 mt-0.5">Toca un pedido para gestionarlo</p>
+            </div>
+            {orders.length > 0 && (
+              <span className="text-[10px] font-black text-[#004d4d] bg-[#004d4d]/8 px-2.5 py-1 rounded-full">
+                {filtered.length}
+              </span>
+            )}
+          </div>
+
+          {/* Tabs mini — grid 3 cols */}
+          <div className="grid grid-cols-3 gap-1.5 p-3 border-b border-gray-50">
+            {TABS.map(tab => {
+              const cnt = counts[tab.key as keyof typeof counts];
+              const isActive = activeTab === tab.key;
+              return (
+                <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                  className={`flex items-center justify-between gap-1 px-2.5 py-2 rounded-xl text-[8px] font-black uppercase tracking-wide transition-all ${
+                    isActive ? 'bg-[#004d4d] text-white' : 'bg-gray-50 text-gray-400'
+                  }`}>
+                  <span className="truncate">{tab.label}</span>
+                  <span className={`shrink-0 text-[7px] min-w-[16px] text-center px-1 py-0.5 rounded-full font-black ${isActive ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-500'}`}>{cnt}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 size={20} className="animate-spin text-[#004d4d]"/>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 gap-2">
+              <div className="h-12 w-12 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center">
+                <Inbox size={18} className="text-gray-300"/>
+              </div>
+              <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Sin pedidos registrados</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50/80 max-h-[420px] overflow-y-auto">
+              {filtered.map(o => {
+                const st = STATUS[o.status as OrderStatus] ?? STATUS.pending;
+                const date = new Date(o.created_at);
+                const diffH = Math.floor((Date.now() - date.getTime()) / 3600000);
+                const dateLabel = diffH < 24
+                  ? `Hoy · ${date.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`
+                  : diffH < 48 ? `Ayer · ${date.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`
+                  : date.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
+                return (
+                  <div key={o.id} onClick={() => setDrawerOrder(o)}
+                    className="flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 transition-colors cursor-pointer">
+                    <div className={`h-9 w-9 rounded-xl ${st.bg} flex items-center justify-center shrink-0`}>
+                      <span className={st.color}>{st.icon}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-bold text-gray-800 truncate">{o.customer_name || 'Cliente'}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{dateLabel}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[13px] font-black text-gray-900">{fmtCOP(o.total_price || 0)}</p>
+                      <span className={`text-[8px] font-black uppercase tracking-wide ${st.color}`}>
+                        {st.label}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="h-4"/>
+      </div>
+      {/* ── FIN MOBILE VIEW ── */}
+
+      {/* ── HEADER (solo desktop) ──────────────────────────────────────── */}
+      <div className="hidden sm:flex items-end justify-between">
         <div>
           <p className="flex items-center gap-2 text-[9px] font-black tracking-[0.22em] uppercase text-gray-400 mb-1">
             <span className="h-1.5 w-1.5 rounded-full bg-[#004d4d] inline-block"/>
@@ -234,13 +401,13 @@ export default function OrdersPage() {
         </button>
       </div>
 
-      {/* ── KPIs ───────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* ── KPIs (solo desktop) ────────────────────────────────────────── */}
+      <div className="hidden sm:grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((k, i) => <KpiCard key={i} {...k}/>)}
       </div>
 
-      {/* ── PIPELINE VISUAL ────────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+      {/* ── PIPELINE VISUAL (solo desktop) ─────────────────────────────── */}
+      <div className="hidden sm:block bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
         <div className="flex items-center gap-1">
           {(['pending','processing','completed'] as OrderStatus[]).map((st, i) => {
             const s   = STATUS[st];
@@ -269,8 +436,8 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      {/* ── TABLA PRINCIPAL ────────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      {/* ── TABLA PRINCIPAL (solo desktop) ─────────────────────────────── */}
+      <div className="hidden sm:block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
 
         {/* Toolbar */}
         <div className="flex items-center gap-3 p-4 border-b border-gray-100">

@@ -995,8 +995,151 @@ export default function GastosPage() {
   return (
     <div className="space-y-6 pb-20">
 
-      {/* ── HEADER ── */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      {/* ══════════ MOBILE VIEW (solo < sm) ══════════ */}
+      <div className="block sm:hidden -mx-3 space-y-3 pt-2">
+
+        {/* Hero card */}
+        <div className="mx-3 rounded-3xl p-5 relative overflow-hidden"
+          style={{ background: 'linear-gradient(145deg,#001a1a 0%,#003333 50%,#005252 100%)' }}>
+          <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full"
+            style={{ background: 'radial-gradient(circle,rgba(0,242,255,0.12),transparent 70%)' }}/>
+          <div className="absolute -bottom-6 -left-6 h-28 w-28 rounded-full"
+            style={{ background: 'radial-gradient(circle,rgba(0,178,189,0.08),transparent 70%)' }}/>
+
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="h-6 w-6 rounded-lg bg-[#00f2ff]/15 flex items-center justify-center">
+                <BarChart3 size={12} className="text-[#00f2ff]"/>
+              </div>
+              <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[#00f2ff]/70">Control de Gastos</p>
+            </div>
+            {/* Selector de mes */}
+            <div className="flex items-center gap-1 h-7 px-2 rounded-xl bg-white/10 border border-white/15">
+              <button onClick={() => {
+                if (periodMonth === 0) { setPeriodMonth(11); setPeriodYear(y => y - 1); }
+                else setPeriodMonth(m => m - 1);
+              }} className="h-5 w-5 flex items-center justify-center rounded-lg text-white/50 active:bg-white/10">
+                <ChevronDown size={10} className="rotate-90"/>
+              </button>
+              <span className="text-[9px] font-bold text-white/70 min-w-[60px] text-center">{MONTHS[periodMonth]} {periodYear}</span>
+              <button onClick={() => {
+                if (periodMonth === 11) { setPeriodMonth(0); setPeriodYear(y => y + 1); }
+                else setPeriodMonth(m => m + 1);
+              }} className="h-5 w-5 flex items-center justify-center rounded-lg text-white/50 active:bg-white/10">
+                <ChevronDown size={10} className="-rotate-90"/>
+              </button>
+            </div>
+          </div>
+
+          <div className="mb-1">
+            <p className="text-[11px] font-bold text-white/30">Utilidad neta</p>
+            <p className={`text-[38px] font-black leading-none tracking-tight -mt-0.5 ${netProfit >= 0 ? 'text-white' : 'text-rose-400'}`}>
+              {fmt(netProfit)}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/[0.08]">
+            <div className="flex items-center gap-1.5">
+              <div className="h-1.5 w-1.5 rounded-full bg-[#00f2ff] animate-pulse"/>
+              <p className="text-[9px] text-white/40">{fmt(salesRevenue)} ingresos</p>
+            </div>
+            <div className="flex items-center gap-1.5 ml-auto">
+              {overdueExpenses > 0 && (
+                <span className="text-[8px] font-black text-rose-300 bg-rose-500/20 px-2 py-0.5 rounded-full">¡{fmt(overdueExpenses)} vencidos!</span>
+              )}
+              <button onClick={() => { setEditingExpense(null); setIsModalOpen(true); }}
+                className="h-6 px-3 rounded-xl text-[8px] font-black uppercase tracking-wide text-[#004d4d] bg-white/90 active:bg-white/70 transition-colors">
+                + Gasto
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 4 mini stats */}
+        <div className="grid grid-cols-2 gap-2 mx-3">
+          {[
+            { label: 'Ingresos',  value: fmt(salesRevenue),   icon: <TrendingUp size={13} className="text-emerald-500"/>,  bg: 'bg-emerald-50' },
+            { label: 'Gastos',    value: fmt(totalExpenses),  icon: <TrendingDown size={13} className="text-rose-500"/>,    bg: 'bg-rose-50' },
+            { label: 'Pagados',   value: fmt(paidExpenses),   icon: <CheckCircle2 size={13} className="text-blue-500"/>,    bg: 'bg-blue-50' },
+            { label: 'Por pagar', value: fmt(pendingExpenses),icon: <Clock size={13} className={overdueExpenses > 0 ? 'text-rose-500' : 'text-amber-500'}/>, bg: overdueExpenses > 0 ? 'bg-rose-50' : 'bg-amber-50' },
+          ].map((s, i) => (
+            <div key={i} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100/80 flex flex-col gap-1.5">
+              <div className={`h-7 w-7 rounded-xl ${s.bg} flex items-center justify-center`}>{s.icon}</div>
+              <p className="text-[15px] font-black text-gray-900 leading-none truncate">{s.value}</p>
+              <p className="text-[8px] font-black text-gray-400 uppercase tracking-wide">{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Alerta vencidos mobile */}
+        {overdueExpenses > 0 && (
+          <div className="mx-3 flex items-center gap-2.5 p-3 rounded-2xl bg-rose-50 border border-rose-100">
+            <AlertCircle size={14} className="text-rose-500 shrink-0"/>
+            <p className="text-[10px] text-rose-700 font-medium flex-1">Gastos vencidos por <span className="font-black">{fmt(overdueExpenses)}</span></p>
+            <button onClick={() => setFilterStatus('vencido')} className="text-[9px] font-black text-rose-600 underline shrink-0">Ver</button>
+          </div>
+        )}
+
+        {/* Tabs */}
+        <div className="mx-3 grid grid-cols-2 gap-1.5">
+          {tabs.map(t => (
+            <button key={t.id} onClick={() => setActiveTab(t.id)}
+              className={`py-2 rounded-xl text-[8px] font-black uppercase tracking-wide transition-all ${
+                activeTab === t.id ? 'bg-[#004d4d] text-white' : 'bg-white border border-gray-100 text-gray-400 shadow-sm'
+              }`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Lista de gastos — todas las tabs */}
+        <div className="mx-3 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-gray-50">
+            <div className="flex-1 flex items-center gap-2 h-9 px-3 rounded-xl bg-gray-50 border border-gray-100">
+              <Search size={12} className="text-gray-400"/>
+              <input value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Buscar gasto..." className="flex-1 bg-transparent text-[11px] text-gray-700 placeholder-gray-400 outline-none"/>
+            </div>
+            <span className="text-[10px] font-black text-[#004d4d] bg-[#004d4d]/8 px-2.5 py-1 rounded-full">{filteredExpenses.length}</span>
+          </div>
+
+          {filteredExpenses.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2">
+              <Receipt size={20} className="text-gray-200"/>
+              <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Sin gastos</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50 max-h-[420px] overflow-y-auto">
+              {filteredExpenses.map(e => {
+                const cat = CATEGORIES.find(c => c.id === e.category);
+                const st = STATUS_MAP[e.status];
+                return (
+                  <div key={e.id} className="flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => { setEditingExpense(e); setIsModalOpen(true); }}>
+                    <div className={`h-9 w-9 rounded-xl ${cat?.bg ?? 'bg-gray-100'} flex items-center justify-center shrink-0`}>
+                      {cat?.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-bold text-gray-800 truncate">{e.description}</p>
+                      <p className="text-[9px] text-gray-400 mt-0.5">{cat?.label} · {e.due_date}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <p className="text-[13px] font-black text-gray-900">{fmt(e.amount)}</p>
+                      <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full ${st.class}`}>{st.label}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="h-4"/>
+      </div>
+      {/* ══════════ FIN MOBILE VIEW ══════════ */}
+
+      {/* ── HEADER (solo desktop) ── */}
+      <div className="hidden sm:flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className={`flex items-center gap-2 text-[10px] font-bold tracking-[0.22em] uppercase mb-1 ${dark ? 'text-white/30' : 'text-gray-400'}`}>
             <span className="h-1.5 w-1.5 rounded-full bg-[#004d4d] inline-block"/>
@@ -1063,8 +1206,8 @@ export default function GastosPage() {
         </div>
       </div>
 
-      {/* ── KPIs ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* ── KPIs (solo desktop) ── */}
+      <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard label="Ingresos del mes" value={fmt(salesRevenue)} sub={`${totalOrders} ventas registradas`} icon={<TrendingUp/>} trend="+12%" trendUp accent="#004d4d"/>
         <KpiCard label="Gastos totales" value={fmt(totalExpenses)} sub={`${filteredExpenses.length} gastos`} icon={<TrendingDown/>} accent="#ef4444"/>
         <KpiCard label="Utilidad neta" value={fmt(netProfit)} sub={`Margen: ${profitMargin.toFixed(1)}%`} icon={<DollarSign/>} trend={profitMargin > 0 ? `${profitMargin.toFixed(0)}%` : undefined} trendUp={profitMargin > 0} accent={netProfit >= 0 ? '#10b981' : '#ef4444'}/>
@@ -1072,10 +1215,10 @@ export default function GastosPage() {
         <KpiCard label="Por pagar" value={fmt(pendingExpenses)} sub={overdueExpenses > 0 ? `${fmt(overdueExpenses)} vencidos` : 'Sin vencidos'} icon={<Clock/>} accent={overdueExpenses > 0 ? '#ef4444' : '#f59e0b'}/>
       </div>
 
-      {/* Alerta vencidos */}
+      {/* Alerta vencidos (solo desktop) */}
       {overdueExpenses > 0 && (
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 p-4 rounded-2xl bg-rose-50 border border-rose-100">
+          className="hidden sm:flex items-center gap-3 p-4 rounded-2xl bg-rose-50 border border-rose-100">
           <AlertCircle size={16} className="text-rose-500 shrink-0"/>
           <p className="text-[11px] text-rose-700 font-medium">
             Tienes gastos vencidos por <span className="font-black">{fmt(overdueExpenses)}</span> — revísalos y márcalos como pagados para mantener tu contabilidad al día.
@@ -1084,8 +1227,8 @@ export default function GastosPage() {
         </motion.div>
       )}
 
-      {/* ── TABS ── */}
-      <div className={`flex p-1 rounded-2xl gap-1 w-fit ${dark ? 'bg-white/5' : 'bg-gray-100'}`}>
+      {/* ── TABS (solo desktop) ── */}
+      <div className={`hidden sm:flex p-1 rounded-2xl gap-1 w-fit ${dark ? 'bg-white/5' : 'bg-gray-100'}`}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id)}
             className={`px-4 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-widest transition-all duration-150 ${
@@ -1095,9 +1238,9 @@ export default function GastosPage() {
         ))}
       </div>
 
-      {/* ══ TAB: RESUMEN ══════════════════════════════════════════════════════ */}
+      {/* ══ TAB: RESUMEN (solo desktop) ══════════════════════════════════════ */}
       {activeTab === 'resumen' && (
-        <div className="space-y-6">
+        <div className="hidden sm:block space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             {/* Gráfico evolución */}
@@ -1285,9 +1428,9 @@ export default function GastosPage() {
         </div>
       )}
 
-      {/* ══ TAB: GASTOS ══════════════════════════════════════════════════════ */}
+      {/* ══ TAB: GASTOS (solo desktop) ══════════════════════════════════════ */}
       {activeTab === 'gastos' && (
-        <div className="space-y-4">
+        <div className="hidden sm:block space-y-4">
           {/* Barra filtros */}
           <div className="flex items-center gap-3">
             <div className="flex-1 flex items-center gap-2 h-10 bg-white rounded-2xl border border-gray-200 shadow-sm px-3">
@@ -1384,9 +1527,9 @@ export default function GastosPage() {
         </div>
       )}
 
-      {/* ══ TAB: INGRESOS ══════════════════════════════════════════════════ */}
+      {/* ══ TAB: INGRESOS (solo desktop) ══════════════════════════════════ */}
       {activeTab === 'ingresos' && (
-        <div className="space-y-6">
+        <div className="hidden sm:block space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Órdenes del mes */}
             <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-6">
@@ -1471,9 +1614,9 @@ export default function GastosPage() {
         </div>
       )}
 
-      {/* ══ TAB: RENTABILIDAD ══════════════════════════════════════════════ */}
+      {/* ══ TAB: RENTABILIDAD (solo desktop) ══════════════════════════════ */}
       {activeTab === 'rentabilidad' && (
-        <div className="space-y-6">
+        <div className="hidden sm:block space-y-6">
           {/* Barras comparativas mensual */}
           <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-6">
             <p className="text-[8px] font-bold tracking-widest uppercase text-gray-400 mb-0.5">Histórico</p>
