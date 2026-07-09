@@ -49,10 +49,10 @@ export const metadata: Metadata = {
   description: "A business operating system powered by Bayup",
   icons: {
     icon: [
-      { url: '/assets/favicon.ico', sizes: 'any' },
+      { url: '/assets/icon.png', type: 'image/png', sizes: '512x512' },
     ],
     apple: [
-      { url: '/assets/favicon.ico', sizes: '180x180', type: 'image/x-icon' },
+      { url: '/assets/icon.png', type: 'image/png', sizes: '180x180' },
     ],
   },
 };
