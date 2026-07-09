@@ -87,21 +87,6 @@ def _inject_sdk(html_content: str, slug: str, page_key: str, phone: str, api_url
 
 # ── Endpoints ─────────────────────────────────────────────────────────────
 
-@router.get("/public/payments/wompi-status")
-async def wompi_status():
-    """Diagnóstico temporal: confirma si el proceso ve las 3 variables de
-    Wompi, sin exponer los valores reales. Quitar una vez resuelto el
-    despliegue inicial."""
-    return {
-        "configured": payment_service.WOMPI_CONFIGURED,
-        "has_public_key": bool(payment_service.WOMPI_PUBLIC_KEY),
-        "has_integrity_secret": bool(payment_service.WOMPI_INTEGRITY_SECRET),
-        "has_events_secret": bool(payment_service.WOMPI_EVENTS_SECRET),
-        "public_key_prefix": (payment_service.WOMPI_PUBLIC_KEY or "")[:9] or None,
-        "is_production": payment_service.IS_PRODUCTION,
-    }
-
-
 @router.post("/public/checkout")
 @limiter.limit("10/minute")
 async def public_checkout(payload: CheckoutRequest, request: Request, db: Session = Depends(get_db)):
