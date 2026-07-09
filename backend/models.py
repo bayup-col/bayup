@@ -510,6 +510,9 @@ class Payment(Base):
     # Fallback: enlace de WhatsApp generado al crear el pago
     whatsapp_url     = Column(String(1024), nullable=True)
 
+    # Pedido creado cuando el webhook del gateway confirma el pago (no antes)
+    order_id         = Column(GUID(), ForeignKey("orders.id"), nullable=True)
+
     # Clave de idempotencia: evita duplicados por doble-clic o retry del cliente
     idempotency_key  = Column(String(128), nullable=True, index=True)
 
