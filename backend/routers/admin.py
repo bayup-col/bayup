@@ -23,6 +23,7 @@ PROFILE_EDITABLE_FIELDS = {
     "full_name", "logo_url", "category", "story", "shop_slug",
     "email", "phone", "address", "customer_city", "country", "hours",
     "website", "nit", "tax_regime", "legal_rep", "social_links",
+    "terms_conditions", "privacy_policy", "return_policy", "shipping_policy",
 }
 
 
@@ -359,6 +360,10 @@ class UpdateProfileRequest(BaseModel):
     tax_regime: str | None = None
     legal_rep: str | None = None
     social_links: dict | None = None
+    terms_conditions: str | None = None
+    privacy_policy: str | None = None
+    return_policy: str | None = None
+    shipping_policy: str | None = None
     target_user_id: str | None = None
 
 
@@ -381,13 +386,10 @@ async def update_profile(payload: UpdateProfileRequest, request: Request, db: Se
             setattr(target, key, value)
     db.commit()
 
-    # Limpiar caché de shop si existe en el módulo principal
-    try:
-        import main as _main_mod
-        if hasattr(_main_mod, "_shop_cache") and target.shop_slug:
-            _main_mod._shop_cache.pop(target.shop_slug, None)
-    except Exception:
-        pass
+    # Limpiar caché pública de la tienda para que el cambio se vea de inmediato
+    if target.shop_slug:
+        import cache as _cache
+        _cache.shop_cache.pop(target.shop_slug, None)
 
     result: dict = {"ok": True}
     if email_changed and target.id == caller.id:

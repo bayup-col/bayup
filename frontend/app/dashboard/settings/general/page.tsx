@@ -8,7 +8,8 @@ import {
   Building2, Hash, User, FileText, Package, Sparkles,
   Activity, ShoppingBag, Smartphone, Check, AlertCircle,
   Instagram, Facebook, Send, ArrowUpRight, Edit3, Eye,
-  Wallet, CreditCard, Plus, Trash2, BadgeCheck
+  Wallet, CreditCard, Plus, Trash2, BadgeCheck,
+  Gavel, Lock, RotateCcw, Truck
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -150,7 +151,7 @@ export default function GeneralSettings() {
 
   const [loading, setLoading]   = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'identidad' | 'contacto' | 'fiscal' | 'canales' | 'pagos'>('identidad');
+  const [activeTab, setActiveTab] = useState<'identidad' | 'contacto' | 'fiscal' | 'canales' | 'pagos' | 'legal'>('identidad');
 
   // Cuentas bancarias
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
@@ -191,6 +192,14 @@ export default function GeneralSettings() {
     tiktok:    '',
   });
 
+  // Textos legales
+  const [legal, setLegal] = useState({
+    terms_conditions: '',
+    privacy_policy:   '',
+    return_policy:    '',
+    shipping_policy:  '',
+  });
+
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [schedDays,    setSchedDays]    = useState('Lun – Vie');
   const [schedOpen,    setSchedOpen2]   = useState('08:00');
@@ -225,6 +234,12 @@ export default function GeneralSettings() {
         });
         if (d.social_links) setSocial(prev => ({ ...prev, ...d.social_links }));
         if (d.bank_accounts?.length) setBankAccounts(d.bank_accounts);
+        setLegal({
+          terms_conditions: d.terms_conditions || '',
+          privacy_policy:   d.privacy_policy   || '',
+          return_policy:    d.return_policy    || '',
+          shipping_policy:  d.shipping_policy  || '',
+        });
       })
       .catch(() => {
         const cached = localStorage.getItem('bayup_company_profile');
@@ -261,6 +276,10 @@ export default function GeneralSettings() {
         tax_regime:    fiscal.tax_regime,
         legal_rep:     fiscal.legal_rep,
         social_links:  social,
+        terms_conditions: legal.terms_conditions,
+        privacy_policy:   legal.privacy_policy,
+        return_policy:    legal.return_policy,
+        shipping_policy:  legal.shipping_policy,
       };
 
       await apiRequest('/admin/update-profile', { method: 'PUT', token, body: JSON.stringify(payload) });
@@ -330,6 +349,7 @@ export default function GeneralSettings() {
     { id: 'fiscal',    label: 'Fiscal',     icon: <ShieldCheck size={13}/> },
     { id: 'canales',   label: 'Redes',      icon: <Globe size={13}/> },
     { id: 'pagos',     label: 'Pagos',      icon: <Wallet size={13}/> },
+    { id: 'legal',     label: 'Legal',      icon: <Gavel size={13}/> },
   ] as const;
 
   const validateEmail = (e: string) => !e || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
@@ -663,6 +683,48 @@ export default function GeneralSettings() {
                 </p>
               </div>
             </SectionCard>
+          </motion.div>
+        )}
+
+        {/* ══ TAB: LEGAL ══ */}
+        {activeTab === 'legal' && (
+          <motion.div key="legal" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
+            <div className="flex items-start gap-3 p-4 bg-[#004d4d]/5 border border-[#004d4d]/15 rounded-2xl">
+              <BadgeCheck size={15} className="text-[#004d4d] mt-0.5 shrink-0"/>
+              <p className="text-[11px] text-[#004d4d]/80 leading-relaxed">
+                Estos textos se publican en el pie de página de tu tienda online. Tenerlos completos genera confianza
+                y es un requisito legal para operar un comercio electrónico en Colombia.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <SectionCard title="Términos y condiciones" sub="Reglas de uso y compra en tu tienda" icon={<Gavel/>} accent="teal">
+                <Field label="Términos y condiciones" hint="Condiciones de compra, garantías, responsabilidades y uso del sitio.">
+                  <Textarea value={legal.terms_conditions} onChange={(e: any) => setLegal(p => ({ ...p, terms_conditions: e.target.value }))}
+                    placeholder="Al realizar una compra en esta tienda, el cliente acepta..." rows={9}/>
+                </Field>
+              </SectionCard>
+
+              <SectionCard title="Política de privacidad" sub="Manejo de los datos de tus clientes" icon={<Lock/>} accent="blue">
+                <Field label="Política de privacidad" hint="Cómo recolectas, usas y proteges los datos personales de tus clientes.">
+                  <Textarea value={legal.privacy_policy} onChange={(e: any) => setLegal(p => ({ ...p, privacy_policy: e.target.value }))}
+                    placeholder="Tu información personal es tratada de forma confidencial..." rows={9}/>
+                </Field>
+              </SectionCard>
+
+              <SectionCard title="Devoluciones y cambios" sub="Condiciones para devolver o cambiar un producto" icon={<RotateCcw/>} accent="amber">
+                <Field label="Política de devoluciones y cambios" hint="Plazos, condiciones del producto y proceso para solicitar un cambio o devolución.">
+                  <Textarea value={legal.return_policy} onChange={(e: any) => setLegal(p => ({ ...p, return_policy: e.target.value }))}
+                    placeholder="Tienes hasta 5 días hábiles después de recibir tu pedido para..." rows={9}/>
+                </Field>
+              </SectionCard>
+
+              <SectionCard title="Política de envíos" sub="Tiempos, costos y cobertura de entrega" icon={<Truck/>} accent="violet">
+                <Field label="Política de envíos" hint="Tiempos de entrega, costos, transportadoras y zonas de cobertura.">
+                  <Textarea value={legal.shipping_policy} onChange={(e: any) => setLegal(p => ({ ...p, shipping_policy: e.target.value }))}
+                    placeholder="Realizamos envíos a nivel nacional. El tiempo estimado de entrega es..." rows={9}/>
+                </Field>
+              </SectionCard>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

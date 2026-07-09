@@ -604,7 +604,7 @@ export default function CustomersPage() {
                 const isActive = c.status === 'active' || c.status === 'Activo';
                 const ch = CHANNELS[c.acquisition_channel] || CHANNELS.web;
                 return (
-                  <div key={c.id} onClick={() => setSelectedCustomer(c)}
+                  <div key={c.id} onClick={() => setDrawerCustomer(c)}
                     className="flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 transition-colors cursor-pointer">
                     <div className={`h-10 w-10 rounded-xl ${avatarColor(c.full_name)} flex items-center justify-center shrink-0`}>
                       <span className="text-white font-black text-[13px]">{initials(c.full_name)}</span>

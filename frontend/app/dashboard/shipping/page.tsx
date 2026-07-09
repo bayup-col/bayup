@@ -515,7 +515,7 @@ export default function ShippingPage() {
                 const diffH = Math.floor((Date.now() - new Date(s.updated_at).getTime()) / 3600000);
                 const dateLabel = diffH < 24 ? `Hoy · ${new Date(s.updated_at).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})}` : diffH < 48 ? 'Ayer' : fmtDate(s.updated_at);
                 return (
-                  <div key={s.id} onClick={() => setSelected(s)}
+                  <div key={s.id} onClick={() => setDrawerShipment(s)}
                     className="flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 transition-colors cursor-pointer">
                     <div className={`h-9 w-9 rounded-xl ${st.bg} flex items-center justify-center shrink-0 ${st.color}`}>
                       {st.icon}

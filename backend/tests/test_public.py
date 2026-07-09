@@ -59,6 +59,20 @@ def test_get_public_shop_ok(client, tienda):
     assert data["full_name"] == "Tienda Pública"
 
 
+def test_get_public_shop_expone_textos_legales(client, db_session, tienda):
+    tienda.terms_conditions = "Términos de prueba"
+    tienda.privacy_policy = "Privacidad de prueba"
+    db_session.commit()
+
+    r = client.get("/public/shop/mi-tienda")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["terms_conditions"] == "Términos de prueba"
+    assert data["privacy_policy"] == "Privacidad de prueba"
+    assert data["return_policy"] is None
+    assert data["shipping_policy"] is None
+
+
 def test_get_public_shop_no_existe(client):
     r = client.get("/public/shop/no-existe-xyz")
     assert r.status_code == 404

@@ -61,6 +61,10 @@ async def get_public_shop(request: Request, response: Response, slug: str, db: S
         "social_links": getattr(store, "social_links", None) or {},
         "whatsapp_lines": getattr(store, "whatsapp_lines", None) or [],
         "categories": [schemas.Collection.model_validate(c).model_dump(mode="json") for c in collections],
+        "terms_conditions": getattr(store, "terms_conditions", None),
+        "privacy_policy": getattr(store, "privacy_policy", None),
+        "return_policy": getattr(store, "return_policy", None),
+        "shipping_policy": getattr(store, "shipping_policy", None),
     }
     _cache.cache_set(_cache.shop_cache, slug, data, 60)
     response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
