@@ -574,7 +574,7 @@ export default function WebAnalyticsPage() {
 
     // KPIs audiencia
     const uniqueCust = new Set(orders.map(o=>o.customer_email||o.customer_name||o.customer)).size;
-    const recurrentes = orders.reduce((acc,o)=>{const k=o.customer_email||o.customer_name||o.customer;if(k)acc[k]=(acc[k]||0)+1;return acc;},{} as Record<string,number>);
+    const recurrentes = orders.reduce((acc: Record<string, number>, o: any)=>{const k=o.customer_email||o.customer_name||o.customer;if(k)acc[k]=(acc[k]||0)+1;return acc;},{} as Record<string,number>);
     const recCount = Object.values(recurrentes).filter(v=>v>1).length;
     const newCount = uniqueCust - recCount;
     const recPct = uniqueCust>0 ? Math.round((recCount/uniqueCust)*100) : 0;
