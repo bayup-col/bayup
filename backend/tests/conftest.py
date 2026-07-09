@@ -23,33 +23,57 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 
 @pytest.fixture(scope="session", autouse=True)
 def create_tables():
+    from sqlalchemy import text
     Base.metadata.create_all(bind=engine)
+    with engine.begin() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS email_jobs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                func VARCHAR(120) NOT NULL,
+                kwargs_json TEXT NOT NULL,
+                status VARCHAR(20) DEFAULT 'pending',
+                attempts INTEGER DEFAULT 0,
+                error TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
     yield
     Base.metadata.drop_all(bind=engine)
 
 
+@pytest.fixture(autouse=True)
+def clean_db_after_test():
+    """Elimina todas las filas de todas las tablas y limpia cachés después de cada test."""
+    yield
+    with engine.begin() as conn:
+        for table in reversed(Base.metadata.sorted_tables):
+            conn.execute(table.delete())
+        from sqlalchemy import text as _text
+        conn.execute(_text("DELETE FROM email_jobs"))
+    # Limpiar cachés en memoria para que no contaminen el siguiente test
+    import cache as _cache_mod
+    _cache_mod.shop_cache.clear()
+    _cache_mod.templates_cache.clear()
+
+
 @pytest.fixture
 def db_session():
-    connection = engine.connect()
-    trans = connection.begin()
-    db = TestingSessionLocal(bind=connection)
+    db = TestingSessionLocal()
     yield db
     db.close()
-    trans.rollback()    # deshace TODO lo hecho en este test — BD limpia para el siguiente
-    connection.close()
 
 
 @pytest.fixture
 def client(db_session):
     import database as _db_module
-    # Parcha el engine y SessionLocal del módulo database para que toda la app
-    # use el mismo SQLite en memoria durante los tests
     _db_module.engine = engine
     _db_module.SessionLocal = TestingSessionLocal
 
     from main import app
     import email_queue as _eq
-    _eq._worker_started = True  # evita que el worker corra durante tests
+    _eq._worker_started = True
+    _eq.enqueue = lambda *a, **kw: None
 
     def override_get_db():
         try:

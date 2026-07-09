@@ -109,7 +109,7 @@ def get_products_by_owner(db: Session, owner_id: uuid.UUID, skip: int = 0, limit
     ).order_by(models.Product.id.desc()).offset(skip).limit(limit).all()
 
 def create_product(db: Session, product: schemas.ProductCreate, owner_id: uuid.UUID) -> models.Product:
-    db_product = models.Product(**product.dict(exclude={"variants"}), owner_id=owner_id)
+    db_product = models.Product(**product.model_dump(exclude={"variants"}), owner_id=owner_id)
     db.add(db_product)
     db.flush()
     for v in product.variants:
@@ -125,7 +125,7 @@ def update_product(db: Session, db_product: models.Product, product: schemas.Pro
     Mantiene la integridad de variantes y asegura el guardado de cambios.
     """
     # 1. Actualizar campos base del producto
-    update_data = product.dict(exclude={"variants"})
+    update_data = product.model_dump(exclude={"variants"})
     for key, value in update_data.items():
         setattr(db_product, key, value)
     
@@ -241,11 +241,9 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
 
         # Verificación de Stock (Protección contra sobreventa)
         if v.stock < item.quantity:
+            msg = f"Stock insuficiente para {product.name}. Disponible: {v.stock}"
             db.rollback()
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Stock insuficiente para {product.name}. Disponible: {v.stock}"
-            )
+            raise HTTPException(status_code=400, detail=msg)
 
         # Cálculo de precio (Plan Básico / Mayorista)
         # Usamos el precio de la variante si existe, sino el del producto base
@@ -383,7 +381,7 @@ def create_income(db: Session, income: schemas.IncomeCreate, tenant_id: uuid.UUI
 
 # --- Collection CRUD ---
 def create_collection(db: Session, collection: schemas.CollectionCreate, owner_id: uuid.UUID) -> models.Collection:
-    db_col = models.Collection(**collection.dict(), owner_id=owner_id)
+    db_col = models.Collection(**collection.model_dump(), owner_id=owner_id)
     db.add(db_col)
     db.commit()
     db.refresh(db_col)
