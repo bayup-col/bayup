@@ -336,7 +336,8 @@ function VariantModal({ tempVariantName, setTempVariantName, tempSubVariants, se
                       <input type="checkbox" id="useGlobal" checked={useGlobal} onChange={e => setUseGlobal(e.target.checked)} className="rounded"/>
                       <label htmlFor="useGlobal" className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Stock global para todas</label>
                       {useGlobal && (
-                        <input type="number" value={globalStock} min={0} onChange={e => { const v = Number(e.target.value); setGlobalStock(v); setTempSubVariants((p: any[]) => p.map(sv => ({ ...sv, stock: v }))); }}
+                        <input type="number" value={globalStock === 0 ? '' : globalStock} min={0} onChange={e => { const v = Number(e.target.value); setGlobalStock(v); setTempSubVariants((p: any[]) => p.map(sv => ({ ...sv, stock: v }))); }}
+                          placeholder="0"
                           className="ml-auto h-7 w-20 rounded-lg border border-gray-200 text-center text-sm font-black text-[#004d4d] focus:outline-none"/>
                       )}
                     </div>
@@ -362,7 +363,7 @@ function VariantModal({ tempVariantName, setTempVariantName, tempSubVariants, se
                             onChange={e => { const nl = e.target.value; setTempSubVariants((p: any[]) => p.map(i => i.id === sv.id ? { ...i, spec: isColorAttr && colorHex ? `${nl}: ${colorHex}` : nl } : i)); }}
                             placeholder={selectedAttr?.presets[0] ? `Ej: ${selectedAttr.presets[0]}` : 'Escribe una opción…'}
                             className={inputBase}/>
-                          <input type="number" value={sv.stock} min={0}
+                          <input type="number" value={sv.stock === 0 ? '' : sv.stock} min={0}
                             onChange={e => setTempSubVariants((p: any[]) => p.map(i => i.id === sv.id ? { ...i, stock: Number(e.target.value) } : i))}
                             placeholder="0"
                             className="h-9 w-full rounded-xl border border-gray-200 text-center text-sm font-black text-[#004d4d] focus:outline-none focus:border-[#004d4d]/40 bg-[#004d4d]/5 transition-colors"/>
@@ -1177,7 +1178,7 @@ export default function EditProductPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-gray-50 rounded-2xl p-4">
                     <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-2">Unidades a vender</p>
-                    <input type="number" value={simulationUnits} onChange={e => setSimulationUnits(Number(e.target.value) || 1)}
+                    <input type="number" value={simulationUnits === 0 ? '' : simulationUnits} onChange={e => setSimulationUnits(Number(e.target.value))}
                       className="w-full bg-transparent text-xl font-black text-gray-900 outline-none border-none"/>
                   </div>
                   <div className="bg-gray-50 rounded-2xl p-4">

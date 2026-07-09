@@ -567,10 +567,6 @@ export default function GeneralSettings() {
                     <p className="text-[9px] text-rose-500 flex items-center gap-1 mt-1"><AlertCircle size={10}/> Debe tener 10 dígitos</p>
                   )}
                 </Field>
-                <Field label="Sitio web (opcional)">
-                  <Input value={contact.website} onChange={(e: any) => setContact(p => ({ ...p, website: e.target.value }))}
-                    placeholder="https://tutienda.com" icon={<Globe/>}/>
-                </Field>
               </SectionCard>
 
               <SectionCard title="Ubicación física" sub="Ciudad, dirección y horarios" icon={<MapPin/>} accent="violet">

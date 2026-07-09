@@ -660,9 +660,10 @@ function BlankEditorContent() {
                           <input
                             type="number"
                             min={0}
-                            value={edge === 'top' ? selectedRow.paddingTop : selectedRow.paddingBottom}
+                            value={(edge === 'top' ? selectedRow.paddingTop : selectedRow.paddingBottom) === 0 ? '' : (edge === 'top' ? selectedRow.paddingTop : selectedRow.paddingBottom)}
                             onChange={e => {
-                              const v = Math.max(0, parseInt(e.target.value) || 0);
+                              const raw = e.target.value;
+                              const v = raw === '' ? 0 : Math.max(0, parseInt(raw) || 0);
                               setRows(prev => prev.map(r => r.id !== selectedRow.id ? r : { ...r, [edge === 'top' ? 'paddingTop' : 'paddingBottom']: v }));
                             }}
                             className="flex-1 bg-transparent text-center text-[11px] text-white outline-none w-0"

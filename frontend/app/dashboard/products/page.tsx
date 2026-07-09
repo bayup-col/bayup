@@ -893,7 +893,7 @@ export default function ProductsPage() {
                             <td className="px-4 py-3">
                               <input
                                 type="number" min={0}
-                                value={displayStock}
+                                value={displayStock === 0 ? '' : displayStock}
                                 onChange={e => {
                                   const varKey = v ? v.id : '__novariant';
                                   handleStockChange(p.id, varKey, Number(e.target.value));

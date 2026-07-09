@@ -304,3 +304,14 @@
 [data-sa-theme="light"] ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 131, 143, 0.3);
 }
+
+/* Quitar las flechitas (spinners) de todos los inputs numéricos de la app */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
