@@ -65,6 +65,13 @@ const PREVIEW_DATA = {
     custom_schema: null
 };
 
+const LEGAL_LABELS: Record<string, string> = {
+    terms_conditions: 'Términos y condiciones',
+    privacy_policy:   'Política de privacidad',
+    return_policy:    'Devoluciones y cambios',
+    shipping_policy:  'Política de envíos',
+};
+
 export default function PublicShopPage() {
     return (
         <Suspense fallback={
@@ -103,6 +110,7 @@ function ShopContent() {
         name: "", phone: "", email: "", address: "", city: "", notes: ""
     });
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+    const [legalModalOpen, setLegalModalOpen] = useState<null | keyof typeof LEGAL_LABELS>(null);
 
     const addToCart = (product: any) => {
         const totalStock = product.variants?.reduce((a: any, b: any) => a + (b.stock || 0), 0) || 0;
@@ -488,6 +496,23 @@ function ShopContent() {
                 )}
             </main>
 
+            {/* --- FOOTER LEGAL --- */}
+            {(shopData.terms_conditions || shopData.privacy_policy || shopData.return_policy || shopData.shipping_policy) && (
+                <footer className="border-t border-gray-100 bg-white py-10 px-6">
+                    <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <p className="text-[11px] text-gray-400 font-medium">© {new Date().getFullYear()} {shopData.full_name}. Todos los derechos reservados.</p>
+                        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+                            {(Object.keys(LEGAL_LABELS) as (keyof typeof LEGAL_LABELS)[]).map(key => shopData[key] && (
+                                <button key={key} onClick={() => setLegalModalOpen(key)}
+                                    className="text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-[#004d4d] transition-colors">
+                                    {LEGAL_LABELS[key]}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </footer>
+            )}
+
             {/* --- COMPONENTES GLOBALES (SIEMPRE DISPONIBLES) --- */}
             
             {/* SIDEBAR CARRITO */}
@@ -568,6 +593,22 @@ function ShopContent() {
                                 <p className="text-[9px] text-center text-gray-400 font-bold uppercase tracking-wider mt-4">¿Aún no tienes cuenta? <span className="text-[#004d4d] cursor-pointer hover:underline">Regístrate gratis</span></p>
                             </div>
                             <button onClick={() => setIsClientLoginOpen(false)} className="absolute top-6 right-6 text-gray-300 hover:text-rose-500 transition-colors"><X size={20}/></button>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* MODAL TEXTOS LEGALES */}
+            <AnimatePresence>
+                {legalModalOpen && (
+                    <div className="fixed inset-0 z-[4000] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setLegalModalOpen(null)} className="absolute inset-0 bg-[#001A1A]/80 backdrop-blur-sm" />
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-white w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-[2rem] shadow-2xl p-8 sm:p-10">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-xl font-black uppercase tracking-tight text-gray-900">{LEGAL_LABELS[legalModalOpen]}</h3>
+                                <button onClick={() => setLegalModalOpen(null)} className="h-9 w-9 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors shrink-0"><X size={16}/></button>
+                            </div>
+                            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{shopData[legalModalOpen]}</p>
                         </motion.div>
                     </div>
                 )}

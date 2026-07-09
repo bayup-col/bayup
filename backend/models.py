@@ -72,6 +72,11 @@ class User(Base):
     website = Column(String, nullable=True)
     tax_regime = Column(String, nullable=True)
     legal_rep = Column(String, nullable=True)
+    # Textos legales configurables por tienda, mostrados en el footer público
+    terms_conditions = Column(String, nullable=True)
+    privacy_policy = Column(String, nullable=True)
+    return_policy = Column(String, nullable=True)
+    shipping_policy = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     bank_accounts = Column(JSON, default=[])
     social_links = Column(JSON, default={})
