@@ -548,215 +548,440 @@ export default function GastosPage() {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
-    const teal: [number, number, number] = [0, 77, 77];
-    const tealMid: [number, number, number] = [0, 178, 189];
-    const white: [number, number, number] = [255, 255, 255];
-    const gray50: [number, number, number] = [248, 250, 250];
 
-    const addPageHeader = (title: string, subtitle?: string) => {
-      doc.setFillColor(...teal);
-      doc.rect(0, 0, W, 38, 'F');
-      doc.setFillColor(...tealMid);
-      doc.rect(0, 35, W, 3, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(18);
-      doc.setTextColor(...white);
-      doc.text(title, 14, 16);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor(180, 220, 220);
-      doc.text(`Período: ${monthName.toUpperCase()} ${periodYear}`, 14, 24);
-      if (subtitle) doc.text(subtitle, 14, 30);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.setTextColor(...white);
-      doc.text('BayUP.', W - 14, 22, { align: 'right' });
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(180, 220, 220);
-      doc.text('bayup.com.co', W - 14, 28, { align: 'right' });
+    const Cdark:   [number,number,number] = [10,26,26];
+    const Cteal:   [number,number,number] = [0,77,77];
+    const CtealM:  [number,number,number] = [0,178,189];
+    const CtealL:  [number,number,number] = [232,250,249];
+    const Cwhite:  [number,number,number] = [255,255,255];
+    const Cgray:   [number,number,number] = [248,250,250];
+    const Cgray2:  [number,number,number] = [220,228,228];
+    const Cgreen:  [number,number,number] = [22,163,74];
+    const Cred:    [number,number,number] = [220,38,38];
+    const Camber:  [number,number,number] = [146,64,14];
+    const Cpurple: [number,number,number] = [109,40,217];
+    const now = new Date();
+
+    // ── Helpers ──────────────────────────────────────────────────────────
+    const pageHeader = (pg: number, title: string, sub: string, accent: [number,number,number] = CtealM) => {
+      doc.setFillColor(...Cdark);      doc.rect(0, 0, W, 50, 'F');
+      doc.setFillColor(...accent);     doc.rect(0, 0, 4, 50, 'F');
+      doc.setFillColor(...accent);     doc.rect(0, 48, W, 2, 'F');
+      doc.setFillColor(...accent);     doc.roundedRect(W-28, 8, 20, 9, 2, 2, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...Cwhite);
+      doc.text(`PÁG ${pg}`, W-18, 13.5, { align:'center' });
+      doc.setFontSize(20); doc.setTextColor(...Cwhite);
+      doc.text(title, 12, 21);
+      doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...accent);
+      doc.text(sub, 12, 29);
+      doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(170,205,205);
+      doc.text(`${monthName.toUpperCase()} ${periodYear}  ·  BAYUP.CO`, 12, 38);
     };
 
-    // ── PÁGINA 1: RESUMEN ─────────────────────────────────────────────────
-    addPageHeader('CONTROL DE GASTOS', `Generado: ${new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}`);
-    let y = 48;
+    const secLabel = (label: string, yy: number) => {
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(...Cteal);
+      doc.text(label, 14, yy);
+      doc.setFillColor(...CtealM); doc.rect(14, yy+1.5, Math.min(label.length*1.65, W-28), 0.6, 'F');
+    };
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.setTextColor(...teal);
-    doc.text('RESUMEN FINANCIERO', 14, y);
-    y += 5;
+    const kpiBox = (x: number, yy: number, bw: number, bh: number, label: string, val: string, sub: string, hl: boolean) => {
+      if (hl) { doc.setFillColor(...CtealL); doc.setDrawColor(...CtealM); doc.setLineWidth(0.5); }
+      else     { doc.setFillColor(...Cgray);  doc.setDrawColor(...Cgray2); doc.setLineWidth(0.3); }
+      doc.roundedRect(x, yy, bw, bh, 2.5, 2.5, 'FD');
+      if (hl) { doc.setFillColor(...CtealM); doc.rect(x, yy, 3, bh, 'F'); }
+      const tx = x + (hl ? 6 : 4);
+      doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(120,135,135);
+      doc.text(label.toUpperCase(), tx, yy+6);
+      doc.setFont('helvetica','bold'); doc.setFontSize(10);
+      if (hl) { doc.setTextColor(...Cteal); } else { doc.setTextColor(...Cdark); }
+      doc.text(val, tx, yy+13);
+      if (sub) { doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(150,160,160); doc.text(sub, tx, yy+18.5); }
+    };
 
-    const kpis = [
-      { label: 'Ingresos del mes', value: fmt(salesRevenue), note: `${totalOrders} ventas` },
-      { label: 'Gastos totales',   value: fmt(totalExpenses), note: `${filteredExpenses.length} registros` },
-      { label: 'Utilidad neta',    value: fmt(netProfit),    note: `Margen: ${profitMargin.toFixed(1)}%` },
-      { label: 'Gastos pagados',   value: fmt(paidExpenses), note: '' },
-      { label: 'Por pagar',        value: fmt(pendingExpenses), note: overdueExpenses > 0 ? `Vencidos: ${fmt(overdueExpenses)}` : '' },
+    const pageFooter = () => {
+      doc.setFillColor(...Cdark); doc.rect(0, H-11, W, 11, 'F');
+      doc.setFillColor(...CtealM); doc.rect(0, H-11, 3, 11, 'F');
+      doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(140,170,170);
+      doc.text(`Generado por BayUP · bayup.com.co · ${now.toLocaleDateString('es-CO')}`, 8, H-4.5);
+    };
+
+    const fmtK = (n: number) => n >= 1e6 ? `$${(n/1e6).toFixed(1)}M` : n >= 1000 ? `$${(n/1000).toFixed(0)}K` : fmt(n);
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PÁGINA 1 — RESUMEN EJECUTIVO
+    // ════════════════════════════════════════════════════════════════════════
+    pageHeader(1, 'REPORTE FINANCIERO', `Resumen ejecutivo · ${now.toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric'})}`);
+    let y = 60;
+
+    // KPIs — 6 cajas 2 filas x 3 cols
+    secLabel('INDICADORES CLAVE DEL PERÍODO', y);
+    y += 7;
+    const kData = [
+      { l:'Ingresos del mes',   v:fmt(salesRevenue),   s:`${totalOrders} ventas`,                      hl:true  },
+      { l:'Gastos totales',     v:fmt(totalExpenses),  s:`${filteredExpenses.length} registros`,        hl:false },
+      { l:'Utilidad neta',      v:fmt(netProfit),      s:`Margen: ${profitMargin.toFixed(1)}%`,         hl:netProfit>=0 },
+      { l:'Gastos pagados',     v:fmt(paidExpenses),   s:`${filteredExpenses.filter(e=>e.status==='pagado').length} pagados`, hl:false },
+      { l:'Por pagar',          v:fmt(pendingExpenses),s:'Pendientes + vencidos',                       hl:false },
+      { l:'Vencidos',           v:fmt(overdueExpenses),s:'Requieren atención',                          hl:false },
     ];
-
-    const kpiW = (W - 28) / 3;
-    kpis.forEach((k, i) => {
-      const col = i % 3;
-      const row = Math.floor(i / 3);
-      const x = 14 + col * (kpiW + 3);
-      const yy = y + row * 22;
-      doc.setFillColor(...gray50);
-      doc.roundedRect(x, yy, kpiW, 18, 2, 2, 'F');
-      doc.setDrawColor(220, 230, 230);
-      doc.roundedRect(x, yy, kpiW, 18, 2, 2, 'S');
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.setTextColor(120, 130, 130);
-      doc.text(k.label.toUpperCase(), x + 3, yy + 5);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(...teal);
-      doc.text(k.value, x + 3, yy + 12);
-      if (k.note) {
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6.5);
-        doc.setTextColor(150, 150, 150);
-        doc.text(k.note, x + 3, yy + 16.5);
-      }
+    const kW = (W-28-4)/3; const kH = 23;
+    kData.forEach((k,i) => {
+      kpiBox(14 + (i%3)*(kW+2), y + Math.floor(i/3)*(kH+3), kW, kH, k.l, k.v, k.s, k.hl);
     });
-    y += Math.ceil(kpis.length / 3) * 22 + 10;
+    y += 2*(kH+3)+10;
 
-    // Distribución por estado en resumen
-    const estadoData = [
-      { label: 'Pagado',   value: paidExpenses,    count: filteredExpenses.filter(e => e.status === 'pagado').length },
-      { label: 'Pendiente',value: pendingExpenses,  count: filteredExpenses.filter(e => e.status === 'pendiente').length },
-      { label: 'Vencido',  value: overdueExpenses,  count: filteredExpenses.filter(e => e.status === 'vencido').length },
+    // Barras de estado
+    secLabel('ESTADO DE GASTOS', y); y += 7;
+    const estRows = [
+      { l:'Pagado',    v:paidExpenses,                       cnt:filteredExpenses.filter(e=>e.status==='pagado').length,    col:[22,163,74]   as [number,number,number] },
+      { l:'Pendiente', v:pendingExpenses - overdueExpenses,  cnt:filteredExpenses.filter(e=>e.status==='pendiente').length, col:[245,158,11]  as [number,number,number] },
+      { l:'Vencido',   v:overdueExpenses,                    cnt:filteredExpenses.filter(e=>e.status==='vencido').length,   col:[220,38,38]   as [number,number,number] },
     ];
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.setTextColor(...teal);
-    doc.text('ESTADO DE GASTOS', 14, y);
-    y += 4;
-    autoTable(doc, {
-      startY: y,
-      head: [['ESTADO', 'REGISTROS', 'MONTO (COP)', '% DEL TOTAL']],
-      body: estadoData.map(e => [
-        e.label,
-        String(e.count),
-        fmt(e.value),
-        totalExpenses > 0 ? `${((e.value / totalExpenses) * 100).toFixed(1)}%` : '0.0%',
-      ]),
-      styles: { fontSize: 9, cellPadding: 3.5 },
-      headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 8, halign: 'center' },
-      alternateRowStyles: { fillColor: gray50 },
-      columnStyles: {
-        0: { cellWidth: 40 },
-        1: { cellWidth: 30, halign: 'center' },
-        2: { halign: 'right', fontStyle: 'bold' },
-        3: { cellWidth: 30, halign: 'center' },
-      },
-      margin: { left: 14, right: 14 },
+    const maxEst = Math.max(...estRows.map(r=>r.v), 1);
+    const barZone = W-28-38-30;
+    estRows.forEach((r,i) => {
+      doc.setFillColor(...Cgray); doc.setDrawColor(...Cgray2); doc.setLineWidth(0.2);
+      doc.roundedRect(14, y+i*12, W-28, 10, 1.5, 1.5, 'FD');
+      doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...Cdark);
+      doc.text(r.l, 18, y+i*12+6.5);
+      const bx = 14+36; const bMaxW = barZone;
+      doc.setFillColor(228,235,235); doc.roundedRect(bx, y+i*12+2.5, bMaxW, 5, 1,1,'F');
+      if (r.v > 0) { doc.setFillColor(...r.col); doc.roundedRect(bx, y+i*12+2.5, Math.max((r.v/maxEst)*bMaxW, 2), 5, 1,1,'F'); }
+      doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...Cteal);
+      doc.text(fmt(r.v), W-14, y+i*12+6.5, { align:'right' });
+      doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(160,170,170);
+      doc.text(`${r.cnt} reg.`, bx+bMaxW+2, y+i*12+6.5);
     });
+    y += estRows.length*12+10;
 
-    // ── PÁGINA 2: DETALLE DE GASTOS ───────────────────────────────────────
+    // Top categorías
+    secLabel('TOP CATEGORÍAS DE GASTO', y); y += 7;
+    const topCats = byCategory.slice(0,6);
+    if (topCats.length === 0) {
+      doc.setFont('helvetica','italic'); doc.setFontSize(8); doc.setTextColor(180,180,180);
+      doc.text('Sin categorías en este período.', 14, y+5); y+=12;
+    } else {
+      const maxCat = topCats[0].total;
+      topCats.forEach((b,i) => {
+        const lbl = CATEGORIES.find(c=>c.id===b.cat)?.label || b.cat;
+        const pct = totalExpenses>0 ? (b.total/totalExpenses)*100 : 0;
+        const bx = 14+42; const bMaxW = W-28-42-30;
+        if (i===0) { doc.setFillColor(...CtealL); } else { doc.setFillColor(...Cgray); }
+        doc.setDrawColor(...Cgray2); doc.setLineWidth(0.2);
+        doc.roundedRect(14, y+i*10, W-28, 9, 1.5, 1.5, 'FD');
+        doc.setFont('helvetica', i===0?'bold':'normal'); doc.setFontSize(7.5); doc.setTextColor(...Cdark);
+        doc.text(lbl.length>20?lbl.slice(0,20)+'…':lbl, 18, y+i*10+5.8);
+        doc.setFillColor(228,235,235); doc.roundedRect(bx, y+i*10+2, bMaxW, 5, 1,1,'F');
+        const fill = Math.max((b.total/maxCat)*bMaxW, 2);
+        if (i===0) { doc.setFillColor(...Cteal); } else { doc.setFillColor(...CtealM); }
+        doc.roundedRect(bx, y+i*10+2, fill, 5, 1,1,'F');
+        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...Cteal);
+        doc.text(fmt(b.total), W-14, y+i*10+5.8, { align:'right' });
+        doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(160,170,170);
+        doc.text(`${pct.toFixed(1)}%`, bx+bMaxW+2, y+i*10+5.8);
+      });
+      y += topCats.length*10+8;
+    }
+
+    // Pill resultado
+    const pillOk = netProfit >= 0;
+    doc.setFillColor(pillOk?240:254, pillOk?253:242, pillOk?244:242);
+    if (pillOk) { doc.setDrawColor(...Cgreen); } else { doc.setDrawColor(...Cred); }
+    doc.setLineWidth(0.4);
+    doc.roundedRect(14, y, W-28, 14, 3, 3, 'FD');
+    if (pillOk) { doc.setFillColor(...Cgreen); } else { doc.setFillColor(...Cred); }
+    doc.rect(14, y, 3, 14, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8);
+    if (pillOk) { doc.setTextColor(...Cgreen); } else { doc.setTextColor(...Cred); }
+    doc.text(pillOk?'✓  MES RENTABLE':'⚠  MES CON DÉFICIT', 21, y+5.5);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(80,100,100);
+    doc.text(`Utilidad: ${fmt(netProfit)}  ·  Margen: ${profitMargin.toFixed(1)}%  ·  ${totalOrders} ventas`, 21, y+11);
+    pageFooter();
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PÁGINA 2 — DETALLE DE GASTOS
+    // ════════════════════════════════════════════════════════════════════════
     doc.addPage();
-    addPageHeader('DETALLE DE GASTOS');
-    y = 48;
+    pageHeader(2, 'DETALLE DE GASTOS', 'Registro completo · Ordenado por fecha', [245,158,11]);
+    y = 60;
+
+    // Mini stats
+    const mW2 = (W-28-6)/4;
+    const miniStats = [
+      { l:'Total registros', v:String(filteredExpenses.length) },
+      { l:'Suma total',      v:fmt(totalExpenses) },
+      { l:'Gastos fijos',   v:String(filteredExpenses.filter(e=>e.type==='fijo').length) },
+      { l:'Variables',       v:String(filteredExpenses.filter(e=>e.type==='variable').length) },
+    ];
+    miniStats.forEach((m,i) => {
+      doc.setFillColor(...CtealL); doc.setDrawColor(...Cgray2); doc.setLineWidth(0.2);
+      doc.roundedRect(14+i*(mW2+2), y, mW2, 15, 2, 2, 'FD');
+      doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(120,135,135);
+      doc.text(m.l.toUpperCase(), 17+i*(mW2+2), y+6);
+      doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(...Cteal);
+      doc.text(m.v, 17+i*(mW2+2), y+12.5);
+    });
+    y += 20;
 
     if (filteredExpenses.length === 0) {
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(9);
-      doc.setTextColor(180, 180, 180);
-      doc.text('Sin gastos registrados en este período.', 14, y + 8);
+      doc.setFont('helvetica','italic'); doc.setFontSize(9); doc.setTextColor(180,180,180);
+      doc.text('Sin gastos registrados en este período.', 14, y+8);
     } else {
       autoTable(doc, {
         startY: y,
-        head: [['FECHA', 'DESCRIPCIÓN', 'CATEGORÍA', 'TIPO', 'MONTO (COP)', 'ESTADO']],
-        body: filteredExpenses.map(e => {
-          const cat = CATEGORIES.find(c => c.id === e.category)?.label || e.category;
-          return [
-            new Date(e.due_date).toLocaleDateString('es-CO'),
-            e.description,
-            cat,
-            e.type === 'fijo' ? 'Fijo' : 'Variable',
-            fmt(e.amount),
-            STATUS_MAP[e.status]?.label || e.status,
-          ];
-        }),
-        styles: { fontSize: 8, cellPadding: 3 },
-        headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 7.5, halign: 'center' },
-        alternateRowStyles: { fillColor: gray50 },
+        head: [['FECHA','DESCRIPCIÓN','CATEGORÍA','TIPO','MÉTODO PAGO','MONTO (COP)','ESTADO']],
+        body: [...filteredExpenses]
+          .sort((a,b) => new Date(b.due_date).getTime()-new Date(a.due_date).getTime())
+          .map(e => {
+            const cat = CATEGORIES.find(c=>c.id===e.category)?.label || e.category;
+            return [
+              new Date(e.due_date).toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'2-digit'}),
+              e.description.length>28 ? e.description.slice(0,28)+'…' : e.description,
+              cat,
+              e.type==='fijo'?'Fijo':'Variable',
+              e.payment_method||'—',
+              fmt(e.amount),
+              STATUS_MAP[e.status]?.label||e.status,
+            ];
+          }),
+        styles: { fontSize:7.5, cellPadding:2.8 },
+        headStyles: { fillColor:Cdark, textColor:Cwhite, fontStyle:'bold', fontSize:7, halign:'center' },
+        alternateRowStyles: { fillColor:Cgray },
         columnStyles: {
-          0: { cellWidth: 22, halign: 'center' },
-          1: { cellWidth: 55 },
-          2: { cellWidth: 32 },
-          3: { cellWidth: 20, halign: 'center' },
-          4: { cellWidth: 28, halign: 'right', fontStyle: 'bold' },
-          5: { cellWidth: 20, halign: 'center' },
+          0: { cellWidth:22, halign:'center' },
+          1: { cellWidth:46 },
+          2: { cellWidth:28 },
+          3: { cellWidth:15, halign:'center' },
+          4: { cellWidth:22, halign:'center' },
+          5: { cellWidth:28, halign:'right', fontStyle:'bold', textColor:Cteal },
+          6: { cellWidth:18, halign:'center' },
         },
         didParseCell: (data) => {
-          if (data.section === 'body' && data.column.index === 5) {
-            const val = String(data.cell.raw);
-            if (val === 'Pagado') data.cell.styles.textColor = [22, 101, 52];
-            else if (val === 'Vencido') data.cell.styles.textColor = [185, 28, 28];
-            else data.cell.styles.textColor = [146, 64, 14];
+          if (data.section==='body' && data.column.index===6) {
+            const v = String(data.cell.raw);
+            if (v==='Pagado')    { data.cell.styles.textColor=Cgreen; data.cell.styles.fontStyle='bold'; }
+            else if (v==='Vencido') { data.cell.styles.textColor=Cred;   data.cell.styles.fontStyle='bold'; }
+            else                 { data.cell.styles.textColor=Camber; }
           }
         },
-        margin: { left: 14, right: 14 },
+        margin: { left:14, right:14 },
+        tableLineColor: Cgray2, tableLineWidth:0.1,
       });
-    }
 
-    // ── PÁGINA 3: GASTOS POR CATEGORÍA ────────────────────────────────────
+      const fy2 = (doc as any).lastAutoTable.finalY + 6;
+      const fijos2 = filteredExpenses.filter(e=>e.type==='fijo').reduce((a,e)=>a+e.amount,0);
+      const vars2  = filteredExpenses.filter(e=>e.type==='variable').reduce((a,e)=>a+e.amount,0);
+      doc.setFillColor(...Cdark); doc.roundedRect(14, fy2, W-28, 12, 2, 2, 'F');
+      doc.setFillColor(...CtealM); doc.rect(14, fy2, 3, 12, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...Cwhite);
+      doc.text('TOTAL DEL PERÍODO', 21, fy2+7.5);
+      doc.setTextColor(...CtealM);
+      doc.text(fmt(totalExpenses), W-16, fy2+7.5, { align:'right' });
+      doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(160,200,200);
+      doc.text(`Fijos: ${fmt(fijos2)}   Variables: ${fmt(vars2)}`, W/2, fy2+7.5, { align:'center' });
+    }
+    pageFooter();
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PÁGINA 3 — INGRESOS
+    // ════════════════════════════════════════════════════════════════════════
     doc.addPage();
-    addPageHeader('GASTOS POR CATEGORÍA');
-    y = 48;
+    pageHeader(3, 'ANÁLISIS DE INGRESOS', 'Ingresos del período · Conectado con pedidos', Cgreen);
+    y = 60;
 
-    if (byCategory.length === 0) {
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(9);
-      doc.setTextColor(180, 180, 180);
-      doc.text('Sin datos de categoría para este período.', 14, y + 8);
-    } else {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.setTextColor(...teal);
-      doc.text('DISTRIBUCIÓN POR CATEGORÍA', 14, y);
-      y += 4;
-      autoTable(doc, {
-        startY: y,
-        head: [['#', 'CATEGORÍA', 'TOTAL (COP)', '% DEL TOTAL']],
-        body: byCategory.map((b, idx) => {
-          const label = CATEGORIES.find(c => c.id === b.cat)?.label || b.cat;
-          const pct = totalExpenses > 0 ? ((b.total / totalExpenses) * 100).toFixed(1) : '0.0';
-          return [`${idx + 1}`, label, fmt(b.total), `${pct}%`];
-        }),
-        styles: { fontSize: 9, cellPadding: 4 },
-        headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 8, halign: 'center' },
-        alternateRowStyles: { fillColor: gray50 },
-        columnStyles: {
-          0: { cellWidth: 12, halign: 'center' },
-          1: { cellWidth: 80 },
-          2: { halign: 'right', fontStyle: 'bold' },
-          3: { cellWidth: 35, halign: 'center' },
-        },
-        margin: { left: 14, right: 14 },
-      });
+    // KPIs ingresos
+    const avgTkt = totalOrders>0 ? salesRevenue/totalOrders : 0;
+    const ingKpis = [
+      { l:'Ingresos totales',v:fmt(salesRevenue),         s:'Del período actual',      hl:true },
+      { l:'Total pedidos',   v:String(totalOrders),       s:'Ventas registradas',      hl:false },
+      { l:'Ticket promedio', v:fmt(avgTkt),               s:'Por pedido',              hl:false },
+      { l:'Utilidad neta',   v:fmt(netProfit),            s:`Margen ${profitMargin.toFixed(1)}%`, hl:netProfit>=0 },
+    ];
+    const ikW = (W-28-6)/4;
+    ingKpis.forEach((k,i) => { kpiBox(14+i*(ikW+2), y, ikW, 24, k.l, k.v, k.s, k.hl); });
+    y += 30;
+
+    // Gráfica barras Ingresos vs Gastos 6 meses
+    secLabel('EVOLUCIÓN 6 MESES — INGRESOS VS GASTOS', y); y += 7;
+    const evoH = 55;
+    doc.setFillColor(...Cgray); doc.setDrawColor(...Cgray2); doc.setLineWidth(0.2);
+    doc.roundedRect(14, y, W-28, evoH, 3, 3, 'FD');
+    const cX=22; const cW=W-44; const cY=y+6; const cH=evoH-16;
+    const maxEvo = Math.max(...evolutionData.map(d=>Math.max(d.ingresos,d.gastos)),1);
+    const bGrpW = cW/evolutionData.length;
+    evolutionData.forEach((d,i) => {
+      const bx = cX+i*bGrpW+bGrpW*0.08; const bw = bGrpW*0.36;
+      const ingH = (d.ingresos/maxEvo)*cH; const gasH = (d.gastos/maxEvo)*cH;
+      doc.setFillColor(...CtealM); doc.roundedRect(bx, cY+cH-ingH, bw, Math.max(ingH,0.5), 0.5,0.5,'F');
+      doc.setFillColor(239,100,100); doc.roundedRect(bx+bw+1, cY+cH-gasH, bw, Math.max(gasH,0.5), 0.5,0.5,'F');
+      doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(120,130,130);
+      doc.text(d.mes, cX+i*bGrpW+bGrpW/2, cY+cH+6, { align:'center' });
+    });
+    doc.setDrawColor(...Cgray2); doc.setLineWidth(0.2); doc.line(cX,cY+cH,cX+cW,cY+cH);
+    doc.setFillColor(...CtealM); doc.rect(W-60, y+evoH-9, 5, 3,'F');
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(100,110,110);
+    doc.text('Ingresos', W-53, y+evoH-6.5);
+    doc.setFillColor(239,100,100); doc.rect(W-36, y+evoH-9, 5, 3,'F');
+    doc.text('Gastos', W-29, y+evoH-6.5);
+    y += evoH+8;
+
+    // Tabla mensual
+    secLabel('RESUMEN MENSUAL — ÚLTIMOS 6 MESES', y); y += 5;
+    autoTable(doc, {
+      startY: y,
+      head: [['MES','INGRESOS','GASTOS','UTILIDAD','MARGEN']],
+      body: evolutionData.map(d => {
+        const util = d.ingresos-d.gastos;
+        const mg = d.ingresos>0 ? ((util/d.ingresos)*100).toFixed(1) : '0.0';
+        return [d.mes, fmt(d.ingresos), fmt(d.gastos), fmt(util), `${mg}%`];
+      }),
+      styles: { fontSize:8.5, cellPadding:3.5 },
+      headStyles: { fillColor:Cdark, textColor:Cwhite, fontStyle:'bold', fontSize:8, halign:'center' },
+      alternateRowStyles: { fillColor:Cgray },
+      columnStyles: {
+        0: { cellWidth:18, halign:'center', fontStyle:'bold' },
+        1: { halign:'right', fontStyle:'bold', textColor:Cteal },
+        2: { halign:'right' },
+        3: { halign:'right', fontStyle:'bold' },
+        4: { cellWidth:22, halign:'center' },
+      },
+      didParseCell: (data) => {
+        if (data.section==='body') {
+          if (data.column.index===3) {
+            const raw = String(data.cell.raw||'');
+            data.cell.styles.textColor = raw.startsWith('-')||raw.includes('−') ? Cred : Cgreen;
+          }
+          if (data.column.index===4) {
+            const pct = parseFloat(String(data.cell.raw||'0'));
+            data.cell.styles.textColor = pct >= 0 ? Cgreen : Cred;
+          }
+        }
+      },
+      margin: { left:14, right:14 },
+    });
+    pageFooter();
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PÁGINA 4 — RENTABILIDAD
+    // ════════════════════════════════════════════════════════════════════════
+    doc.addPage();
+    pageHeader(4, 'RENTABILIDAD', 'Comparativo histórico · Análisis de márgenes', Cpurple);
+    y = 60;
+
+    const bestM  = evolutionData.reduce((b,d)=>d.utilidad>b.utilidad?d:b, evolutionData[0]||{mes:'—',utilidad:0,ingresos:0,gastos:0});
+    const worstM = evolutionData.reduce((b,d)=>d.utilidad<b.utilidad?d:b, evolutionData[0]||{mes:'—',utilidad:0,ingresos:0,gastos:0});
+    const avgMg  = evolutionData.length>0 ? evolutionData.reduce((a,d)=>a+(d.ingresos>0?(d.utilidad/d.ingresos)*100:0),0)/evolutionData.length : 0;
+    const tot6m  = evolutionData.reduce((a,d)=>a+d.utilidad,0);
+
+    // KPIs rentabilidad
+    const rentK = [
+      { l:'Mejor mes',        v:bestM.mes,              s:fmt(bestM.utilidad),          hl:false },
+      { l:'Utilidad 6 meses', v:fmtK(tot6m),            s:'Acumulado histórico',         hl:tot6m>=0 },
+      { l:'Margen promedio',  v:`${avgMg.toFixed(1)}%`, s:'Últimos 6 meses',             hl:false },
+      { l:'Mes actual',       v:fmt(netProfit),         s:`Margen ${profitMargin.toFixed(1)}%`, hl:netProfit>=0 },
+    ];
+    rentK.forEach((k,i) => { kpiBox(14+i*(ikW+2), y, ikW, 24, k.l, k.v, k.s, k.hl); });
+    y += 30;
+
+    // Gráfica línea de utilidad
+    secLabel('CURVA DE RENTABILIDAD — ÚLTIMOS 6 MESES', y); y += 7;
+    const rH = 62;
+    doc.setFillColor(...Cgray); doc.setDrawColor(...Cgray2); doc.setLineWidth(0.2);
+    doc.roundedRect(14, y, W-28, rH, 3, 3, 'FD');
+    const rcX=24; const rcW=W-48; const rcY=y+8; const rcH=rH-20;
+    const maxU = Math.max(...evolutionData.map(d=>Math.abs(d.utilidad)),1);
+    const z0 = rcY+rcH/2;
+    doc.setDrawColor(200,210,210); doc.setLineWidth(0.3); doc.setLineDashPattern([2,1],0);
+    doc.line(rcX, z0, rcX+rcW, z0);
+    doc.setLineDashPattern([],0);
+    doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(180,180,180);
+    doc.text('$0', rcX-2, z0+1.5, { align:'right' });
+    const pts = evolutionData.map((d,i) => ({
+      px: rcX+(evolutionData.length>1 ? (i/(evolutionData.length-1)) : 0)*rcW,
+      py: z0-(d.utilidad/maxU)*(rcH/2),
+      d,
+    }));
+    for (let i=0; i<pts.length-1; i++) {
+      const col: [number,number,number] = pts[i].d.utilidad>=0 ? CtealM : [239,100,100];
+      doc.setDrawColor(...col); doc.setLineWidth(1.2);
+      doc.line(pts[i].px, pts[i].py, pts[i+1].px, pts[i+1].py);
+    }
+    pts.forEach(({px,py,d}) => {
+      const col: [number,number,number] = d.utilidad>=0 ? Cteal : Cred;
+      doc.setFillColor(...col); doc.circle(px, py, 1.8, 'F');
+      doc.setFillColor(...Cwhite); doc.circle(px, py, 0.8, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...col);
+      doc.text(fmtK(d.utilidad), px, py-3.5, { align:'center' });
+      doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(120,130,130);
+      doc.text(d.mes, px, rcY+rcH+6, { align:'center' });
+    });
+    y += rH+8;
+
+    // Tabla comparativa
+    secLabel('COMPARATIVO DETALLADO MES A MES', y); y += 5;
+    autoTable(doc, {
+      startY: y,
+      head: [['MES','INGRESOS','GASTOS','UTILIDAD','MARGEN','RESULTADO']],
+      body: evolutionData.map(d => {
+        const util = d.ingresos-d.gastos;
+        const mg   = d.ingresos>0 ? ((util/d.ingresos)*100).toFixed(1) : '—';
+        const res  = util>0 ? '✓ Rentable' : util<0 ? '✗ Déficit' : '— Neutro';
+        return [d.mes, fmt(d.ingresos), fmt(d.gastos), fmt(util), mg!=='—'?`${mg}%`:'—', res];
+      }),
+      styles: { fontSize:8.5, cellPadding:3.5 },
+      headStyles: { fillColor:Cdark, textColor:Cwhite, fontStyle:'bold', fontSize:8, halign:'center' },
+      alternateRowStyles: { fillColor:Cgray },
+      columnStyles: {
+        0: { cellWidth:18, halign:'center', fontStyle:'bold' },
+        1: { halign:'right', fontStyle:'bold', textColor:Cteal },
+        2: { halign:'right' },
+        3: { halign:'right', fontStyle:'bold' },
+        4: { cellWidth:20, halign:'center' },
+        5: { cellWidth:28, halign:'center', fontStyle:'bold' },
+      },
+      didParseCell: (data) => {
+        if (data.section==='body') {
+          if (data.column.index===3) {
+            const raw = String(data.cell.raw||'');
+            data.cell.styles.textColor = raw.startsWith('-')||raw.includes('−') ? Cred : Cgreen;
+          }
+          if (data.column.index===5) {
+            const v = String(data.cell.raw||'');
+            if (v.startsWith('✓'))      data.cell.styles.textColor = Cgreen;
+            else if (v.startsWith('✗')) data.cell.styles.textColor = Cred;
+            else                        data.cell.styles.textColor = [100,100,100];
+          }
+        }
+      },
+      margin: { left:14, right:14 },
+    });
+
+    // Insight ejecutivo final
+    const fy4 = (doc as any).lastAutoTable.finalY + 8;
+    if (fy4 < H-30) {
+      doc.setFillColor(...Cdark); doc.roundedRect(14, fy4, W-28, 20, 3, 3, 'F');
+      doc.setFillColor(...CtealM); doc.rect(14, fy4, 3, 20, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...CtealM);
+      doc.text('INSIGHT EJECUTIVO', 21, fy4+7);
+      const topCatLbl = byCategory[0] ? CATEGORIES.find(c=>c.id===byCategory[0].cat)?.label||byCategory[0].cat : '';
+      const insightTxt = avgMg>=20
+        ? `Negocio con márgenes saludables (${avgMg.toFixed(1)}% promedio). Mejor mes: ${bestM.mes} con ${fmt(bestM.utilidad)} de utilidad.${topCatLbl?' Optimizar '+topCatLbl+' puede mejorar aún más el margen.':''}`
+        : avgMg>=0
+        ? `Márgenes ajustados (${avgMg.toFixed(1)}% promedio). Meta: superar ${(avgMg+5).toFixed(0)}%.${topCatLbl?' La categoría de mayor impacto es '+topCatLbl+'.':''}`
+        : `Período con déficit. Revisa los gastos fijos y busca aumentar el volumen de ventas para cubrir costos operativos.`;
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(190,215,215);
+      const iLines = doc.splitTextToSize(insightTxt, W-48);
+      doc.text(iLines, 21, fy4+13.5);
     }
 
-    // ── Footer en todas las páginas ───────────────────────────────────────
+    // ── Footer todas las páginas ──────────────────────────────────────────
     const pageCount = (doc as any).internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFillColor(...teal);
-      doc.rect(0, H - 10, W, 10, 'F');
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.setTextColor(...white);
-      doc.text(`Generado por BayUP • bayup.com.co • ${new Date().toLocaleDateString('es-CO')}`, 14, H - 3.5);
-      doc.text(`Pág. ${i} / ${pageCount}`, W - 14, H - 3.5, { align: 'right' });
-    }
+    for (let i=1; i<=pageCount; i++) { doc.setPage(i); pageFooter(); }
 
-    doc.save(`gastos_${monthName.toLowerCase()}_${periodYear}.pdf`);
+    doc.save(`bayup-finanzas-${monthName.toLowerCase()}-${periodYear}.pdf`);
     setShowExportMenu(false);
-    showToast('PDF generado ✓', 'success');
+    showToast('PDF financiero generado ✓', 'success');
   };
-
   const tabs = [
     { id: 'resumen',       label: 'Resumen' },
     { id: 'gastos',        label: 'Gastos' },

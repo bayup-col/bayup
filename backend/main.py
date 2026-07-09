@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -222,6 +222,27 @@ async def security_headers_middleware(request: Request, call_next):
     )
     return response
 
+@app.get("/")
+def read_root():
+    # Liveness simple: Render usa esta ruta como healthcheck por defecto.
+    # No verifica la DB a proposito, para no reiniciar el servicio por un hiccup pasajero.
+    return {"status": "Active", "version": "2.1 Platinum Production"}
+
+@app.get("/health")
+@limiter.limit("30/minute")
+def health_check(request: Request):
+    """Readiness real: confirma que la conexion a la base de datos funciona."""
+    from sqlalchemy import text
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        db.execute(text("SELECT 1"))
+        return {"status": "ok", "database": "connected"}
+    except Exception as e:
+        logger.error("Health check DB failed: %s", e)
+        raise HTTPException(status_code=503, detail="Base de datos no disponible")
+    finally:
+        db.close()
 
 # ── Routers refactorizados (patrón Depends — sin SessionLocal manual) ─────
 from routers import notifications as _r_notif, collections as _r_col, shipments as _r_ship
@@ -256,4 +277,15 @@ app.include_router(_r_public.router)
 app.include_router(_r_payments.router)
 app.include_router(_r_liq.router)
 
-# ── Roadmap / Novedades ───────────────────────────────────────────────────
+# Compatibilidad: el frontend llama a /onboarding/complete (sin prefijo /admin)
+from fastapi import Depends as _Depends
+from sqlalchemy.orm import Session as _Session
+from database import get_db as _get_db
+from deps import current_user as _current_user
+
+@app.post("/onboarding/complete")
+async def complete_onboarding(request: Request, payload: _r_admin.OnboardingCompleteRequest | None = None, db: _Session = _Depends(_get_db), user=_Depends(_current_user)):
+    target = _r_admin._resolve_target(db, user, payload.target_user_id if payload else None)
+    target.onboarding_completed = True
+    db.commit()
+    return {"ok": True}

@@ -412,14 +412,6 @@ class OnboardingCompleteRequest(BaseModel):
     target_user_id: str | None = None
 
 
-@router.post("/onboarding-complete")
-async def complete_onboarding(request: Request, payload: OnboardingCompleteRequest | None = None, db: Session = Depends(get_db), user=Depends(current_user)):
-    target = _resolve_target(db, user, payload.target_user_id if payload else None)
-    target.onboarding_completed = True
-    db.commit()
-    return {"ok": True}
-
-
 @router.post("/upload-image")
 async def upload_image(request: Request, file: UploadFile = File(...), db: Session = Depends(get_db), user=Depends(current_user)):
     import s3_service

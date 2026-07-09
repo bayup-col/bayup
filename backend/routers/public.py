@@ -199,6 +199,40 @@ def create_public_order(request: Request, payload: PublicOrderCreateRequest, db:
     return schemas.Order.model_validate(db_order).model_dump(mode="json")
 
 
+@router.get("/public/orders/{order_id}")
+async def public_order_tracking(order_id: str, db: Session = Depends(get_db)):
+    """Tracking público de un pedido web, sin autenticación (usado por /pedido/[id])."""
+    try:
+        oid = _uuid.UUID(order_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+    order = db.query(models.Order).filter(models.Order.id == oid).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+    tenant = db.query(models.User).filter(models.User.id == order.tenant_id).first()
+    shop_name = (tenant.full_name or tenant.shop_slug or "Tienda") if tenant else "Tienda"
+    items = []
+    for item in order.items:
+        variant = db.query(models.ProductVariant).filter(models.ProductVariant.id == item.product_variant_id).first()
+        product = db.query(models.Product).filter(models.Product.id == variant.product_id).first() if variant else None
+        iname = (product.name if product else "Producto") + (f" — {variant.name}" if variant and variant.name else "")
+        items.append({"name": iname, "qty": item.quantity, "price": float(item.price_at_purchase)})
+    return {
+        "id":              str(order.id),
+        "short_id":        str(order.id)[:8].upper(),
+        "status":          order.status,
+        "source":          order.source or "web",
+        "customer_name":   order.customer_name,
+        "customer_city":   order.customer_city,
+        "total":           float(order.total_price),
+        "payment_method":  order.payment_method,
+        "created_at":      order.created_at.isoformat() if order.created_at else None,
+        "shop_name":       shop_name,
+        "shop_slug":       tenant.shop_slug if tenant else None,
+        "items":           items,
+    }
+
+
 @router.get("/public/shop-info/{slug}")
 @limiter.limit("60/minute")
 async def get_public_shop_info(request: Request, slug: str, db: Session = Depends(get_db)):
