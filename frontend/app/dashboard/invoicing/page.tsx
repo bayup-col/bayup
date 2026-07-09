@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
 import { motion, AnimatePresence } from 'framer-motion';
@@ -142,6 +143,9 @@ export default function InvoicingPage() {
   const [selectedProductForVariant, setSelectedProductForVariant] = useState<Product | null>(null);
   const [selectedVariants,          setSelectedVariants]          = useState<Record<string, any>>({});
   const [tempPrice,                 setTempPrice]                 = useState(0);
+  const [tempQty,                   setTempQty]                   = useState(1);
+  const [mounted,                   setMounted]                   = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   const [currentImageIndex,         setCurrentImageIndex]         = useState(0);
   const [quickVariant,              setQuickVariant]              = useState({ name: '', sku: '' });
   const [isCreatingQuickVariant,    setIsCreatingQuickVariant]    = useState(false);
@@ -346,7 +350,7 @@ export default function InvoicingPage() {
     finally { setIsCreatingQuickVariant(false); }
   };
 
-  const addToCart = (product: Product, variantsMap?: Record<string, any>, customPrice?: number) => {
+  const addToCart = (product: Product, variantsMap?: Record<string, any>, customPrice?: number, qty = 1) => {
     const selections = variantsMap && Object.keys(variantsMap).length > 0 ? Object.values(variantsMap) : [];
     const variantDesc = selections.length > 0 ? selections.map(v => `${v.name}: ${v.sku}`).join(' / ') : 'Base';
     const finalPrice = customPrice !== undefined
@@ -369,7 +373,7 @@ export default function InvoicingPage() {
       variant_id: primaryVariantId,
       name: selections.length === 0 ? product.name : `${product.name} (${variantDesc})`,
       price: finalPrice,
-      quantity: 1,
+      quantity: qty,
       maxStock,
       sku: selections.length > 0 ? selections.map(s => s.sku).join('-') : product.sku,
       image: selections.length > 0 ? (selections.find(s => s.image_url)?.image_url || mainImg) : mainImg
@@ -389,6 +393,7 @@ export default function InvoicingPage() {
     const base = customerInfo.type === 'mayorista' && (product.wholesale_price || 0) > 0 ? product.wholesale_price : product.price;
     const adjust = Object.values(initial).reduce((acc, v) => acc + (v.price_adjustment || 0), 0);
     setTempPrice((base || 0) + adjust);
+    setTempQty(1);
     setCurrentImageIndex(0);
   };
 
@@ -423,7 +428,22 @@ export default function InvoicingPage() {
       if (res) {
         showToast("Venta exitosa 🚀", "success");
         const { generateInvoicePDF } = await import('@/lib/report-generator');
+        // Genera y descarga el PDF localmente
         await generateInvoicePDF({ company: companyData, order: res, customer: customerInfo });
+        // Si hay email, genera base64 y envía al cliente por correo
+        if (customerInfo.email) {
+          try {
+            const pdfBase64 = await generateInvoicePDF({
+              company: companyData, order: res, customer: customerInfo, returnBase64: true,
+            }) as string;
+            if (pdfBase64) {
+              await apiRequest(`/orders/${res.id}/attach-invoice`, {
+                method: 'POST', token,
+                body: JSON.stringify({ pdf_base64: pdfBase64, customer_email: customerInfo.email }),
+              });
+            }
+          } catch { /* silencioso — el PDF local ya se descargó */ }
+        }
         if (customerInfo.phone)
           window.open(`https://wa.me/57${customerInfo.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Factura #${String(res.id).slice(-4).toUpperCase()} de ${companyData?.full_name}: $${calculateSubtotal().toLocaleString()}`)}`, '_blank');
         setInvoiceItems([]); setIsPOSActive(false); loadData();
@@ -1192,7 +1212,8 @@ export default function InvoicingPage() {
         )}
       </AnimatePresence>
 
-      {/* ══ MODAL — Selección de variante ══ */}
+      {/* ══ MODAL — Selección de variante (portal) ══ */}
+      {mounted && createPortal(
       <AnimatePresence>
         {selectedProductForVariant && (
           <>
@@ -1205,71 +1226,161 @@ export default function InvoicingPage() {
               transition={{ duration: 0.2, ease: [0.16,1,0.3,1] }}
               className="fixed inset-0 flex items-center justify-center p-4 pointer-events-none"
               style={{ zIndex: 9999 }}>
-              <div className="w-full max-w-2xl bg-white rounded-[2rem] shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[85vh] pointer-events-auto">
+              <div className="w-full max-w-md bg-white shadow-2xl overflow-hidden flex flex-col max-h-[94vh] pointer-events-auto" style={{ borderRadius: '28px' }}>
 
-                {/* Imagen */}
-                <div className="w-full md:w-52 shrink-0 bg-gray-50 flex flex-col p-4 gap-3 border-r border-gray-100">
-                  <div className="flex-1 rounded-2xl overflow-hidden bg-white flex items-center justify-center min-h-40">
-                    {(() => {
-                      const img = Array.isArray(selectedProductForVariant.image_url) && selectedProductForVariant.image_url.length > 0
-                        ? selectedProductForVariant.image_url[currentImageIndex]
-                        : (typeof selectedProductForVariant.image_url === 'string' ? selectedProductForVariant.image_url : null);
-                      return img
-                        ? <img src={img} className="w-full h-full object-cover" alt="Product"/>
-                        : <Package size={48} className="text-gray-200"/>;
-                    })()}
-                  </div>
-                  {Array.isArray(selectedProductForVariant.image_url) && selectedProductForVariant.image_url.length > 1 && (
-                    <div className="flex gap-1.5 overflow-x-auto">
-                      {selectedProductForVariant.image_url.map((url: string, i: number) => (
-                        <button key={i} onClick={() => setCurrentImageIndex(i)}
-                          className={`h-10 w-10 rounded-lg overflow-hidden shrink-0 border-2 transition-all ${currentImageIndex === i ? 'border-[#004d4d]' : 'border-transparent opacity-50'}`}>
-                          <img src={url} className="w-full h-full object-cover"/>
-                        </button>
-                      ))}
+                {/* Zona imagen con gradiente inferior y controles superpuestos */}
+                {(() => {
+                  const imgSrc = Array.isArray(selectedProductForVariant.image_url) && selectedProductForVariant.image_url.length > 0
+                    ? selectedProductForVariant.image_url[currentImageIndex]
+                    : (typeof selectedProductForVariant.image_url === 'string' && selectedProductForVariant.image_url ? selectedProductForVariant.image_url : null);
+                  return (
+                    <div className="relative shrink-0 overflow-hidden" style={{ height: '280px', borderRadius: '28px 28px 0 0', background: imgSrc ? '#f3f4f6' : 'linear-gradient(135deg,#e8faf9,#f0fdf4)' }}>
+                      {imgSrc ? (
+                        <img src={imgSrc} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={selectedProductForVariant.name}/>
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+                          <div className="w-16 h-16 rounded-2xl bg-[#004d4d]/10 flex items-center justify-center">
+                            <Package size={32} className="text-[#004d4d]/40"/>
+                          </div>
+                          <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Sin imagen</span>
+                        </div>
+                      )}
+                      {/* Gradiente inferior sobre imagen */}
+                      {imgSrc && (
+                        <div className="absolute inset-x-0 bottom-0 h-24" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 100%)' }}/>
+                      )}
+                      {/* Botón cerrar */}
+                      <button onClick={() => setSelectedProductForVariant(null)}
+                        className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center transition-all"
+                        style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)' }}>
+                        <X size={15} className="text-gray-600"/>
+                      </button>
+                      {/* Badge categoría */}
+                      {selectedProductForVariant.category && (
+                        <span className="absolute top-4 left-4 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full"
+                          style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)', color: '#004d4d' }}>
+                          {selectedProductForVariant.category}
+                        </span>
+                      )}
+                      {/* Nombre encima del gradiente */}
+                      {imgSrc && (
+                        <div className="absolute bottom-0 left-0 right-0 px-5 pb-4">
+                          <h3 className="text-white font-black text-lg leading-tight drop-shadow-sm">{selectedProductForVariant.name}</h3>
+                          {selectedProductForVariant.description && (
+                            <p className="text-white/70 text-[11px] mt-0.5 line-clamp-1">{selectedProductForVariant.description}</p>
+                          )}
+                        </div>
+                      )}
+                      {/* Puntitos para múltiples imágenes */}
+                      {Array.isArray(selectedProductForVariant.image_url) && selectedProductForVariant.image_url.length > 1 && (
+                        <div className="absolute bottom-3 right-4 flex gap-1">
+                          {selectedProductForVariant.image_url.map((_: string, i: number) => (
+                            <button key={i} onClick={() => setCurrentImageIndex(i)}
+                              className={`h-1.5 rounded-full transition-all ${currentImageIndex === i ? 'bg-white w-4' : 'bg-white/40 w-1.5'}`}/>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  );
+                })()}
 
                 {/* Detalles */}
-                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
-                  <div>
-                    <span className="text-[8px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{selectedProductForVariant.category}</span>
-                    <h3 className="text-lg font-black text-gray-900 mt-2 leading-tight">{selectedProductForVariant.name}</h3>
-                    {selectedProductForVariant.description && (
-                      <p className="text-[11px] text-gray-500 mt-1 line-clamp-2">{selectedProductForVariant.description}</p>
-                    )}
-                  </div>
+                <div className="flex-1 overflow-y-auto flex flex-col" style={{ padding: '20px 20px 8px' }}>
 
-                  {/* Variantes */}
-                  {selectedProductForVariant.variants && selectedProductForVariant.variants.length > 0 ? (
-                    <div className="space-y-2">
-                      <label className="text-[9px] font-black text-[#004d4d] uppercase tracking-widest">Selecciona variante</label>
-                      <div className="flex flex-col gap-2">
-                        {selectedProductForVariant.variants.map(v => {
-                          const outOfStock = (v.stock ?? 0) <= 0;
-                          const isSelected = selectedVariants['variant']?.id === v.id;
+                  {/* Nombre si no hay imagen */}
+                  {!(Array.isArray(selectedProductForVariant.image_url) ? selectedProductForVariant.image_url.length > 0 : !!selectedProductForVariant.image_url) && (
+                    <div className="mb-4">
+                      <h3 className="text-lg font-black text-gray-900 leading-tight">{selectedProductForVariant.name}</h3>
+                      {selectedProductForVariant.description && (
+                        <p className="text-[11px] text-gray-400 mt-1 line-clamp-2">{selectedProductForVariant.description}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Variantes agrupadas por atributo */}
+                  {selectedProductForVariant.variants && selectedProductForVariant.variants.length > 0 ? (() => {
+                    // Parsear atributo y valor: "Talla / L" → attr="Talla", val="L"
+                    // Si no hay "/", usar v.name como attr y v.sku como val
+                    const parseVariant = (v: any): { attr: string; val: string } => {
+                      if (v.name && v.name.includes('/')) {
+                        const parts = v.name.split('/').map((s: string) => s.trim());
+                        return { attr: parts[0], val: parts.slice(1).join(' / ') };
+                      }
+                      return { attr: v.name || 'Variante', val: v.sku || v.name || '—' };
+                    };
+                    // Agrupar
+                    const groups: Record<string, Array<{ v: any; val: string }>> = {};
+                    selectedProductForVariant.variants.forEach((v: any) => {
+                      const { attr, val } = parseVariant(v);
+                      if (!groups[attr]) groups[attr] = [];
+                      groups[attr].push({ v, val });
+                    });
+                    const attrs = Object.keys(groups);
+                    return (
+                      <div className="mb-4 flex flex-col gap-3">
+                        {attrs.map(attr => {
+                          const options = groups[attr];
+                          // La selección se guarda con la key = attr original del nombre completo
+                          // Buscar si alguna opción de este grupo está seleccionada
+                          const selectedEntry = options.find(({ v }) => {
+                            const sv = selectedVariants[v.name] || selectedVariants[attr];
+                            return sv && (sv.id ? sv.id === v.id : sv.sku === v.sku && sv.name === v.name);
+                          });
                           return (
-                            <button key={v.id}
-                              disabled={outOfStock}
-                              onClick={() => {
-                                const ns = { variant: v };
-                                setSelectedVariants(ns);
-                                const base = customerInfo.type === 'mayorista' && (selectedProductForVariant.wholesale_price || 0) > 0 ? selectedProductForVariant.wholesale_price : selectedProductForVariant.price;
-                                setTempPrice((base || 0) + (v.price_adjustment || 0));
-                              }}
-                              className={`flex items-center justify-between px-4 py-2.5 rounded-xl border-2 text-left transition-all ${isSelected ? 'bg-[#004d4d] border-[#004d4d] text-white' : outOfStock ? 'opacity-35 cursor-not-allowed bg-gray-50 border-gray-100 text-gray-400' : 'bg-white border-gray-200 text-gray-700 hover:border-[#004d4d]/40'}`}>
-                              <span className="text-[11px] font-black">{v.name || v.sku || 'Variante'}</span>
-                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${isSelected ? 'bg-white/20 text-white' : outOfStock ? 'bg-gray-200 text-gray-400' : 'bg-emerald-50 text-emerald-600'}`}>
-                                {outOfStock ? 'Agotado' : `${v.stock} en stock`}
-                              </span>
-                            </button>
+                            <div key={attr}>
+                              <div className="flex items-center justify-between mb-2">
+                                <label className="text-[9px] font-black text-[#004d4d] uppercase tracking-widest">{attr}</label>
+                                {selectedEntry && (
+                                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${(selectedEntry.v.stock ?? 0) <= 0 ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-600'}`}>
+                                    {(selectedEntry.v.stock ?? 0) <= 0 ? 'Agotado' : `${selectedEntry.v.stock} en stock`}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {options.map(({ v, val }) => {
+                                  const outOfStock = (v.stock ?? 0) <= 0;
+                                  const isSelected = selectedEntry?.v === v ||
+                                    (selectedEntry?.v.id ? selectedEntry.v.id === v.id : selectedEntry?.v.sku === v.sku && selectedEntry?.v.name === v.name);
+                                  return (
+                                    <button key={v.id || v.sku || val}
+                                      disabled={outOfStock}
+                                      onClick={() => {
+                                        // Guardar con la key del nombre completo original (v.name) para compatibilidad con addToCart
+                                        const updated = { ...selectedVariants };
+                                        // Eliminar selecciones previas del mismo attr
+                                        options.forEach(({ v: ov }) => { delete updated[ov.name]; });
+                                        updated[v.name] = v;
+                                        setSelectedVariants(updated);
+                                        const base = customerInfo.type === 'mayorista' && (selectedProductForVariant.wholesale_price || 0) > 0
+                                          ? selectedProductForVariant.wholesale_price : selectedProductForVariant.price;
+                                        const totalAdj = Object.values(updated).reduce((acc: number, sv: any) => acc + (sv.price_adjustment || 0), 0);
+                                        setTempPrice((base || 0) + totalAdj);
+                                      }}
+                                      className="transition-all"
+                                      style={{
+                                        padding: '7px 16px',
+                                        borderRadius: '10px',
+                                        fontSize: '12px',
+                                        fontWeight: 700,
+                                        border: `2px solid ${isSelected ? '#004d4d' : outOfStock ? '#e5e7eb' : '#d1d5db'}`,
+                                        background: isSelected ? '#004d4d' : outOfStock ? '#f9fafb' : '#ffffff',
+                                        color: isSelected ? '#ffffff' : outOfStock ? '#9ca3af' : '#374151',
+                                        opacity: outOfStock ? 0.5 : 1,
+                                        cursor: outOfStock ? 'not-allowed' : 'pointer',
+                                        textDecoration: outOfStock ? 'line-through' : 'none',
+                                      }}>
+                                      {val}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
                           );
                         })}
                       </div>
-                    </div>
-                  ) : (
-                    <div className="p-4 bg-gray-50 rounded-2xl border border-dashed border-gray-200 space-y-3">
+                    );
+                  })() : (
+                    <div className="mb-4 p-4 rounded-2xl border border-dashed border-gray-200 space-y-3" style={{ background: '#f9fafb' }}>
                       <p className="text-[10px] font-black text-[#004d4d] uppercase">Sin variantes — crea una rápida</p>
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
@@ -1292,23 +1403,56 @@ export default function InvoicingPage() {
                     </div>
                   )}
 
-                  {/* Precio editable + CTA */}
-                  <div className="mt-auto space-y-3 pt-4 border-t border-gray-100">
-                    <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Precio editable</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500 font-black text-lg">$</span>
-                        <input type="text" value={tempPrice.toLocaleString('de-DE')}
-                          onChange={e => setTempPrice(Number(e.target.value.replace(/\D/g, '')))}
-                          className="w-full pl-8 pr-4 h-12 bg-emerald-50 border-2 border-emerald-100 focus:border-emerald-300 rounded-2xl outline-none text-xl font-black text-emerald-700 transition-all"/>
+                  {/* Precio + Cantidad + CTA */}
+                  <div className="mt-auto pt-3" style={{ borderTop: '1px solid #f0f0f0' }}>
+                    {/* Fila precio + cantidad */}
+                    <div className="flex gap-3 mb-4">
+                      {/* Precio editable */}
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Precio unit.</span>
+                          <span className="text-[8px] font-bold text-gray-300">editable</span>
+                        </div>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#00a896] font-black text-lg leading-none">$</span>
+                          <input type="text" value={tempPrice.toLocaleString('de-DE')}
+                            onChange={e => setTempPrice(Number(e.target.value.replace(/\D/g, '')))}
+                            className="w-full outline-none transition-all"
+                            style={{ paddingLeft: '28px', paddingRight: '10px', height: '48px', background: 'linear-gradient(135deg, #e8faf9, #f0fdf4)', border: '2px solid #b2f0ea', borderRadius: '14px', fontSize: '18px', fontWeight: 900, color: '#004d4d' }}/>
+                        </div>
+                      </div>
+                      {/* Cantidad */}
+                      <div className="shrink-0">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Cant.</span>
+                        </div>
+                        <div className="flex items-center gap-0 h-[48px] rounded-[14px] overflow-hidden" style={{ border: '2px solid #e5e7eb' }}>
+                          <button onClick={() => setTempQty(q => Math.max(1, q - 1))}
+                            className="w-10 h-full flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors font-black text-lg">
+                            −
+                          </button>
+                          <span className="w-9 text-center font-black text-[15px] text-gray-800">{tempQty}</span>
+                          <button onClick={() => setTempQty(q => q + 1)}
+                            className="w-10 h-full flex items-center justify-center text-[#004d4d] hover:bg-[#004d4d]/5 transition-colors font-black text-lg">
+                            +
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <button onClick={() => addToCart(selectedProductForVariant, selectedVariants, tempPrice)}
-                      className="w-full h-11 bg-[#001a1a] hover:bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg">
-                      <ShoppingCart size={14}/> Agregar a la factura
+                    {/* Total si qty > 1 */}
+                    {tempQty > 1 && (
+                      <div className="flex items-center justify-between mb-3 px-1">
+                        <span className="text-[10px] text-gray-400">{tempQty} unidades × ${tempPrice.toLocaleString('de-DE')}</span>
+                        <span className="text-[13px] font-black text-[#004d4d]">${(tempPrice * tempQty).toLocaleString('de-DE')}</span>
+                      </div>
+                    )}
+                    <button onClick={() => addToCart(selectedProductForVariant, selectedVariants, tempPrice, tempQty)}
+                      className="w-full flex items-center justify-center gap-2.5 font-black text-[11px] uppercase tracking-widest text-white transition-all"
+                      style={{ height: '52px', borderRadius: '16px', background: 'linear-gradient(135deg, #003333, #004d4d)', boxShadow: '0 8px 24px rgba(0,77,77,0.35)' }}>
+                      <ShoppingCart size={15}/> Agregar a la factura
                     </button>
                     <button onClick={() => setSelectedProductForVariant(null)}
-                      className="w-full text-[9px] font-black uppercase text-gray-300 hover:text-rose-400 transition-colors tracking-widest text-center">
+                      className="w-full text-[9px] font-bold uppercase text-gray-300 hover:text-rose-400 transition-colors tracking-widest text-center mt-3 mb-1">
                       Cancelar
                     </button>
                   </div>
@@ -1318,6 +1462,7 @@ export default function InvoicingPage() {
           </>
         )}
       </AnimatePresence>
+      , document.body)}
 
       <MetricDetailModal isOpen={!!selectedMetric} onClose={() => setSelectedMetric(null)} metric={selectedMetric}/>
     </div>

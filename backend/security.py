@@ -75,16 +75,18 @@ async def get_current_user(
     db: Session = Depends(get_db),
 ) -> models.User:
     """Autentica desde cookie httpOnly OR header Authorization (CRIT-004, dual mode).
-    Prioridad: cookie bayup_access_token > Bearer token en Authorization header."""
+    Prioridad: Bearer token en Authorization header > cookie bayup_access_token.
+    Esto permite la impersonación: el super admin envía el Bearer token de la empresa
+    mientras su cookie sigue activa — el Bearer gana para que la sesión cambie."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    # CRIT-004: leer cookie httpOnly primero; si no hay, usar Bearer del header
+    # Bearer header tiene prioridad; si no hay, caer al cookie httpOnly (p.ej. refresh flow)
     cookie_token = request.cookies.get("bayup_access_token")
-    actual_token = cookie_token or token
+    actual_token = token or cookie_token
     if not actual_token:
         raise credentials_exception
 

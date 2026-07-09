@@ -44,7 +44,7 @@ function Avatar({ name, size = 8 }: { name: string; size?: number }) {
 }
 
 export default function EmpresasPage() {
-  const { token }     = useAuth();
+  const { token, login, userEmail, userName, userRole, userPermissions, userPlan, shopSlug, userLogo, userNit, userAddress, onboardingCompleted, userStatus } = useAuth();
   const { showToast } = useToast();
   const router = useRouter();
   const [companies,  setCompanies]  = useState<Company[]>([]);
@@ -58,6 +58,38 @@ export default function EmpresasPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletePagesTarget, setDeletePagesTarget] = useState<Company | null>(null);
   const [isDeletingPages, setIsDeletingPages] = useState(false);
+  const [isImpersonating, setIsImpersonating] = useState(false);
+
+  const handleImpersonate = useCallback(async (company: Company) => {
+    if (!token) return;
+    setIsImpersonating(true);
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
+      const res = await fetch(`${base}/super-admin/impersonate/${company.id}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) { showToast('No se pudo acceder como empresa', 'error'); return; }
+      const data = await res.json();
+      // Guardar sesión original del admin para poder volver
+      sessionStorage.setItem('original_admin_session', JSON.stringify({
+        token, email: userEmail, role: userRole, permissions: userPermissions,
+        plan: userPlan, shopSlug, logo: userLogo, name: userName,
+        nit: userNit, address: userAddress,
+        onboardingCompleted, status: userStatus,
+      }));
+      sessionStorage.setItem('impersonating_as', company.full_name || company.email);
+      const u = data.user;
+      login(data.access_token, u.email, u.role, u.permissions, u.plan,
+        false, u.shop_slug, u.full_name, u.logo_url, u.nit, u.address,
+        u.onboarding_completed, u.status);
+      router.push('/dashboard');
+    } catch {
+      showToast('Error al acceder como empresa', 'error');
+    } finally {
+      setIsImpersonating(false);
+    }
+  }, [token, login, userEmail, userName, userRole, userPermissions, userPlan, shopSlug, userLogo, userNit, userAddress, onboardingCompleted, userStatus, showToast, router]);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -368,9 +400,10 @@ export default function EmpresasPage() {
                 {/* Cuenta */}
                 <div className="space-y-2">
                   <p className="text-[8px] font-bold text-white/15 uppercase tracking-[0.2em]">Cuenta</p>
-                  <button onClick={() => { showToast(`Accediendo como ${selected.full_name}`, 'success'); window.open('/dashboard','_blank'); }}
-                    className="w-full h-10 rounded-2xl bg-[#00f2ff]/8 hover:bg-[#00f2ff]/15 border border-[#00f2ff]/15 hover:border-[#00f2ff]/30 text-[#00f2ff]/70 hover:text-[#00f2ff] font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
-                    <Eye size={12}/> Acceder como empresa
+                  <button onClick={() => handleImpersonate(selected)} disabled={isImpersonating}
+                    className="w-full h-10 rounded-2xl bg-[#00f2ff]/8 hover:bg-[#00f2ff]/15 border border-[#00f2ff]/15 hover:border-[#00f2ff]/30 text-[#00f2ff]/70 hover:text-[#00f2ff] font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all disabled:opacity-50">
+                    {isImpersonating ? <Loader2 size={12} className="animate-spin"/> : <Eye size={12}/>}
+                    {isImpersonating ? 'Accediendo...' : 'Acceder como empresa'}
                   </button>
                   <button onClick={() => toggle(selected)} disabled={isToggling}
                     className={`w-full h-10 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border disabled:opacity-50 ${
