@@ -88,6 +88,34 @@ def send_invoice_attachment(email: str, name: str, order_id: str, shop_name: str
         html, f"Factura_{short_id}_{shop_name.replace(' ','_')}.pdf", pdf_base64,
     )
 
+def send_web_order_invoice(
+    email: str, name: str, order_id: str,
+    shop_name: str, shop_email: str, shop_phone: str,
+    customer_phone: str, customer_city: str,
+    items: list, total: float, payment_method: str,
+    created_at_iso: str | None = None,
+) -> bool:
+    """Genera la factura PDF en el servidor y la envía adjunta. Encolable."""
+    import invoice_generator as _ig
+    import datetime as _dt
+    created_at = None
+    if created_at_iso:
+        try:
+            created_at = _dt.datetime.fromisoformat(created_at_iso)
+        except Exception:
+            pass
+    pdf_b64 = _ig.generate_invoice_base64(
+        order_id=order_id, shop_name=shop_name, shop_email=shop_email,
+        shop_phone=shop_phone, shop_city="", customer_name=name,
+        customer_email=email, customer_phone=customer_phone,
+        customer_city=customer_city, items=items, total=total,
+        payment_method=payment_method, created_at=created_at,
+    )
+    return send_invoice_attachment(
+        email=email, name=name, order_id=order_id,
+        shop_name=shop_name, pdf_base64=pdf_b64,
+    )
+
 def _send(to: str, subject: str, content: str) -> bool:
     html = _BASE_STYLE.format(content=content)
     if not _RESEND_API_KEY:

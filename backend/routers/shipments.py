@@ -94,7 +94,7 @@ async def update_shipment(
         history = list(getattr(ship, "history", []) or [])
         history.append({
             "status": payload.status,
-            "date": _dt.datetime.utcnow().isoformat(),
+            "date": _dt.datetime.now(_dt.timezone.utc).isoformat(),
             "note": payload.notes or "",
         })
         ship.history = history
@@ -114,6 +114,6 @@ async def update_shipment(
         except ValueError:
             pass
 
-    ship.updated_at = _dt.datetime.utcnow()
+    ship.updated_at = _dt.datetime.now(_dt.timezone.utc)
     db.commit()
     return {"ok": True, "id": str(ship.id), "status": ship.status}

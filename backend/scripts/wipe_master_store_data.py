@@ -39,10 +39,10 @@ def wipe():
 
         for label, sql in steps:
             result = db.execute(text(sql))
-            print(f"  ✓ {label}: {result.rowcount} registros eliminados")
+            print(f"  OK {label}: {result.rowcount} registros eliminados")
 
         db.commit()
-        print("\n✅ Limpieza completada. El store queda en cero, la cuenta intacta.")
+        print("\nLIMPIEZA COMPLETADA. El store queda en cero, la cuenta intacta.")
 
     except Exception as e:
         db.rollback()
@@ -52,8 +52,8 @@ def wipe():
         db.close()
 
 if __name__ == "__main__":
-    confirm = input(f"\n⚠️  Esto borrará TODOS los datos de prueba de {MASTER_EMAIL}.\nEscribe 'CONFIRMAR' para continuar: ")
+    confirm = input(f"\nATENCION: Esto borrara TODOS los datos de prueba de {MASTER_EMAIL}.\nEscribe CONFIRMAR para continuar: ")
     if confirm.strip() == "CONFIRMAR":
         wipe()
     else:
-        print("Operación cancelada.")
+        print("Operacion cancelada.")

@@ -4,13 +4,12 @@ import models
 import uuid
 
 
-def _create_product(db, tenant_id):
+def _create_product(db, tenant_id, stock=10):
     product = models.Product(
         owner_id=tenant_id,
         name="Producto Test",
         description="desc",
         price=50000,
-        stock=10,
     )
     db.add(product)
     db.commit()
@@ -19,7 +18,7 @@ def _create_product(db, tenant_id):
         product_id=product.id,
         name="Única",
         price=50000,
-        stock=10,
+        stock=stock,
     )
     db.add(variant)
     db.commit()
@@ -30,6 +29,7 @@ def _create_product(db, tenant_id):
 def test_crear_orden_pos(client, db_session, tenant_user, tenant_token):
     product, variant = _create_product(db_session, tenant_user.id)
     payload = {
+        "total_price": 100000,
         "customer_name": "Juan Pérez",
         "customer_email": "",
         "customer_phone": "3001234567",
@@ -47,20 +47,10 @@ def test_crear_orden_pos(client, db_session, tenant_user, tenant_token):
 
 
 def test_crear_orden_sin_stock(client, db_session, tenant_user, tenant_token):
-    product = models.Product(
-        owner_id=tenant_user.id, name="Sin Stock", description="", price=10000, stock=0
-    )
-    db_session.add(product)
-    db_session.commit()
-    db_session.refresh(product)
-    variant = models.ProductVariant(
-        product_id=product.id, name="Única", price=10000, stock=0
-    )
-    db_session.add(variant)
-    db_session.commit()
-    db_session.refresh(variant)
+    product, variant = _create_product(db_session, tenant_user.id, stock=0)
 
     payload = {
+        "total_price": 10000,
         "customer_name": "Ana",
         "items": [{"product_variant_id": str(variant.id), "quantity": 1, "price_at_purchase": 10000}],
     }
