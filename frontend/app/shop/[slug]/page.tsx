@@ -156,6 +156,18 @@ function ShopContent() {
         return fallback;
     };
 
+    // El script del widget de Wompi carga en paralelo (async) — si el backend
+    // responde muy rápido, puede que aún no esté listo. Esperamos un poco
+    // antes de rendirnos, en vez de fallar de inmediato.
+    const waitForWompiScript = async (maxWaitMs = 6000): Promise<boolean> => {
+        const start = Date.now();
+        while (typeof window.WidgetCheckout !== 'function') {
+            if (Date.now() - start > maxWaitMs) return false;
+            await new Promise(r => setTimeout(r, 150));
+        }
+        return true;
+    };
+
     // Espera a que el backend confirme el pago vía webhook (única fuente de verdad).
     // El navegador nunca marca un pago como aprobado por su cuenta.
     const waitForPaymentConfirmation = async (apiBase: string, paymentId: string, maxTries = 10): Promise<any> => {
@@ -225,7 +237,10 @@ function ShopContent() {
             }
 
             if (typeof window.WidgetCheckout !== 'function') {
-                throw new Error('La pasarela de pago aún está cargando. Espera un segundo e intenta de nuevo.');
+                const ready = await waitForWompiScript();
+                if (!ready) {
+                    throw new Error('La pasarela de pago tardó demasiado en cargar. Recarga la página e intenta de nuevo.');
+                }
             }
 
             const checkout = new window.WidgetCheckout({

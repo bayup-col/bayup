@@ -55,6 +55,18 @@ export default function CheckoutPage() {
     };
   }, []);
 
+  // El script del widget de Wompi carga en paralelo (async) — si el backend
+  // responde muy rápido, puede que aún no esté listo. Esperamos un poco
+  // antes de rendirnos, en vez de fallar de inmediato.
+  const waitForWompiScript = async (maxWaitMs = 6000): Promise<boolean> => {
+    const start = Date.now();
+    while (typeof window.WidgetCheckout !== 'function') {
+      if (Date.now() - start > maxWaitMs) return false;
+      await new Promise(r => setTimeout(r, 150));
+    }
+    return true;
+  };
+
   // Espera a que el backend confirme el pago vía webhook (única fuente de verdad).
   // El navegador NUNCA marca un pago como aprobado por su cuenta.
   const waitForPaymentConfirmation = async (apiUrl: string, paymentId: string, maxTries = 10): Promise<any> => {
@@ -93,6 +105,11 @@ export default function CheckoutPage() {
       const config = await res.json();
       if (!config.public_key) throw new Error("Pasarela de pago no disponible en este momento");
 
+      if (typeof window.WidgetCheckout !== 'function') {
+        const ready = await waitForWompiScript();
+        if (!ready) throw new Error('La pasarela de pago tardó demasiado en cargar. Recarga la página e intenta de nuevo.');
+      }
+
       // 2. Abrir el Widget de Wompi con la sesión firmada por el backend
       const checkout = new window.WidgetCheckout({
         currency: config.currency,
@@ -130,9 +147,9 @@ export default function CheckoutPage() {
         setIsProcessing(false);
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Wompi Error:", error);
-      showToast("Error al iniciar el proceso de pago", "error");
+      showToast(error?.message || "Error al iniciar el proceso de pago", "error");
       setIsProcessing(false);
     }
   };
