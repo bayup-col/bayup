@@ -243,12 +243,19 @@ function ShopContent() {
                 }
             }
 
+            // redirectUrl es obligatorio para métodos como transferencia bancaria/PSE:
+            // esos flujos sacan al comprador del sitio para autenticarse con su banco,
+            // por lo que el callback in-page nunca se ejecuta. Sin esto, Wompi lo deja
+            // varado en su propia página de confirmación sin forma de volver a la tienda.
+            const redirectUrl = `${window.location.origin}/pago/confirmando?payment_id=${config.payment_id}&slug=${slug}`;
+
             const checkout = new window.WidgetCheckout({
                 currency: config.currency,
                 amountInCents: config.amount_in_cents,
                 reference: config.reference,
                 publicKey: config.public_key,
                 signature: { integrity: config.signature },
+                redirectUrl,
                 customerData: {
                     email: customerData.email,
                     fullName: customerData.name,
