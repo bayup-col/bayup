@@ -74,6 +74,7 @@ def _sync_postgres_schema() -> None:
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS shipping_policy VARCHAR",
             # payments
             "ALTER TABLE payments ADD COLUMN IF NOT EXISTS idempotency_key VARCHAR(128)",
+            "ALTER TABLE payments ADD COLUMN IF NOT EXISTS order_id UUID",
             # liquidations — tabla añadida post-lanzamiento, creada si no existe
             """CREATE TABLE IF NOT EXISTS liquidations (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

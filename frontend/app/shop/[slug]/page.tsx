@@ -65,6 +65,13 @@ const PREVIEW_DATA = {
     custom_schema: null
 };
 
+// Declaración para el objeto Wompi global que inyecta el script del widget
+declare global {
+    interface Window {
+        WidgetCheckout: any;
+    }
+}
+
 const LEGAL_LABELS: Record<string, string> = {
     terms_conditions: 'Términos y condiciones',
     privacy_policy:   'Política de privacidad',
@@ -110,7 +117,17 @@ function ShopContent() {
         name: "", phone: "", email: "", address: "", city: "", notes: ""
     });
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+    const [placingOrderStep, setPlacingOrderStep] = useState<'idle' | 'creating' | 'confirming'>('idle');
     const [legalModalOpen, setLegalModalOpen] = useState<null | keyof typeof LEGAL_LABELS>(null);
+
+    // Carga el script del widget de Wompi al montar
+    useEffect(() => {
+        const script = document.createElement('script');
+        script.src = 'https://checkout.wompi.co/widget.js';
+        script.async = true;
+        document.body.appendChild(script);
+        return () => { document.body.removeChild(script); };
+    }, []);
 
     const addToCart = (product: any) => {
         const totalStock = product.variants?.reduce((a: any, b: any) => a + (b.stock || 0), 0) || 0;
@@ -130,73 +147,157 @@ function ShopContent() {
         });
     };
 
-    const [isOrderSuccess, setIsOrderSuccess] = useState(false);
-    const [lastOrderNum, setLastOrderNum] = useState("");
+    const extractErrorMessage = async (res: Response, fallback: string) => {
+        try {
+            const err = await res.json();
+            if (typeof err.detail === 'string') return err.detail;
+            if (Array.isArray(err.detail)) return err.detail.map((d: any) => d.msg || JSON.stringify(d)).join('. ');
+        } catch {}
+        return fallback;
+    };
+
+    // El script del widget de Wompi carga en paralelo (async) — si el backend
+    // responde muy rápido, puede que aún no esté listo. Esperamos un poco
+    // antes de rendirnos, en vez de fallar de inmediato.
+    const waitForWompiScript = async (maxWaitMs = 6000): Promise<boolean> => {
+        const start = Date.now();
+        while (typeof window.WidgetCheckout !== 'function') {
+            if (Date.now() - start > maxWaitMs) return false;
+            await new Promise(r => setTimeout(r, 150));
+        }
+        return true;
+    };
+
+    // Espera a que el backend confirme el pago vía webhook (única fuente de verdad).
+    // El navegador nunca marca un pago como aprobado por su cuenta.
+    const waitForPaymentConfirmation = async (apiBase: string, paymentId: string, maxTries = 10): Promise<any> => {
+        for (let i = 0; i < maxTries; i++) {
+            await new Promise(r => setTimeout(r, 1500));
+            const res = await fetch(`${apiBase}/public/payment/${paymentId}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.status === 'approved' || data.status === 'failed') return data;
+            }
+        }
+        return null;
+    };
 
     const handlePlaceOrder = async (e: React.FormEvent) => {
         e.preventDefault();
         if (cart.length === 0) return;
         setIsPlacingOrder(true);
+        setPlacingOrderStep('creating');
 
         try {
             const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
-            
+
             // BUSCAMOS EL VARIANT_ID CORRECTO
             // Para el Plan Básico, si no hay variantes seleccionadas, enviamos la primera disponible
             const itemsWithVariants = await Promise.all(cart.map(async (item) => {
                 const prod = shopData.products.find((p: any) => p.id === item.id);
-                const variantId = (prod?.variants && prod.variants.length > 0) 
-                    ? prod.variants[0].id 
+                const variantId = (prod?.variants && prod.variants.length > 0)
+                    ? prod.variants[0].id
                     : item.id; // Fallback
-                return {
-                    product_variant_id: variantId,
-                    quantity: item.quantity,
-                    price_at_purchase: item.price
-                };
+                return { product_variant_id: variantId, quantity: item.quantity };
             }));
 
-            const payload = {
-                customer_name: customerData.name,
-                customer_phone: customerData.phone,
-                customer_email: customerData.email,
-                shipping_address: `${customerData.address}, ${customerData.city}`,
-                tenant_id: shopData.id,
-                total_price: cartTotal,
-                payment_method: "WhatsApp",
-                source: "web",
-                items: itemsWithVariants
-            };
-
-            const res = await fetch(`${apiBase}/public/orders`, {
+            const res = await fetch(`${apiBase}/public/checkout`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                    tenant_id: shopData.id,
+                    customer_name: customerData.name,
+                    customer_phone: customerData.phone,
+                    customer_email: customerData.email,
+                    shipping_address: `${customerData.address}, ${customerData.city}`,
+                    currency: 'COP',
+                    items: itemsWithVariants,
+                }),
             });
 
-            if (res.ok) {
-                const orderData = await res.json();
-                const orderId = orderData.id.slice(0, 8).toUpperCase();
-                setLastOrderNum(orderId);
-                
-                const shopPhone = shopData.phone || "3000000000"; 
-                const message = encodeURIComponent(`¡Hola! Acabo de realizar un pedido en tu tienda ${shopData.full_name} 🚀\n\n🆔 Pedido: #${orderId}\n👤 Nombre: ${customerData.name}\n💰 Total: $${cartTotal.toLocaleString()}\n📍 Dirección: ${customerData.address}, ${customerData.city}\n\nQuedo atento a la confirmación. ✨`);
-                
-                clearCart();
-                setIsCheckoutOpen(false);
-                setIsOrderSuccess(true);
-                
-                setTimeout(() => {
-                    window.open(`https://wa.me/57${shopPhone.replace(/\D/g, '')}?text=${message}`, '_blank');
-                }, 3000);
-
-            } else {
-                const err = await res.json();
-                alert(`Error: ${err.detail || 'No se pudo crear el pedido.'}`);
+            if (!res.ok) {
+                alert(`Error: ${await extractErrorMessage(res, 'No se pudo iniciar el pago.')}`);
+                setIsPlacingOrder(false);
+                setPlacingOrderStep('idle');
+                return;
             }
-        } catch (error) {
-            alert("Error de conexión. Intenta de nuevo.");
-        } finally {
+
+            const config = await res.json();
+
+            if (!config.public_key) {
+                // Pasarela no disponible: no se puede cobrar en línea en este momento.
+                alert(
+                    'Los pagos en línea no están disponibles en este momento. ' +
+                    (config.whatsapp_url ? 'Contacta directamente a la tienda para coordinar tu compra.' : 'Intenta de nuevo más tarde.')
+                );
+                if (config.whatsapp_url) window.open(config.whatsapp_url, '_blank');
+                setIsPlacingOrder(false);
+                setPlacingOrderStep('idle');
+                return;
+            }
+
+            if (typeof window.WidgetCheckout !== 'function') {
+                const ready = await waitForWompiScript();
+                if (!ready) {
+                    throw new Error('La pasarela de pago tardó demasiado en cargar. Recarga la página e intenta de nuevo.');
+                }
+            }
+
+            // redirectUrl es obligatorio para métodos como transferencia bancaria/PSE:
+            // esos flujos sacan al comprador del sitio para autenticarse con su banco,
+            // por lo que el callback in-page nunca se ejecuta. Sin esto, Wompi lo deja
+            // varado en su propia página de confirmación sin forma de volver a la tienda.
+            const redirectUrl = `${window.location.origin}/pago/confirmando?payment_id=${config.payment_id}&slug=${slug}`;
+
+            const checkout = new window.WidgetCheckout({
+                currency: config.currency,
+                amountInCents: config.amount_in_cents,
+                reference: config.reference,
+                publicKey: config.public_key,
+                signature: { integrity: config.signature },
+                redirectUrl,
+                customerData: {
+                    email: customerData.email,
+                    fullName: customerData.name,
+                    phoneNumber: customerData.phone.replace(/\D/g, ''),
+                    phoneNumberPrefix: '+57',
+                },
+            });
+
+            checkout.open(async (result: any) => {
+                const clientStatus = result?.transaction?.status;
+                if (clientStatus !== 'APPROVED') {
+                    alert(`Pago no completado (${clientStatus || 'cancelado'}).`);
+                    setIsPlacingOrder(false);
+                    setPlacingOrderStep('idle');
+                    return;
+                }
+
+                // El widget dice "aprobado", pero solo el webhook firmado de Wompi
+                // confirma de verdad y crea el pedido — nunca confiamos en el navegador.
+                setPlacingOrderStep('confirming');
+                const confirmed = await waitForPaymentConfirmation(apiBase, config.payment_id);
+
+                if (confirmed?.status === 'approved') {
+                    clearCart();
+                    setIsCheckoutOpen(false);
+                    if (confirmed.order_id) {
+                        router.push(`/pedido/${confirmed.order_id}`);
+                    } else {
+                        alert('¡Pago aprobado! Tu pedido está en camino.');
+                    }
+                } else {
+                    alert('Tu pago está siendo verificado. Te notificaremos por correo en cuanto se confirme.');
+                }
+                setIsPlacingOrder(false);
+                setPlacingOrderStep('idle');
+            });
+
+        } catch (error: any) {
+            console.error('handlePlaceOrder error:', error);
+            alert(`Error de conexión: ${error?.message || 'Intenta de nuevo.'}`);
             setIsPlacingOrder(false);
+            setPlacingOrderStep('idle');
         }
     };
 
@@ -568,7 +669,9 @@ function ShopContent() {
                                     <input required placeholder="Dirección" value={customerData.address} onChange={e => setCustomerData({...customerData, address: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
                                     <input required placeholder="Ciudad" value={customerData.city} onChange={e => setCustomerData({...customerData, city: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
                                 </div>
-                                <button type="submit" disabled={isPlacingOrder} className="w-full py-6 bg-[#004d4d] text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-4">{isPlacingOrder ? "Procesando..." : <>Confirmar Pedido <ArrowRight size={18}/></>}</button>
+                                <button type="submit" disabled={isPlacingOrder} className="w-full py-6 bg-[#004d4d] text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-4">
+                                    {placingOrderStep === 'confirming' ? "Confirmando pago…" : isPlacingOrder ? "Procesando…" : <>Pagar ahora <ArrowRight size={18}/></>}
+                                </button>
                             </form>
                         </motion.div>
                     </div>

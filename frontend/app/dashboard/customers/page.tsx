@@ -217,6 +217,13 @@ function CustomerModal({ customer, onSave, onClose }: { customer?: Customer | nu
             </div>
           </div>
 
+          {formError && (
+            <div className="mx-6 mb-4 flex items-start gap-2 px-4 py-3 rounded-2xl bg-rose-50 border border-rose-100">
+              <AlertCircle size={14} className="text-rose-500 mt-0.5 shrink-0"/>
+              <p className="text-[11px] text-rose-600 font-medium leading-relaxed">{formError}</p>
+            </div>
+          )}
+
           <div className="flex gap-3 px-6 py-4 border-t border-gray-100">
             <button onClick={onClose} className="flex-1 h-10 rounded-2xl border border-gray-200 text-[11px] font-semibold text-gray-500 hover:bg-gray-50 transition-colors">Cancelar</button>
             <button onClick={handleSubmit} disabled={saving}

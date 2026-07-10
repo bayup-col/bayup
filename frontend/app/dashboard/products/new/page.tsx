@@ -519,8 +519,9 @@ function VariantModal({
                     </button>
                     <p className="text-[10px] font-semibold text-gray-600 flex-1">Mismo stock para todas las opciones</p>
                     {useGlobal && (
-                      <input type="number" value={globalStock} min={0}
+                      <input type="number" value={globalStock === 0 ? '' : globalStock} min={0}
                         onChange={e => applyGlobalStock(Number(e.target.value))}
+                        placeholder="0"
                         className="w-20 h-8 rounded-xl border border-[#004d4d]/20 text-center text-sm font-black text-[#004d4d] focus:outline-none bg-white"/>
                     )}
                   </div>
@@ -568,7 +569,7 @@ function VariantModal({
                               className={inputBase}
                             />
                           </div>
-                          <input type="number" value={sv.stock} min={0}
+                          <input type="number" value={sv.stock === 0 ? '' : sv.stock} min={0}
                             onChange={e => setTempSubVariants((p: any[]) => p.map(i => i.id === sv.id ? { ...i, stock: Number(e.target.value) } : i))}
                             placeholder="0"
                             className="h-9 w-full rounded-xl border border-gray-200 text-center text-sm font-black text-[#004d4d] focus:outline-none focus:border-[#004d4d]/40 bg-[#004d4d]/5 transition-colors"/>
@@ -1581,8 +1582,8 @@ export default function NewProductPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-gray-50 rounded-2xl p-4">
                     <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-2">Unidades a vender</p>
-                    <input type="number" value={simulationUnits}
-                      onChange={e => setSimulationUnits(Number(e.target.value) || 1)}
+                    <input type="number" value={simulationUnits === 0 ? '' : simulationUnits}
+                      onChange={e => setSimulationUnits(Number(e.target.value))}
                       className="w-full bg-transparent text-xl font-black text-gray-900 outline-none border-none"/>
                   </div>
                   <div className="bg-gray-50 rounded-2xl p-4">
@@ -1605,7 +1606,7 @@ export default function NewProductPage() {
                   <div className="flex items-center justify-between">
                     <p className="text-[8px] font-bold text-[#00f2ff]/50 uppercase tracking-widest">Precio sugerido retail</p>
                     <div className="flex items-center gap-1">
-                      <input type="number" value={simulationRetailMargin} onChange={e => setSimulationRetailMargin(Number(e.target.value))}
+                      <input type="number" value={simulationRetailMargin === 0 ? '' : simulationRetailMargin} onChange={e => setSimulationRetailMargin(Number(e.target.value))}
                         className="w-12 bg-white/10 rounded-lg text-right font-black text-[#00f2ff] text-sm px-2 py-1 outline-none border-none"/>
                       <span className="text-[#00f2ff] font-black text-sm">%</span>
                     </div>
@@ -1626,7 +1627,7 @@ export default function NewProductPage() {
                     <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1">Sugerido mayorista</p>
                     <p className="text-xl font-black text-[#004d4d]">{fmtCOP(recommendedWholesale())}</p>
                     <div className="flex items-center gap-1 mt-1">
-                      <input type="number" value={simulationWholesaleMargin} onChange={e => setSimulationWholesaleMargin(Number(e.target.value))}
+                      <input type="number" value={simulationWholesaleMargin === 0 ? '' : simulationWholesaleMargin} onChange={e => setSimulationWholesaleMargin(Number(e.target.value))}
                         className="w-10 bg-white rounded-lg text-center font-black text-[#004d4d] text-xs px-1 py-0.5 outline-none border border-gray-200"/>
                       <span className="text-xs text-gray-400 font-bold">% margen</span>
                     </div>

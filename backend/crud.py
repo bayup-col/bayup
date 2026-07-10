@@ -22,9 +22,15 @@ from sqlalchemy import text
 def get_user_by_email(db: Session, email: str) -> models.User | None:
     """Búsqueda proactiva del usuario incluyendo su plan para evitar fallos en el login."""
     try:
+        # El email debería ser único, pero si por algún incidente hay
+        # duplicados, priorizamos la cuenta que no sea un registro de
+        # cliente (CRM) — evita que un "cliente" con contraseña aleatoria
+        # tape el login de una cuenta real (tenant/staff/super admin).
         user = db.query(models.User).filter(
             text("LOWER(email) = :email")
-        ).params(email=email.lower().strip()).first()
+        ).params(email=email.lower().strip()).order_by(
+            (models.User.role == "cliente"), models.User.created_at
+        ).first()
         if user:
             return user
         return None
@@ -298,27 +304,36 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
             models.User.email == email_clean,
             models.User.owner_id == actual_tenant_id
         ).first()
-        
+
         if client_record:
             client_record.total_spent += subtotal
             client_record.loyalty_points += int(subtotal / 1000)
             client_record.last_purchase_date = db_order.created_at
             client_record.last_purchase_summary = f"Venta {order.source} #{str(db_order.id)[:4].upper()}"
         else:
-            new_client = models.User(
-                id=uuid.uuid4(),
-                email=email_clean,
-                full_name=order.customer_name or "Cliente Nuevo",
-                phone=order.customer_phone,
-                owner_id=actual_tenant_id,
-                total_spent=subtotal,
-                loyalty_points=int(subtotal / 1000),
-                last_purchase_date=db_order.created_at,
-                last_purchase_summary = f"Primer registro vía {order.source}",
-                role="cliente",
-                status="Activo"
-            )
-            db.add(new_client)
+            # El email es único a nivel de tabla (cuentas de tenants, staff y
+            # super admin comparten el mismo espacio de emails). Si ya
+            # pertenece a OTRA cuenta fuera de esta tienda, no creamos un
+            # "cliente" duplicado — solo se pierde el tracking de CRM para
+            # esa venta puntual, la orden se crea igual.
+            email_taken_elsewhere = db.query(models.User.id).filter(
+                models.User.email == email_clean
+            ).first()
+            if not email_taken_elsewhere:
+                new_client = models.User(
+                    id=uuid.uuid4(),
+                    email=email_clean,
+                    full_name=order.customer_name or "Cliente Nuevo",
+                    phone=order.customer_phone,
+                    owner_id=actual_tenant_id,
+                    total_spent=subtotal,
+                    loyalty_points=int(subtotal / 1000),
+                    last_purchase_date=db_order.created_at,
+                    last_purchase_summary = f"Primer registro vía {order.source}",
+                    role="cliente",
+                    status="Activo"
+                )
+                db.add(new_client)
 
     # 5. Lógica de Envío (Sinergia de Módulos)
     if order.source.lower() != "pos":
