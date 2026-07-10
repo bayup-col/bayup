@@ -126,7 +126,9 @@ export default function InvoicingPage() {
   const [posCustomerMode,          setPosCustomerMode]          = useState<'search' | 'create'>('create');
   const [customerSearch,           setCustomerSearch]           = useState('');
   const [isSourceDropdownOpen,     setIsSourceDropdownOpen]     = useState(false);
-  const [selectedVendedor,         setSelectedVendedor]         = useState('');
+  const [selectedVendedor,         setSelectedVendedor]         = useState(() => {
+    try { return localStorage.getItem('bayup_last_vendedor') || ''; } catch { return ''; }
+  });
   const [vendedores,               setVendedores]               = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('bayup_vendedores') || '[]'); } catch { return []; }
   });
@@ -447,6 +449,37 @@ export default function InvoicingPage() {
         }
         if (customerInfo.phone)
           window.open(`https://wa.me/57${customerInfo.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Factura #${String(res.id).slice(-4).toUpperCase()} de ${companyData?.full_name}: $${calculateSubtotal().toLocaleString()}`)}`, '_blank');
+
+        // Auto-crear cliente si tiene nombre real y no existe ya
+        if (customerInfo.name && customerInfo.name !== 'Cliente') {
+          try {
+            // Verificar contra los ya cargados en memoria (evita doble creación)
+            const phone = (customerInfo.phone || '').trim();
+            const email = (customerInfo.email || '').trim().toLowerCase();
+            const alreadyExists = registeredCustomers.some(c =>
+              (phone && c.phone === phone) ||
+              (email && c.email?.toLowerCase() === email && !c.email?.includes('@bayup.internal'))
+            );
+            if (!alreadyExists) {
+              await apiRequest('/admin/users', {
+                method: 'POST', token,
+                body: JSON.stringify({
+                  full_name: customerInfo.name,
+                  email: email || null,
+                  phone: phone || null,
+                  city: customerInfo.city || null,
+                  customer_type: customerInfo.type || 'final',
+                  acquisition_channel: customerInfo.source === 'Tienda Física' ? 'pos'
+                    : customerInfo.source === 'WhatsApp' ? 'whatsapp'
+                    : customerInfo.source === 'Redes Sociales' ? 'social' : 'pos',
+                }),
+              });
+            }
+          } catch { /* silencioso — no bloquear la factura */ }
+        }
+
+        // Limpiar formulario del cliente para la próxima factura
+        setCustomerInfo({ name: '', email: '', phone: '', city: '', source: 'Tienda Física', type: 'final', seller: '' });
         setInvoiceItems([]); setIsPOSActive(false); loadData();
       }
     } catch (err: any) {
@@ -937,10 +970,20 @@ export default function InvoicingPage() {
                         {isVendedorDropdownOpen && (
                           <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-1.5 space-y-0.5">
                             {vendedores.map(v => (
-                              <button key={v} onClick={() => { setSelectedVendedor(v); setIsVendedorDropdownOpen(false); }}
-                                className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-semibold hover:bg-gray-50 ${selectedVendedor === v ? 'text-[#004d4d] bg-[#004d4d]/5' : 'text-gray-700'}`}>
-                                {v}
-                              </button>
+                              <div key={v} className={`flex items-center gap-1 rounded-lg ${selectedVendedor === v ? 'bg-[#004d4d]/5' : 'hover:bg-gray-50'}`}>
+                                <button onClick={() => { setSelectedVendedor(v); localStorage.setItem('bayup_last_vendedor', v); setIsVendedorDropdownOpen(false); }}
+                                  className={`flex-1 text-left px-3 py-2 text-[11px] font-semibold ${selectedVendedor === v ? 'text-[#004d4d]' : 'text-gray-700'}`}>
+                                  {v}
+                                </button>
+                                <button onClick={() => {
+                                  const u = vendedores.filter(x => x !== v);
+                                  setVendedores(u);
+                                  localStorage.setItem('bayup_vendedores', JSON.stringify(u));
+                                  if (selectedVendedor === v) { setSelectedVendedor(''); localStorage.removeItem('bayup_last_vendedor'); }
+                                }} className="h-6 w-6 flex items-center justify-center rounded-md text-gray-300 hover:text-rose-400 hover:bg-rose-50 mr-1 transition-all shrink-0">
+                                  <X size={11}/>
+                                </button>
+                              </div>
                             ))}
                             {showNewVendedor ? (
                               <div className="flex gap-1.5 p-1.5">
@@ -949,7 +992,7 @@ export default function InvoicingPage() {
                                     if (e.key === 'Enter' && newVendedorName.trim()) {
                                       const u = [...vendedores, newVendedorName.trim()];
                                       setVendedores(u); localStorage.setItem('bayup_vendedores', JSON.stringify(u));
-                                      setSelectedVendedor(newVendedorName.trim()); setNewVendedorName('');
+                                      setSelectedVendedor(newVendedorName.trim()); localStorage.setItem('bayup_last_vendedor', newVendedorName.trim()); setNewVendedorName('');
                                       setShowNewVendedor(false); setIsVendedorDropdownOpen(false);
                                     }
                                   }}
@@ -958,7 +1001,7 @@ export default function InvoicingPage() {
                                   if (!newVendedorName.trim()) return;
                                   const u = [...vendedores, newVendedorName.trim()];
                                   setVendedores(u); localStorage.setItem('bayup_vendedores', JSON.stringify(u));
-                                  setSelectedVendedor(newVendedorName.trim()); setNewVendedorName('');
+                                  setSelectedVendedor(newVendedorName.trim()); localStorage.setItem('bayup_last_vendedor', newVendedorName.trim()); setNewVendedorName('');
                                   setShowNewVendedor(false); setIsVendedorDropdownOpen(false);
                                 }} className="h-8 px-3 bg-[#004d4d] text-white rounded-lg text-[9px] font-bold">
                                   OK
@@ -1017,12 +1060,15 @@ export default function InvoicingPage() {
                           const q = customerSearch.toLowerCase();
                           // Merge: registered customers first, then history-only entries
                           const merged = new Map<string, { name: string; email: string; phone: string; city: string; source: string; type: string }>();
-                          registeredCustomers.forEach(c => {
-                            if (c.full_name) merged.set(c.email || c.full_name, {
-                              name: c.full_name, email: c.email || '', phone: c.phone || '',
-                              city: c.city || '', source: 'Base de clientes', type: c.customer_type || 'final',
+                          registeredCustomers
+                            .filter(c => c.full_name && !c.email?.includes('@bayup.internal'))
+                            .forEach(c => {
+                              const key = c.phone || c.email || c.full_name;
+                              merged.set(key, {
+                                name: c.full_name, email: c.email || '', phone: c.phone || '',
+                                city: c.customer_city || c.city || '', source: 'Base de clientes', type: c.customer_type || 'final',
+                              });
                             });
-                          });
                           history.forEach(inv => {
                             if (inv.customer && !merged.has(inv.customer_email || inv.customer)) {
                               merged.set(inv.customer_email || inv.customer, {
@@ -1505,12 +1551,19 @@ export default function InvoicingPage() {
                       }
                       return { attr: v.name || 'Variante', val: v.sku || v.name || '—' };
                     };
-                    // Agrupar
+                    // Agrupar y deduplicar por id o name+sku
+                    const seenVariants = new Set<string>();
                     const groups: Record<string, Array<{ v: any; val: string }>> = {};
                     selectedProductForVariant.variants.forEach((v: any) => {
+                      const dedupeKey = v.id || `${v.name}__${v.sku}`;
+                      if (seenVariants.has(dedupeKey)) return;
+                      seenVariants.add(dedupeKey);
                       const { attr, val } = parseVariant(v);
                       if (!groups[attr]) groups[attr] = [];
-                      groups[attr].push({ v, val });
+                      // Deduplicar también por val dentro del grupo
+                      if (!groups[attr].some(existing => existing.val === val)) {
+                        groups[attr].push({ v, val });
+                      }
                     });
                     const attrs = Object.keys(groups);
                     return (

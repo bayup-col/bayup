@@ -387,6 +387,7 @@ export default function ProductsPage() {
   const [invFilter,    setInvFilter]    = useState<'all'|'critical'|'ok'|'out'>('all');
   const [invEdits,     setInvEdits]     = useState<Record<string, Record<string, number>>>({});  // {productId: {variantId: newStock}}
   const [savingStock,  setSavingStock]  = useState<string|null>(null);
+  const [expandedInvProducts, setExpandedInvProducts] = useState<Set<string>>(new Set());
 
   const handleStockChange = (productId: string, variantId: string, val: number) => {
     setInvEdits(prev => ({ ...prev, [productId]: { ...(prev[productId] || {}), [variantId]: val } }));
@@ -411,10 +412,18 @@ export default function ProductsPage() {
   const invStats = useMemo(() => {
     const rows: { product: any; variant: any; stock: number }[] = [];
     for (const p of products) {
-      if (!p.variants || p.variants.length === 0) {
+      // Deduplicar variantes por id (o por name+sku si no hay id)
+      const seen = new Set<string>();
+      const uniqueVariants = (p.variants || []).filter((v: any) => {
+        const key = v.id || `${v.name}__${v.sku}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      if (uniqueVariants.length === 0) {
         rows.push({ product: p, variant: null, stock: 0 });
       } else {
-        for (const v of p.variants) rows.push({ product: p, variant: v, stock: v.stock || 0 });
+        for (const v of uniqueVariants) rows.push({ product: p, variant: v, stock: v.stock || 0 });
       }
     }
     const out      = rows.filter(r => r.stock === 0).length;
@@ -846,85 +855,125 @@ export default function ProductsPage() {
                     </div>
                   </div>
 
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-50 bg-gray-50/40">
-                        {['Producto','Variante','SKU','Stock actual','Nuevo stock','Valor en bodega',''].map(h => (
-                          <th key={h} className="px-4 py-2.5 text-left text-[8px] font-bold tracking-widest uppercase text-gray-400">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {loading ? (
-                        <tr><td colSpan={7} className="py-12 text-center"><Loader2 className="animate-spin mx-auto text-[#004d4d]" size={24}/></td></tr>
-                      ) : invRows.length === 0 ? (
-                        <tr><td colSpan={7} className="py-12 text-center text-gray-300 text-[11px] font-bold">Sin referencias</td></tr>
-                      ) : invRows.map((row, idx) => {
-                        const { product: p, variant: v, stock } = row;
-                        const rowKey = v ? `${p.id}-${v.id}` : p.id;
-                        const editedStock = v
-                          ? invEdits[p.id]?.[v.id]
-                          : invEdits[p.id]?.['__novariant'];
-                        const displayStock = editedStock !== undefined ? editedStock : stock;
-                        const isDirty = editedStock !== undefined && editedStock !== stock;
-                        const stockColor = stock === 0 ? '#ef4444' : stock <= 5 ? '#f59e0b' : '#10b981';
-                        const stockValue = (p.price || 0) * stock;
-
-                        return (
-                          <tr key={rowKey} className={`border-b border-gray-50 transition-colors ${isDirty ? 'bg-amber-50/40' : 'hover:bg-gray-50/50'}`}>
-                            {/* Producto — solo mostrar en la primera variante */}
-                            <td className="px-4 py-3">
-                              {(idx === 0 || invRows[idx-1].product.id !== p.id) && (
-                                <div className="flex items-center gap-2">
-                                  <div className="h-8 w-8 rounded-xl bg-gray-50 overflow-hidden border border-gray-100 shrink-0 flex items-center justify-center">
-                                    {getProductImage(p) ? <ProductMedia src={getProductImage(p)} className="h-full w-full object-cover" alt={p.name}/> : <ImageIcon size={12} className="text-gray-300"/>}
-                                  </div>
-                                  <p className="text-[11px] font-bold text-gray-800 truncate max-w-[130px]">{p.name}</p>
+                  {/* Acordeón por producto */}
+                  {loading ? (
+                    <div className="py-12 flex justify-center"><Loader2 className="animate-spin text-[#004d4d]" size={24}/></div>
+                  ) : (() => {
+                    // Agrupar invRows por producto
+                    const byProduct: Map<string, { product: any; rows: typeof invRows }> = new Map();
+                    for (const row of invRows) {
+                      const pid = row.product.id;
+                      if (!byProduct.has(pid)) byProduct.set(pid, { product: row.product, rows: [] });
+                      byProduct.get(pid)!.rows.push(row);
+                    }
+                    const groups = Array.from(byProduct.values());
+                    if (groups.length === 0) return (
+                      <div className="py-12 text-center text-gray-300 text-[11px] font-bold">Sin referencias</div>
+                    );
+                    return (
+                      <div className="divide-y divide-gray-50">
+                        {groups.map(({ product: p, rows: pRows }) => {
+                          const isOpen = expandedInvProducts.has(p.id);
+                          const totalStock = pRows.reduce((a, r) => a + r.stock, 0);
+                          const hasDirty = pRows.some(r => {
+                            const varKey = r.variant ? r.variant.id : '__novariant';
+                            return invEdits[p.id]?.[varKey] !== undefined && invEdits[p.id][varKey] !== r.stock;
+                          });
+                          const stockSummaryColor = totalStock === 0 ? '#ef4444' : totalStock <= 5 ? '#f59e0b' : '#10b981';
+                          return (
+                            <div key={p.id}>
+                              {/* Fila cabecera del producto — clickeable */}
+                              <button
+                                className={`w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors ${hasDirty ? 'bg-amber-50/60' : isOpen ? 'bg-[#004d4d]/3' : 'hover:bg-gray-50/60'}`}
+                                onClick={() => setExpandedInvProducts(prev => {
+                                  const next = new Set(prev);
+                                  next.has(p.id) ? next.delete(p.id) : next.add(p.id);
+                                  return next;
+                                })}
+                              >
+                                <div className="h-9 w-9 rounded-xl bg-gray-50 overflow-hidden border border-gray-100 shrink-0 flex items-center justify-center">
+                                  {getProductImage(p) ? <ProductMedia src={getProductImage(p)} className="h-full w-full object-cover" alt={p.name}/> : <ImageIcon size={12} className="text-gray-300"/>}
                                 </div>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-[10px] font-medium text-gray-500">{v ? v.name : <span className="text-gray-300 italic">Sin variante</span>}</td>
-                            <td className="px-4 py-3 text-[10px] font-mono text-gray-400">{v?.sku || p.sku || '—'}</td>
-                            <td className="px-4 py-3">
-                              <span className="text-sm font-black tabular-nums" style={{ color: stockColor }}>{stock}</span>
-                              <span className="text-[9px] text-gray-400 ml-1">uds</span>
-                            </td>
-                            {/* Input editable */}
-                            <td className="px-4 py-3">
-                              <input
-                                type="number" min={0}
-                                value={displayStock}
-                                onChange={e => {
-                                  const varKey = v ? v.id : '__novariant';
-                                  handleStockChange(p.id, varKey, Number(e.target.value));
-                                }}
-                                className={`w-20 h-8 rounded-lg border text-center text-sm font-black outline-none transition-all ${isDirty ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-gray-200 bg-gray-50 text-gray-700 focus:border-[#004d4d]/40 focus:bg-white'}`}
-                              />
-                            </td>
-                            <td className="px-4 py-3 text-[11px] font-bold text-gray-600">{stock > 0 ? fmt(stockValue) : <span className="text-gray-300">—</span>}</td>
-                            <td className="px-4 py-3">
-                              {isDirty && (
-                                <button onClick={() => handleSaveStock(p)} disabled={savingStock === p.id}
-                                  className="h-7 px-3 rounded-lg bg-[#004d4d] text-white text-[9px] font-black uppercase tracking-widest hover:bg-[#003838] transition-all flex items-center gap-1.5 disabled:opacity-60">
-                                  {savingStock === p.id ? <Loader2 size={10} className="animate-spin"/> : <CheckCheck size={10}/>}
-                                  Guardar
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                    {invRows.length > 0 && (
-                      <tfoot>
-                        <tr className="border-t border-gray-100 bg-gray-50/60">
-                          <td colSpan={5} className="px-4 py-3 text-[9px] font-bold text-gray-400 uppercase tracking-widest">Total en bodega</td>
-                          <td className="px-4 py-3 text-[11px] font-black text-[#004d4d]">{fmt(invStats.totalSaleValue)}</td>
-                          <td/>
-                        </tr>
-                      </tfoot>
-                    )}
-                  </table>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[12px] font-black text-gray-800 truncate">{p.name}</p>
+                                  <p className="text-[9px] text-gray-400 mt-0.5">{pRows.length} variante{pRows.length !== 1 ? 's' : ''}</p>
+                                </div>
+                                <div className="flex items-center gap-3 shrink-0">
+                                  <div className="text-right">
+                                    <span className="text-[13px] font-black tabular-nums" style={{ color: stockSummaryColor }}>{totalStock}</span>
+                                    <span className="text-[9px] text-gray-400 ml-1">uds totales</span>
+                                  </div>
+                                  {hasDirty && (
+                                    <button onClick={e => { e.stopPropagation(); handleSaveStock(p); }} disabled={savingStock === p.id}
+                                      className="h-7 px-3 rounded-lg bg-[#004d4d] text-white text-[9px] font-black uppercase tracking-widest hover:bg-[#003838] transition-all flex items-center gap-1.5 disabled:opacity-60">
+                                      {savingStock === p.id ? <Loader2 size={10} className="animate-spin"/> : <CheckCheck size={10}/>}
+                                      Guardar
+                                    </button>
+                                  )}
+                                  <ChevronDown size={14} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}/>
+                                </div>
+                              </button>
+
+                              {/* Filas de variantes — desplegables */}
+                              <AnimatePresence>
+                                {isOpen && (
+                                  <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    style={{ overflow: 'hidden' }}
+                                  >
+                                    <table className="w-full">
+                                      <thead>
+                                        <tr className="bg-gray-50/60">
+                                          {['Variante','SKU','Stock actual','Nuevo stock','Valor en bodega'].map(h => (
+                                            <th key={h} className="px-5 py-2 text-left text-[8px] font-bold tracking-widest uppercase text-gray-400">{h}</th>
+                                          ))}
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {pRows.map(row => {
+                                          const { variant: v, stock } = row;
+                                          const varKey = v ? v.id : '__novariant';
+                                          const editedStock = invEdits[p.id]?.[varKey];
+                                          const displayStock = editedStock !== undefined ? editedStock : stock;
+                                          const isDirty = editedStock !== undefined && editedStock !== stock;
+                                          const stockColor = stock === 0 ? '#ef4444' : stock <= 5 ? '#f59e0b' : '#10b981';
+                                          return (
+                                            <tr key={varKey} className={`border-t border-gray-50 ${isDirty ? 'bg-amber-50/40' : 'hover:bg-gray-50/30'}`}>
+                                              <td className="px-5 py-2.5 text-[10px] font-medium text-gray-600">{v ? v.name : <span className="text-gray-300 italic">Base</span>}</td>
+                                              <td className="px-5 py-2.5 text-[10px] font-mono text-gray-400">{v?.sku || p.sku || '—'}</td>
+                                              <td className="px-5 py-2.5">
+                                                <span className="text-sm font-black tabular-nums" style={{ color: stockColor }}>{stock}</span>
+                                                <span className="text-[9px] text-gray-400 ml-1">uds</span>
+                                              </td>
+                                              <td className="px-5 py-2.5">
+                                                <input type="number" min={0} value={displayStock}
+                                                  onChange={e => handleStockChange(p.id, varKey, Number(e.target.value))}
+                                                  className={`w-20 h-8 rounded-lg border text-center text-sm font-black outline-none transition-all ${isDirty ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-gray-200 bg-gray-50 text-gray-700 focus:border-[#004d4d]/40 focus:bg-white'}`}
+                                                />
+                                              </td>
+                                              <td className="px-5 py-2.5 text-[11px] font-bold text-gray-600">{stock > 0 ? fmt((p.price || 0) * stock) : <span className="text-gray-300">—</span>}</td>
+                                            </tr>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          );
+                        })}
+                        {/* Total global */}
+                        <div className="px-5 py-3 flex items-center justify-between bg-gray-50/60">
+                          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Total en bodega</span>
+                          <span className="text-[11px] font-black text-[#004d4d]">{fmt(invStats.totalSaleValue)}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </motion.div>
             )}

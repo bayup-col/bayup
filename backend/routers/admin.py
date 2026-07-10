@@ -24,6 +24,7 @@ PROFILE_EDITABLE_FIELDS = {
     "email", "phone", "address", "customer_city", "country", "hours",
     "website", "nit", "tax_regime", "legal_rep", "social_links",
     "terms_conditions", "privacy_policy", "return_policy", "shipping_policy",
+    "bank_accounts",
 }
 
 
@@ -102,14 +103,24 @@ async def get_customers(
     request: Request,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=200, ge=1),
+    q: str = Query(default=""),
     db: Session = Depends(get_db),
     user=Depends(current_user),
 ):
     tid = tenant_id_from(user)
-    rows = db.query(models.User).filter(
+    query = db.query(models.User).filter(
         models.User.owner_id == tid,
         models.User.role == "cliente",
-    ).offset(skip).limit(min(limit, 500)).all()
+    )
+    if q:
+        term = f"%{q.lower()}%"
+        from sqlalchemy import func
+        query = query.filter(
+            (func.lower(models.User.full_name).like(term)) |
+            (func.lower(models.User.email).like(term)) |
+            (models.User.phone.like(term))
+        )
+    rows = query.offset(skip).limit(min(limit, 500)).all()
     return [_serialize_customer(c) for c in rows]
 
 
@@ -136,9 +147,13 @@ async def create_customer(request: Request, db: Session = Depends(get_db), user=
     body = await request.json()
     email = (body.get("email") or "").strip().lower()
     full_name = (body.get("full_name") or "").strip()
-    if not email or not full_name:
-        raise HTTPException(status_code=422, detail="email y full_name son obligatorios")
-    if db.query(models.User).filter(models.User.email == email).first():
+    if not full_name:
+        raise HTTPException(status_code=422, detail="full_name es obligatorio")
+    # Si no hay email, generar uno interno único no usable para login
+    if not email:
+        import uuid as _uuid2
+        email = f"sin-email-{_uuid2.uuid4().hex[:8]}@bayup.internal"
+    if db.query(models.User).filter(models.User.email == email, ~models.User.email.like('%@bayup.internal')).first():
         raise HTTPException(status_code=400, detail="Ya existe un usuario con ese correo electrónico")
     raw_pw = body.get("password") or str(_uuid.uuid4()).replace("-", "")[:14]
     c = models.User(
@@ -364,6 +379,7 @@ class UpdateProfileRequest(BaseModel):
     privacy_policy: str | None = None
     return_policy: str | None = None
     shipping_policy: str | None = None
+    bank_accounts: list | None = None
     target_user_id: str | None = None
 
 
@@ -381,9 +397,13 @@ async def update_profile(payload: UpdateProfileRequest, request: Request, db: Se
         existing_email = crud.get_user_by_email(db, email=update_data["email"])
         if existing_email and existing_email.id != target.id:
             raise HTTPException(status_code=400, detail="Ese correo ya está en uso por otra cuenta")
+    JSON_FIELDS = {"bank_accounts", "social_links", "whatsapp_lines", "permissions"}
     for key, value in update_data.items():
         if key in PROFILE_EDITABLE_FIELDS:
             setattr(target, key, value)
+            if key in JSON_FIELDS:
+                from sqlalchemy.orm.attributes import flag_modified
+                flag_modified(target, key)
     db.commit()
 
     # Limpiar caché pública de la tienda para que el cambio se vea de inmediato
