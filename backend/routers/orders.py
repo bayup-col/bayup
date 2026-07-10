@@ -95,6 +95,7 @@ async def create_order(
             customer_phone=payload.customer_phone or "",
             shop_name=shop_name,
             source=payload.source or "pos",
+            shop_logo=(tenant_user.logo_url if tenant_user else None),
         )
 
     if tenant_user and tenant_user.email:
@@ -164,6 +165,7 @@ async def update_order(
                 order_id=str(db_order.id),
                 new_status=payload.status,
                 shop_name=shop,
+                shop_logo=(tenant_u.logo_url if tenant_u else None),
             )
 
     return {"id": str(db_order.id), "status": db_order.status}
@@ -204,5 +206,6 @@ async def attach_invoice(
         order_id=str(order.id),
         shop_name=shop_name,
         pdf_base64=pdf_base64,
+        shop_logo=(tenant_user.logo_url if tenant_user else None),
     )
     return {"ok": True}

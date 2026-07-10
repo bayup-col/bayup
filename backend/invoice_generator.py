@@ -205,6 +205,6 @@ def generate_invoice_base64(
     pdf.set_y(-20)
     pdf.set_text_color(*GRAY_TEXT)
     pdf.set_font("Helvetica", "I", 7)
-    pdf.cell(0, 5, "Documento generado por Bayup - La plataforma de ventas inteligente", align="C")
+    pdf.cell(0, 5, f"Factura emitida por {shop_name} - Powered by Bayup", align="C")
 
     return base64.b64encode(pdf.output()).decode("utf-8")

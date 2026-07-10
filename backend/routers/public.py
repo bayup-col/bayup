@@ -176,13 +176,15 @@ def finalize_web_order(
     tenant_user = db.query(models.User).filter(models.User.id == tenant_uuid).first()
     shop_name = (tenant_user.full_name or tenant_user.shop_slug or "Tu tienda") if tenant_user else "Tu tienda"
 
+    shop_logo = (tenant_user.logo_url if tenant_user else None)
+
     if customer_email:
         _eq.enqueue("send_order_confirmation",
             email=customer_email, name=customer_name or "Cliente",
             order_id=str(db_order.id), items=items_info, total=float(db_order.total_price),
             payment_method=payment_method or "Online",
             customer_city=customer_city or "", customer_phone=customer_phone or "",
-            shop_name=shop_name,
+            shop_name=shop_name, shop_logo=shop_logo,
         )
         _eq.enqueue("send_web_order_invoice",
             email=customer_email, name=customer_name or "Cliente",
@@ -193,6 +195,7 @@ def finalize_web_order(
             items=items_info, total=float(db_order.total_price),
             payment_method=payment_method or "Online",
             created_at_iso=db_order.created_at.isoformat() if db_order.created_at else None,
+            shop_logo=shop_logo,
         )
 
     if tenant_user and tenant_user.email:
