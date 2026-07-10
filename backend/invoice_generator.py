@@ -11,6 +11,30 @@ def _cop(amount: float) -> str:
     return f"$ {int(amount):,}".replace(",", ".")
 
 
+_UNICODE_REPLACEMENTS = {
+    "—": "-",    # em dash —
+    "–": "-",    # en dash –
+    "‘": "'",    # comilla simple izquierda '
+    "’": "'",    # comilla simple derecha '
+    "“": '"',    # comilla doble izquierda "
+    "”": '"',    # comilla doble derecha "
+    "…": "...",  # puntos suspensivos …
+}
+
+
+def _safe_text(value) -> str:
+    """
+    Sanea texto para el font core Helvetica de fpdf2, que solo soporta latin-1.
+    Sin esto, cualquier nombre de producto/tienda/cliente con un guion largo
+    (ej. "Producto — Variante", generado automáticamente por el propio backend)
+    hace fallar la generación completa de la factura.
+    """
+    text = str(value) if value is not None else ""
+    for src, dst in _UNICODE_REPLACEMENTS.items():
+        text = text.replace(src, dst)
+    return text.encode("latin-1", errors="replace").decode("latin-1")
+
+
 def generate_invoice_base64(
     order_id: str,
     shop_name: str,
@@ -30,6 +54,17 @@ def generate_invoice_base64(
 
     short_id  = str(order_id)[:8].upper()
     date_str  = (created_at or datetime.datetime.utcnow()).strftime("%d/%m/%Y")
+
+    shop_name      = _safe_text(shop_name)
+    shop_email     = _safe_text(shop_email)
+    shop_phone     = _safe_text(shop_phone)
+    shop_city      = _safe_text(shop_city)
+    customer_name  = _safe_text(customer_name)
+    customer_email = _safe_text(customer_email)
+    customer_phone = _safe_text(customer_phone)
+    customer_city  = _safe_text(customer_city)
+    payment_method = _safe_text(payment_method)
+    items = [{**item, "name": _safe_text(item.get("name"))} for item in items]
 
     pdf = FPDF()
     pdf.add_page()
@@ -88,15 +123,15 @@ def generate_invoice_base64(
 
     info_block(14, "DATOS DEL VENDEDOR", [
         shop_name,
-        f"Email: {shop_email or '—'}",
-        f"WhatsApp: {shop_phone or '—'}",
+        f"Email: {shop_email or '-'}",
+        f"WhatsApp: {shop_phone or '-'}",
         f"Ciudad: {shop_city or 'Sede Principal'}",
     ])
     info_block(14 + col_w + gap, "DATOS DEL CLIENTE", [
         customer_name,
-        f"Email: {customer_email or '—'}",
-        f"WhatsApp: {customer_phone or '—'}",
-        f"Ciudad: {customer_city or '—'}",
+        f"Email: {customer_email or '-'}",
+        f"WhatsApp: {customer_phone or '-'}",
+        f"Ciudad: {customer_city or '-'}",
     ])
 
     # ── Tabla de productos ────────────────────────────────────────────────────
@@ -164,12 +199,12 @@ def generate_invoice_base64(
     pdf.set_xy(14, fy + 4)
     pdf.set_text_color(*GRAY_TEXT)
     pdf.set_font("Helvetica", "", 8)
-    pdf.cell(0, 5, f"Método de pago: {payment_method or '—'}")
+    pdf.cell(0, 5, f"Método de pago: {payment_method or '-'}")
 
     # ── Pie de página ─────────────────────────────────────────────────────────
     pdf.set_y(-20)
     pdf.set_text_color(*GRAY_TEXT)
     pdf.set_font("Helvetica", "I", 7)
-    pdf.cell(0, 5, "Documento generado por Bayup — La plataforma de ventas inteligente", align="C")
+    pdf.cell(0, 5, "Documento generado por Bayup - La plataforma de ventas inteligente", align="C")
 
     return base64.b64encode(pdf.output()).decode("utf-8")
