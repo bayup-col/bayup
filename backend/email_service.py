@@ -1,12 +1,28 @@
 import logging
 import os
+import re
 import requests as _requests
 
 logger = logging.getLogger("bayup.email")
 
 _RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 _FROM = os.getenv("RESEND_FROM_EMAIL", "Bayup <noreply@bayup.com.co>")
+_FROM_DOMAIN = _FROM.split("<")[-1].rstrip(">").strip() or "noreply@bayup.com.co"
 _SITE = os.getenv("SITE_URL", "https://bayup.com.co")
+
+
+def _from_header(display_name: str | None) -> str:
+    """
+    Construye el remitente para correos de pedido: el cliente le compró al
+    tenant, no a Bayup, así que la bandeja de entrada debe mostrar el nombre
+    de la tienda — el dominio de envío sigue siendo el verificado en Resend.
+    """
+    if not display_name:
+        return _FROM
+    safe_name = re.sub(r'[<>",\r\n]', "", display_name).strip()
+    if not safe_name:
+        return _FROM
+    return f"{safe_name} <{_FROM_DOMAIN}>"
 
 _BASE_STYLE = """
 <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #eee">
@@ -28,7 +44,7 @@ def _cop(amount: float) -> str:
     """Formato peso colombiano: $189.900"""
     return "$" + f"{amount:,.0f}".replace(",", ".")
 
-def _send_raw(to: str, subject: str, html: str) -> bool:
+def _send_raw(to: str, subject: str, html: str, from_name: str | None = None) -> bool:
     if not _RESEND_API_KEY:
         logger.warning("Email MOCK (sin RESEND_API_KEY) — To: %s | %s", to, subject)
         return False
@@ -36,7 +52,7 @@ def _send_raw(to: str, subject: str, html: str) -> bool:
         r = _requests.post(
             "https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {_RESEND_API_KEY}", "Content-Type": "application/json"},
-            json={"from": _FROM, "to": [to], "subject": subject, "html": html},
+            json={"from": _from_header(from_name), "to": [to], "subject": subject, "html": html},
             timeout=10,
         )
         if not r.ok:
@@ -46,7 +62,7 @@ def _send_raw(to: str, subject: str, html: str) -> bool:
         logger.error("Email ERROR: %s", e)
         return False
 
-def _send_with_attachment(to: str, subject: str, html: str, filename: str, pdf_base64: str) -> bool:
+def _send_with_attachment(to: str, subject: str, html: str, filename: str, pdf_base64: str, from_name: str | None = None) -> bool:
     if not _RESEND_API_KEY:
         logger.warning("Email MOCK (sin RESEND_API_KEY) — To: %s | %s", to, subject)
         return False
@@ -55,7 +71,7 @@ def _send_with_attachment(to: str, subject: str, html: str, filename: str, pdf_b
             "https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {_RESEND_API_KEY}", "Content-Type": "application/json"},
             json={
-                "from": _FROM, "to": [to], "subject": subject, "html": html,
+                "from": _from_header(from_name), "to": [to], "subject": subject, "html": html,
                 "attachments": [{"filename": filename, "content": pdf_base64}],
             },
             timeout=15,
@@ -67,25 +83,26 @@ def _send_with_attachment(to: str, subject: str, html: str, filename: str, pdf_b
         logger.error("Email ERROR: %s", e)
         return False
 
-def send_invoice_attachment(email: str, name: str, order_id: str, shop_name: str, pdf_base64: str) -> bool:
+def send_invoice_attachment(email: str, name: str, order_id: str, shop_name: str, pdf_base64: str, shop_logo: str | None = None) -> bool:
     short_id   = str(order_id)[:8].upper()
     first_name = name.split()[0] if name else name
     html = (
         f'<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"></head>'
         f'<body style="margin:0;padding:24px 16px;background:#f0f0f0;font-family:Arial,Helvetica,sans-serif">'
         f'<div style="max-width:580px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">'
-        f'{_order_header(shop_name)}'
+        f'{_order_header(shop_name, shop_logo)}'
         f'<div style="padding:28px 32px">'
         f'<div style="font-size:18px;font-weight:800;color:#111827;margin-bottom:6px">&#128196; Tu factura #{short_id}</div>'
         f'<div style="font-size:13px;color:#4b5563;margin-bottom:20px">Hola {first_name}, adjuntamos la factura de tu compra en <strong>{shop_name}</strong>.</div>'
         f'<div style="background:#f0fefe;border:1px solid #b3ecec;border-radius:8px;padding:14px 18px;font-size:13px;color:#4b5563">&#128247; Encuentra el PDF adjunto a este correo. Gu&#225;rdalo como respaldo de tu compra.</div>'
         f'</div>'
-        f'<div style="border-top:1px solid #f3f4f6;padding:16px 32px;text-align:center;font-size:11px;color:#9ca3af">&#169; 2026 Bayup &#8212; La plataforma de ventas inteligente</div>'
+        f'<div style="border-top:1px solid #f3f4f6;padding:16px 32px;text-align:center;font-size:11px;color:#9ca3af">Este correo fue enviado por <strong>{shop_name}</strong>.<br>Powered by Bayup</div>'
         f'</div></body></html>'
     )
     return _send_with_attachment(
         email, f"📄 Tu factura #{short_id} — {shop_name}",
         html, f"Factura_{short_id}_{shop_name.replace(' ','_')}.pdf", pdf_base64,
+        from_name=shop_name,
     )
 
 def send_web_order_invoice(
@@ -94,6 +111,7 @@ def send_web_order_invoice(
     customer_phone: str, customer_city: str,
     items: list, total: float, payment_method: str,
     created_at_iso: str | None = None,
+    shop_logo: str | None = None,
 ) -> bool:
     """Genera la factura PDF en el servidor y la envía adjunta. Encolable."""
     import invoice_generator as _ig
@@ -113,7 +131,7 @@ def send_web_order_invoice(
     )
     return send_invoice_attachment(
         email=email, name=name, order_id=order_id,
-        shop_name=shop_name, pdf_base64=pdf_b64,
+        shop_name=shop_name, pdf_base64=pdf_b64, shop_logo=shop_logo,
     )
 
 def _send(to: str, subject: str, content: str) -> bool:
@@ -281,13 +299,20 @@ def send_password_reset(email: str, token: str) -> bool:
     )
     return _send_raw(email, "Restablece tu contraseña — Bayup", html)
 
-def _order_header(shop_name: str) -> str:
+def _order_header(shop_name: str, shop_logo: str | None = None) -> str:
+    """
+    El cliente le compró al tenant, no a Bayup — el header muestra la marca
+    de la tienda (logo si lo tiene configurado, si no su nombre) en vez del
+    wordmark de Bayup. La plataforma queda solo como nota discreta al pie.
+    """
+    if shop_logo:
+        brand_html = f'<img src="{shop_logo}" alt="{shop_name}" height="32" style="display:block;height:32px;width:auto;border-radius:6px">'
+    else:
+        brand_html = f'<span style="font-size:18px;font-weight:900;letter-spacing:-0.3px;color:#ffffff">{shop_name}</span>'
     return (
         f'<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0f0f0f">'
-        f'<tr>'
-        f'<td style="padding:16px 32px"><span style="font-size:20px;font-weight:900;font-style:italic;letter-spacing:-0.5px;color:#ffffff">Bay<span style="color:#00f2ff">UP.</span></span></td>'
-        f'<td align="right" style="padding:16px 32px"><span style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#444444">{shop_name}</span></td>'
-        f'</tr></table>'
+        f'<tr><td style="padding:18px 32px">{brand_html}</td></tr>'
+        f'</table>'
     )
 
 def _order_items_table(items: list, total: float) -> str:
@@ -342,6 +367,7 @@ def send_order_confirmation(
     customer_phone: str = "",
     shop_name: str = "Bayup",
     source: str = "web",
+    shop_logo: str | None = None,
 ) -> bool:
     short_id   = str(order_id)[:8].upper()
     items      = items or []
@@ -385,7 +411,7 @@ def send_order_confirmation(
         f'<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
         f'<body style="margin:0;padding:24px 16px;background:#f0f0f0;font-family:Arial,Helvetica,sans-serif">'
         f'<div style="max-width:580px;margin:0 auto;background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">'
-        f'{_order_header(shop_name)}'
+        f'{_order_header(shop_name, shop_logo)}'
         f'<div style="padding:28px 32px">'
         f'<table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px"><tr>'
         f'<td valign="top" style="padding-right:16px"><div style="width:44px;height:44px;background:#0f0f0f;border-radius:10px;text-align:center;line-height:44px;font-size:18px;font-weight:900;color:#00f2ff">&#10003;</div></td>'
@@ -399,10 +425,10 @@ def send_order_confirmation(
         f'<div style="background:#f0fefe;border:1px solid #b3ecec;border-radius:8px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#4b5563;line-height:1.6">{footer_note}</div>'
         f'{cta_block}'
         f'</div>'
-        f'<div style="border-top:1px solid #f3f4f6;padding:16px 32px;text-align:center;font-size:11px;color:#9ca3af;line-height:1.7">Este correo fue enviado por <strong>{shop_name}</strong> a trav&#233;s de Bayup.<br>&#169; 2026 Bayup &#8212; La plataforma de ventas inteligente</div>'
+        f'<div style="border-top:1px solid #f3f4f6;padding:16px 32px;text-align:center;font-size:11px;color:#9ca3af;line-height:1.7">Este correo fue enviado por <strong>{shop_name}</strong>.<br>Powered by Bayup</div>'
         f'</div></body></html>'
     )
-    return _send_raw(email, subject, html)
+    return _send_raw(email, subject, html, from_name=shop_name)
 
 
 def send_order_status_update(
@@ -411,6 +437,7 @@ def send_order_status_update(
     order_id: str,
     new_status: str,
     shop_name: str = "Bayup",
+    shop_logo: str | None = None,
 ) -> bool:
     short_id   = str(order_id)[:8].upper()
     first_name = name.split()[0] if name else name
@@ -436,7 +463,7 @@ def send_order_status_update(
         f'<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
         f'<body style="margin:0;padding:24px 16px;background:#f0f0f0;font-family:Arial,Helvetica,sans-serif">'
         f'<div style="max-width:580px;margin:0 auto;background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">'
-        f'{_order_header(shop_name)}'
+        f'{_order_header(shop_name, shop_logo)}'
         f'<div style="padding:28px 32px">'
         f'<div style="font-size:18px;font-weight:800;color:#111827;letter-spacing:-0.3px;margin-bottom:6px">{headline}</div>'
         f'<div style="font-size:13px;color:#4b5563;margin-bottom:24px">Hola {first_name}, {subline}</div>'
@@ -445,11 +472,11 @@ def send_order_status_update(
         f'<div style="background:{bg_color};border:1px solid {border};border-radius:8px;padding:14px 18px;font-size:13px;color:#4b5563;line-height:1.6">{subline}</div>'
         f'{cta}'
         f'</div>'
-        f'<div style="border-top:1px solid #f3f4f6;padding:16px 32px;text-align:center;font-size:11px;color:#9ca3af;line-height:1.7">Este correo fue enviado por <strong>{shop_name}</strong> a trav&#233;s de Bayup.<br>&#169; 2026 Bayup &#8212; La plataforma de ventas inteligente</div>'
+        f'<div style="border-top:1px solid #f3f4f6;padding:16px 32px;text-align:center;font-size:11px;color:#9ca3af;line-height:1.7">Este correo fue enviado por <strong>{shop_name}</strong>.<br>Powered by Bayup</div>'
         f'</div></body></html>'
     )
     subject = f"{headline} — {shop_name}"
-    return _send_raw(email, subject, html)
+    return _send_raw(email, subject, html, from_name=shop_name)
 
 def send_staff_invitation(email: str, name: str, inviter: str) -> bool:
     html = _simple_email_html(

@@ -336,4 +336,8 @@ async def read_users_me(user=Depends(current_user)):
         "legal_rep":     getattr(user, "legal_rep", "") or "",
         "social_links":  getattr(user, "social_links", {}) or {},
         "bank_accounts": getattr(user, "bank_accounts", []) or [],
+        "terms_conditions": getattr(user, "terms_conditions", "") or "",
+        "privacy_policy":   getattr(user, "privacy_policy", "") or "",
+        "return_policy":    getattr(user, "return_policy", "") or "",
+        "shipping_policy":  getattr(user, "shipping_policy", "") or "",
     }

@@ -93,23 +93,51 @@ def _process_one(job_id: int, func_name: str, kwargs_json: str) -> None:
         db.close()
 
 
+def _claim_pending(db) -> list:
+    """
+    Reclama jobs pendientes de forma atómica antes de procesarlos.
+
+    Un simple SELECT de pendientes (sin reclamar) deja una ventana entre leer
+    la fila y marcarla 'sent' — si hay más de un proceso corriendo el worker
+    contra la misma base de datos (ej. instancia vieja y nueva de Render
+    solapadas durante un rolling deploy, o un backend local apuntando a la
+    misma DB), ambos pueden leer la misma fila como 'pending' y enviar el
+    correo por duplicado antes de que cualquiera la marque como enviada.
+
+    FOR UPDATE SKIP LOCKED hace que cada proceso se quede con filas distintas:
+    la fila queda bloqueada mientras un proceso la tiene, y el otro simplemente
+    la salta en vez de esperar o repetirla.
+    """
+    from sqlalchemy import text
+    rows = db.execute(
+        text(
+            "UPDATE email_jobs SET status = 'processing', updated_at = NOW() "
+            "WHERE id IN ("
+            "  SELECT id FROM email_jobs "
+            "  WHERE attempts < :max AND ("
+            "    (status = 'pending' AND updated_at <= NOW()) "
+            "    OR (status = 'processing' AND updated_at <= NOW() - INTERVAL '5 minutes')"
+            "  ) "
+            "  ORDER BY id ASC LIMIT 10 "
+            "  FOR UPDATE SKIP LOCKED"
+            ") "
+            "RETURNING id, func, kwargs_json"
+        ),
+        {"max": MAX_ATTEMPTS},
+    ).fetchall()
+    db.commit()
+    return rows
+
+
 def _worker_loop() -> None:
     """Bucle del worker. Procesa hasta 10 emails por ciclo."""
     from database import SessionLocal
-    from sqlalchemy import text
 
     while True:
         try:
             db = SessionLocal()
             try:
-                rows = db.execute(
-                    text(
-                        "SELECT id, func, kwargs_json FROM email_jobs "
-                        "WHERE status = 'pending' AND attempts < :max AND updated_at <= NOW() "
-                        "ORDER BY id ASC LIMIT 10"
-                    ),
-                    {"max": MAX_ATTEMPTS},
-                ).fetchall()
+                rows = _claim_pending(db)
             finally:
                 db.close()
 

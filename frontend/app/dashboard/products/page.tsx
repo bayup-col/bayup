@@ -451,8 +451,186 @@ export default function ProductsPage() {
   return (
     <div className="space-y-6 pb-20">
 
-      {/* ── HEADER ── */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      {/* ══════════ MOBILE VIEW (solo < sm) ══════════ */}
+      <div className="block sm:hidden -mx-3 space-y-3 pt-2">
+
+        {/* Hero card */}
+        <div className="mx-3 rounded-3xl p-5 relative overflow-hidden"
+          style={{ background: 'linear-gradient(145deg,#001a1a 0%,#003333 50%,#005252 100%)' }}>
+          <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full"
+            style={{ background: 'radial-gradient(circle,rgba(0,242,255,0.12),transparent 70%)' }}/>
+          <div className="absolute -bottom-6 -left-6 h-28 w-28 rounded-full"
+            style={{ background: 'radial-gradient(circle,rgba(0,178,189,0.08),transparent 70%)' }}/>
+
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="h-6 w-6 rounded-lg bg-[#00f2ff]/15 flex items-center justify-center">
+                <Package size={12} className="text-[#00f2ff]"/>
+              </div>
+              <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[#00f2ff]/70">Catálogo</p>
+            </div>
+            <button onClick={handleNewProductClick}
+              className="flex items-center gap-1.5 h-8 px-3 rounded-xl bg-[#00f2ff]/15 border border-[#00f2ff]/20 text-[#00f2ff] text-[9px] font-black uppercase tracking-wide active:bg-[#00f2ff]/25 transition-colors">
+              <Plus size={11} strokeWidth={3}/> Nuevo
+            </button>
+          </div>
+
+          <div className="mb-1">
+            <p className="text-[11px] font-bold text-white/30">Total</p>
+            <p className="text-[42px] font-black text-white leading-none tracking-tight -mt-1">
+              {products.length}
+              <span className="text-[18px] text-white/25 ml-2 font-bold">productos</span>
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/[0.08]">
+            <div className="flex items-center gap-1.5">
+              <div className="h-1.5 w-1.5 rounded-full bg-emerald-400"/>
+              <p className="text-[9px] text-white/40">{kpis[1].value} activos</p>
+            </div>
+            {(kpis[2].value as number) > 0 && (
+              <span className="ml-auto flex items-center gap-1 text-[9px] font-black text-amber-400 bg-amber-500/15 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                <AlertCircle size={8}/> {kpis[2].value} stock crítico
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* 4 mini stats */}
+        <div className="grid grid-cols-2 gap-2.5 mx-3">
+          {[
+            { label: 'Total productos', value: products.length, sub: `${kpis[0].value as number} en catálogo`, icon: <Package size={13} className="text-[#004d4d]"/>, bg: 'bg-[#004d4d]/8', badge: null },
+            { label: 'Activos en web',  value: kpis[1].value,  sub: 'Visibles en tienda',                    icon: <Zap size={13} className="text-emerald-500"/>,  bg: 'bg-emerald-50',    badge: null },
+            { label: 'Stock crítico',   value: kpis[2].value,  sub: 'Con ≤ 5 unidades',                      icon: <AlertCircle size={13} className="text-rose-500"/>, bg: 'bg-rose-50', badge: (kpis[2].value as number) > 0 ? '¡Revisar!' : null },
+            { label: 'Precio promedio', value: fmt(kpis[3].value as number), sub: 'Del catálogo',             icon: <DollarSign size={13} className="text-blue-500"/>, bg: 'bg-blue-50',  badge: null },
+          ].map((s, i) => (
+            <div key={i} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100/80">
+              <div className="flex items-center justify-between mb-2.5">
+                <div className={`h-7 w-7 rounded-xl ${s.bg} flex items-center justify-center`}>{s.icon}</div>
+                {s.badge && <span className="text-[7px] font-black text-rose-500 bg-rose-50 border border-rose-100 px-1.5 py-0.5 rounded-full uppercase tracking-wide">{s.badge}</span>}
+              </div>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">{s.label}</p>
+              <p className="text-[20px] font-black text-gray-900 leading-none truncate">{typeof s.value === 'number' ? s.value : s.value}</p>
+              <p className="text-[9px] text-gray-400 mt-1.5">{s.sub}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Plan banner (si aplica) */}
+        {isBasicPlan && (
+          <div className="mx-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-3.5 flex items-center gap-3">
+            <div className={`h-7 w-7 rounded-xl flex items-center justify-center shrink-0 ${products.length >= 25 ? 'bg-amber-50 text-amber-500' : 'bg-[#004d4d]/10 text-[#004d4d]'}`}>
+              <Package size={13}/>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-[10px] font-bold text-gray-700">{products.length}/30 productos</p>
+                <button onClick={() => router.push('/planes')} className="text-[8px] font-black text-[#004d4d] tracking-widest uppercase">Subir →</button>
+              </div>
+              <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full transition-all ${products.length >= 25 ? 'bg-amber-400' : 'bg-gradient-to-r from-[#004d4d] to-[#00b2bd]'}`}
+                  style={{ width: `${(products.length / 30) * 100}%` }}/>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Lista de productos */}
+        <div className="mx-3 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-50">
+            <div>
+              <p className="text-[13px] font-black text-gray-900">Catálogo</p>
+              <p className="text-[9px] text-gray-400 mt-0.5">Toca un producto para editarlo</p>
+            </div>
+            <span className="text-[10px] font-black text-[#004d4d] bg-[#004d4d]/8 px-2.5 py-1 rounded-full">
+              {filteredProducts.length}
+            </span>
+          </div>
+
+          {/* Búsqueda mobile */}
+          <div className="px-3 pt-3 pb-2">
+            <div className="flex items-center gap-2 h-9 bg-gray-50 rounded-xl border border-gray-100 px-3">
+              <Search size={13} className="text-gray-300 shrink-0"/>
+              <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                placeholder="Buscar producto…"
+                className="flex-1 bg-transparent outline-none text-sm text-gray-700 placeholder:text-gray-300"/>
+              {searchTerm && <button onClick={() => setSearchTerm('')}><X size={12} className="text-gray-300"/></button>}
+            </div>
+          </div>
+
+          {/* Tabs: Todos / Activos / Borradores */}
+          <div className="grid grid-cols-3 gap-1.5 px-3 pb-2">
+            {[
+              { key: 'all',    label: 'Todos',      count: products.length },
+              { key: 'active', label: 'Activos',    count: quickStats.byStatus.active },
+              { key: 'draft',  label: 'Borradores', count: quickStats.byStatus.draft },
+            ].map(t => (
+              <button key={t.key} onClick={() => setActiveTab(t.key as any)}
+                className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-[8px] font-black uppercase tracking-wide transition-all ${
+                  activeTab === t.key ? 'bg-[#004d4d] text-white' : 'bg-gray-50 text-gray-400'
+                }`}>
+                <span className="truncate">{t.label}</span>
+                <span className={`shrink-0 text-[7px] min-w-[16px] text-center px-1 py-0.5 rounded-full font-black ${activeTab === t.key ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-500'}`}>{t.count}</span>
+              </button>
+            ))}
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 size={20} className="animate-spin text-[#004d4d]"/>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 gap-2">
+              <div className="h-12 w-12 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center">
+                <Package size={18} className="text-gray-300"/>
+              </div>
+              <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Sin productos</p>
+              <button onClick={handleNewProductClick}
+                className="mt-1 h-8 px-4 bg-[#004d4d] text-white rounded-xl text-[9px] font-black uppercase tracking-widest">
+                + Crear producto
+              </button>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50/80 max-h-[480px] overflow-y-auto">
+              {filteredProducts.map((p: any) => {
+                const img = getProductImage(p);
+                const totalStock = p.variants?.reduce((a: number, v: any) => a + (v.stock || 0), 0) || 0;
+                const isActive = p.status === 'active';
+                const isLowStock = totalStock <= 5;
+                return (
+                  <div key={p.id} onClick={() => router.push(`/dashboard/products/${p.id}`)}
+                    className="flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="h-11 w-11 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
+                      {img
+                        ? <ProductMedia src={img} className="h-full w-full object-cover"/>
+                        : <Package size={16} className="text-gray-300"/>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-bold text-gray-800 truncate">{p.name}</p>
+                      <p className="text-[9px] text-gray-400 mt-0.5">{p.sku || 'Sin SKU'}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[13px] font-black text-gray-900">{fmt(p.price || 0)}</p>
+                      <div className="flex items-center justify-end gap-1 mt-0.5">
+                        <span className={`text-[8px] font-black uppercase tracking-wide ${isActive ? 'text-emerald-500' : 'text-gray-400'}`}>
+                          {isActive ? '● Activo' : '○ Borrador'}
+                        </span>
+                        {isLowStock && <span className="text-[8px] font-black text-amber-500">· {totalStock}u</span>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="h-4"/>
+      </div>
+      {/* ══════════ FIN MOBILE VIEW ══════════ */}
+
+      {/* ── HEADER (solo desktop) ── */}
+      <div className="hidden sm:flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="flex items-center gap-2 text-[10px] font-bold tracking-[0.22em] uppercase mb-1 text-gray-400">
             <span className="h-1.5 w-1.5 rounded-full bg-[#004d4d] inline-block"/>
@@ -479,9 +657,9 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* ── PLAN BANNER ── */}
+      {/* ── PLAN BANNER (solo desktop) ── */}
       {isBasicPlan && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-4">
+        <div className="hidden sm:flex bg-white rounded-2xl border border-gray-100 shadow-sm p-4 items-center gap-4">
           <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${products.length >= 25 ? 'bg-amber-50 text-amber-500' : 'bg-[#004d4d]/10 text-[#004d4d]'}`}>
             <Package size={14}/>
           </div>
@@ -507,8 +685,8 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* ── KPIs ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* ── KPIs (solo desktop) ── */}
+      <div className="hidden sm:grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((k, i) => (
           <KpiCard key={i} label={k.label} value={k.value} sub={k.sub} icon={k.icon} accent={k.accent} isSimple={k.isSimple} trend={k.trend} trendUp={(k as any).trendUp}/>
         ))}
@@ -715,7 +893,7 @@ export default function ProductsPage() {
                             <td className="px-4 py-3">
                               <input
                                 type="number" min={0}
-                                value={displayStock}
+                                value={displayStock === 0 ? '' : displayStock}
                                 onChange={e => {
                                   const varKey = v ? v.id : '__novariant';
                                   handleStockChange(p.id, varKey, Number(e.target.value));

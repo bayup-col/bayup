@@ -35,6 +35,24 @@ def test_actualizar_perfil_sin_auth(client):
     assert r.status_code == 401
 
 
+def test_actualizar_textos_legales(client, tenant_token, tenant_user):
+    r = client.put("/admin/update-profile", json={
+        "terms_conditions": "Al comprar aceptas...",
+        "privacy_policy": "Tus datos se protegen...",
+        "return_policy": "Tienes 5 días para devolver...",
+        "shipping_policy": "Enviamos a todo el país...",
+    }, headers={"Authorization": f"Bearer {tenant_token}"})
+    assert r.status_code == 200
+    assert r.json()["ok"] is True
+
+    me = client.get("/auth/me", headers={"Authorization": f"Bearer {tenant_token}"})
+    data = me.json()
+    assert data["terms_conditions"] == "Al comprar aceptas..."
+    assert data["privacy_policy"] == "Tus datos se protegen..."
+    assert data["return_policy"] == "Tienes 5 días para devolver..."
+    assert data["shipping_policy"] == "Enviamos a todo el país..."
+
+
 # ── POST /admin/staff ─────────────────────────────────────────────────────
 
 def test_crear_staff(client, tenant_token, tenant_user, db_session):

@@ -61,6 +61,10 @@ async def get_public_shop(request: Request, response: Response, slug: str, db: S
         "social_links": getattr(store, "social_links", None) or {},
         "whatsapp_lines": getattr(store, "whatsapp_lines", None) or [],
         "categories": [schemas.Collection.model_validate(c).model_dump(mode="json") for c in collections],
+        "terms_conditions": getattr(store, "terms_conditions", None),
+        "privacy_policy": getattr(store, "privacy_policy", None),
+        "return_policy": getattr(store, "return_policy", None),
+        "shipping_policy": getattr(store, "shipping_policy", None),
     }
     _cache.cache_set(_cache.shop_cache, slug, data, 60)
     response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
@@ -91,21 +95,17 @@ async def get_public_store_products(request: Request, response: Response, store_
     ]
 
 
-@router.post("/public/orders")
-@limiter.limit("10/minute")
-def create_public_order(request: Request, payload: PublicOrderCreateRequest, db: Session = Depends(get_db)):
-    """Checkout público del storefront (/shop/[slug]), sin autenticación."""
-    import email_queue as _eq
-    try:
-        tenant_uuid = _uuid.UUID(payload.tenant_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="tenant_id inválido")
-
-    # CRIT-002: calcular precio desde la DB; ignorar price_at_purchase del cliente
+def resolve_variant_items(db: Session, tenant_uuid, raw_items: list) -> list:
+    """Valida ítems de checkout público contra la DB (CRIT-002: nunca confiar en
+    el precio del cliente). Acepta objetos con .product_variant_id/.quantity o
+    dicts equivalentes. Crea una variante "Base" si el id recibido es en
+    realidad un product_id (producto sin variantes)."""
     validated_items: list = []
-    for item in payload.items:
+    for item in raw_items:
+        raw_id = item.product_variant_id if hasattr(item, "product_variant_id") else item["product_variant_id"]
+        quantity = item.quantity if hasattr(item, "quantity") else item["quantity"]
         try:
-            var_uuid = _uuid.UUID(item.product_variant_id)
+            var_uuid = _uuid.UUID(str(raw_id))
         except ValueError:
             raise HTTPException(status_code=400, detail="product_variant_id inválido")
         variant = db.query(models.ProductVariant).filter(models.ProductVariant.id == var_uuid).first()
@@ -135,20 +135,33 @@ def create_public_order(request: Request, payload: PublicOrderCreateRequest, db:
         db_price = variant.price if variant.price and variant.price > 0 else product.price
         validated_items.append(schemas.OrderItemBase(
             product_variant_id=variant.id,
-            quantity=item.quantity,
+            quantity=quantity,
             price_at_purchase=db_price,
         ))
+    return validated_items
+
+
+def finalize_web_order(
+    db: Session, tenant_uuid, validated_items: list,
+    customer_name: str, customer_email: str | None, customer_phone: str | None,
+    customer_city: str | None, shipping_address: str | None,
+    payment_method: str, source: str,
+) -> models.Order:
+    """Crea la orden ya validada, encola emails, genera envío y notifica al
+    tenant. Compartido entre el checkout directo (/public/orders) y la
+    confirmación de pago vía webhook de la pasarela (Wompi)."""
+    import email_queue as _eq
 
     order_in = schemas.OrderCreate(
         tenant_id=tenant_uuid,
         total_price=0,
-        customer_name=payload.customer_name,
-        customer_email=payload.customer_email,
-        customer_phone=payload.customer_phone,
-        customer_city=payload.customer_city,
-        shipping_address=payload.shipping_address,
-        payment_method=payload.payment_method,
-        source=payload.source,
+        customer_name=customer_name,
+        customer_email=customer_email,
+        customer_phone=customer_phone,
+        customer_city=customer_city,
+        shipping_address=shipping_address,
+        payment_method=payment_method,
+        source=source,
         items=validated_items,
     )
     db_order = crud.create_order(db, order=order_in, customer_id=None, tenant_id=tenant_uuid)
@@ -163,39 +176,62 @@ def create_public_order(request: Request, payload: PublicOrderCreateRequest, db:
     tenant_user = db.query(models.User).filter(models.User.id == tenant_uuid).first()
     shop_name = (tenant_user.full_name or tenant_user.shop_slug or "Tu tienda") if tenant_user else "Tu tienda"
 
-    if payload.customer_email:
+    shop_logo = (tenant_user.logo_url if tenant_user else None)
+
+    if customer_email:
         _eq.enqueue("send_order_confirmation",
-            email=payload.customer_email, name=payload.customer_name or "Cliente",
+            email=customer_email, name=customer_name or "Cliente",
             order_id=str(db_order.id), items=items_info, total=float(db_order.total_price),
-            payment_method=payload.payment_method or "Online",
-            customer_city=payload.customer_city or "", customer_phone=payload.customer_phone or "",
-            shop_name=shop_name,
+            payment_method=payment_method or "Online",
+            customer_city=customer_city or "", customer_phone=customer_phone or "",
+            shop_name=shop_name, shop_logo=shop_logo,
         )
         _eq.enqueue("send_web_order_invoice",
-            email=payload.customer_email, name=payload.customer_name or "Cliente",
+            email=customer_email, name=customer_name or "Cliente",
             order_id=str(db_order.id), shop_name=shop_name,
             shop_email=(tenant_user.email or "") if tenant_user else "",
             shop_phone=(tenant_user.phone or "") if tenant_user else "",
-            customer_phone=payload.customer_phone or "", customer_city=payload.customer_city or "",
+            customer_phone=customer_phone or "", customer_city=customer_city or "",
             items=items_info, total=float(db_order.total_price),
-            payment_method=payload.payment_method or "Online",
+            payment_method=payment_method or "Online",
             created_at_iso=db_order.created_at.isoformat() if db_order.created_at else None,
+            shop_logo=shop_logo,
         )
 
     if tenant_user and tenant_user.email:
         _eq.enqueue("send_new_sale_notification",
             owner_email=tenant_user.email, shop_name=shop_name, order_id=str(db_order.id),
-            customer_name=payload.customer_name or "Cliente",
-            customer_email=payload.customer_email or "", customer_phone=payload.customer_phone or "",
-            customer_city=payload.customer_city or "", items=items_info,
-            total=float(db_order.total_price), payment_method=payload.payment_method or "Online",
+            customer_name=customer_name or "Cliente",
+            customer_email=customer_email or "", customer_phone=customer_phone or "",
+            customer_city=customer_city or "", items=items_info,
+            total=float(db_order.total_price), payment_method=payment_method or "Online",
         )
 
     total_fmt = f"${db_order.total_price:,.0f}".replace(",", ".")
     create_shipment(db, db_order, tenant_uuid)
     push_notification(db, tenant_uuid, "🛒 Nueva venta en tienda",
-                      f"{payload.customer_name or 'Cliente'} compró por {total_fmt}", "success")
+                      f"{customer_name or 'Cliente'} compró por {total_fmt}", "success")
 
+    return db_order
+
+
+@router.post("/public/orders")
+@limiter.limit("10/minute")
+def create_public_order(request: Request, payload: PublicOrderCreateRequest, db: Session = Depends(get_db)):
+    """Checkout público del storefront (/shop/[slug]), sin autenticación."""
+    try:
+        tenant_uuid = _uuid.UUID(payload.tenant_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="tenant_id inválido")
+
+    validated_items = resolve_variant_items(db, tenant_uuid, payload.items)
+    db_order = finalize_web_order(
+        db, tenant_uuid, validated_items,
+        customer_name=payload.customer_name, customer_email=payload.customer_email,
+        customer_phone=payload.customer_phone, customer_city=payload.customer_city,
+        shipping_address=payload.shipping_address, payment_method=payload.payment_method,
+        source=payload.source,
+    )
     return schemas.Order.model_validate(db_order).model_dump(mode="json")
 
 

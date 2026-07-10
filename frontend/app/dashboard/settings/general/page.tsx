@@ -8,7 +8,8 @@ import {
   Building2, Hash, User, FileText, Package, Sparkles,
   Activity, ShoppingBag, Smartphone, Check, AlertCircle,
   Instagram, Facebook, Send, ArrowUpRight, Edit3, Eye,
-  Wallet, CreditCard, Plus, Trash2, BadgeCheck
+  Wallet, CreditCard, Plus, Trash2, BadgeCheck,
+  Gavel, Lock, RotateCcw, Truck
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -150,7 +151,7 @@ export default function GeneralSettings() {
 
   const [loading, setLoading]   = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'identidad' | 'contacto' | 'fiscal' | 'canales' | 'pagos'>('identidad');
+  const [activeTab, setActiveTab] = useState<'identidad' | 'contacto' | 'fiscal' | 'canales' | 'pagos' | 'legal'>('identidad');
 
   // Cuentas bancarias
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
@@ -191,6 +192,14 @@ export default function GeneralSettings() {
     tiktok:    '',
   });
 
+  // Textos legales
+  const [legal, setLegal] = useState({
+    terms_conditions: '',
+    privacy_policy:   '',
+    return_policy:    '',
+    shipping_policy:  '',
+  });
+
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [schedDays,    setSchedDays]    = useState('Lun – Vie');
   const [schedOpen,    setSchedOpen2]   = useState('08:00');
@@ -225,6 +234,12 @@ export default function GeneralSettings() {
         });
         if (d.social_links) setSocial(prev => ({ ...prev, ...d.social_links }));
         if (d.bank_accounts?.length) setBankAccounts(d.bank_accounts);
+        setLegal({
+          terms_conditions: d.terms_conditions || '',
+          privacy_policy:   d.privacy_policy   || '',
+          return_policy:    d.return_policy    || '',
+          shipping_policy:  d.shipping_policy  || '',
+        });
       })
       .catch(() => {
         const cached = localStorage.getItem('bayup_company_profile');
@@ -261,6 +276,10 @@ export default function GeneralSettings() {
         tax_regime:    fiscal.tax_regime,
         legal_rep:     fiscal.legal_rep,
         social_links:  social,
+        terms_conditions: legal.terms_conditions,
+        privacy_policy:   legal.privacy_policy,
+        return_policy:    legal.return_policy,
+        shipping_policy:  legal.shipping_policy,
       };
 
       await apiRequest('/admin/update-profile', { method: 'PUT', token, body: JSON.stringify(payload) });
@@ -330,6 +349,7 @@ export default function GeneralSettings() {
     { id: 'fiscal',    label: 'Fiscal',     icon: <ShieldCheck size={13}/> },
     { id: 'canales',   label: 'Redes',      icon: <Globe size={13}/> },
     { id: 'pagos',     label: 'Pagos',      icon: <Wallet size={13}/> },
+    { id: 'legal',     label: 'Legal',      icon: <Gavel size={13}/> },
   ] as const;
 
   const validateEmail = (e: string) => !e || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
@@ -344,8 +364,84 @@ export default function GeneralSettings() {
   return (
     <div className="space-y-6 pb-20">
 
-      {/* ── HEADER ── */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      {/* ══════════ MOBILE HERO + TABS (solo < sm) ══════════ */}
+      <div className="block sm:hidden -mx-3 space-y-3 pt-2">
+
+        {/* Hero card */}
+        <div className="mx-3 rounded-3xl p-5 relative overflow-hidden"
+          style={{ background: 'linear-gradient(145deg,#001a1a 0%,#003333 50%,#005252 100%)' }}>
+          <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full"
+            style={{ background: 'radial-gradient(circle,rgba(0,242,255,0.12),transparent 70%)' }}/>
+          <div className="absolute -bottom-6 -left-6 h-28 w-28 rounded-full"
+            style={{ background: 'radial-gradient(circle,rgba(0,178,189,0.08),transparent 70%)' }}/>
+
+          <div className="flex items-start gap-4 relative z-10">
+            {/* Avatar */}
+            <div className="relative shrink-0">
+              <div className="h-14 w-14 rounded-2xl bg-gray-800 border-2 border-white/10 overflow-hidden flex items-center justify-center text-white text-xl font-black shadow-xl">
+                {identity.logo ? <img src={identity.logo} className="w-full h-full object-cover" alt="logo"/> : identity.name.charAt(0) || '?'}
+              </div>
+              <label htmlFor="logo-upload-mob" className="absolute -bottom-1 -right-1 h-6 w-6 bg-[#004d4d] rounded-lg flex items-center justify-center cursor-pointer active:bg-[#00b2bd] transition-colors shadow-lg">
+                {isSaving ? <Loader2 size={10} className="animate-spin text-white"/> : <Camera size={10} className="text-white"/>}
+              </label>
+              <input id="logo-upload-mob" type="file" hidden accept="image/*" onChange={e => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f); }}/>
+            </div>
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[#00f2ff]/70">Config Tienda</p>
+              </div>
+              <h2 className="text-[18px] font-black text-white truncate leading-tight">{identity.name || 'Tu empresa'}</h2>
+              <p className="text-[9px] font-bold tracking-widest text-white/35 uppercase mt-0.5">{identity.category}</p>
+              {identity.shop_slug && (
+                <div className="flex items-center gap-1 mt-1.5">
+                  <span className="text-[8px] text-[#00f2ff]/50 font-mono truncate">bayup.com.co/shop/{identity.shop_slug}</span>
+                  <button onClick={() => window.open(`/shop/${identity.shop_slug}`, '_blank')} className="text-[#00f2ff]/50 shrink-0">
+                    <ExternalLink size={8}/>
+                  </button>
+                </div>
+              )}
+            </div>
+            {/* Status + Ver tienda */}
+            <div className="shrink-0 flex flex-col items-end gap-2">
+              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"/>
+                <span className="text-[8px] font-bold text-emerald-400 tracking-widest">ACTIVA</span>
+              </div>
+              <button onClick={() => identity.shop_slug && window.open(`/shop/${identity.shop_slug}`, '_blank')}
+                className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/5 border border-white/10 active:bg-white/10 transition-colors">
+                <Eye size={9} className="text-white/40"/>
+                <span className="text-[8px] text-white/40 font-semibold">Ver tienda</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Guardar */}
+          <button onClick={handleSave} disabled={isSaving}
+            className="w-full mt-4 h-11 flex items-center justify-center gap-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-60"
+            style={{ background: 'linear-gradient(135deg,#004d4d 0%,#007a7a 50%,#00b2bd 100%)' }}>
+            {isSaving ? <Loader2 size={12} className="animate-spin text-white"/> : <ShieldCheck size={12} className="text-[#00f2ff]"/>}
+            <span className="text-white">{isSaving ? 'Guardando…' : 'Guardar y publicar'}</span>
+          </button>
+        </div>
+
+        {/* Tabs grid 3×2 */}
+        <div className="mx-3 grid grid-cols-3 gap-1.5">
+          {tabs.map(t => (
+            <button key={t.id} onClick={() => setActiveTab(t.id)}
+              className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-[8px] font-black uppercase tracking-wide transition-all ${
+                activeTab === t.id ? 'bg-[#004d4d] text-white' : 'bg-white border border-gray-100 text-gray-400 shadow-sm'
+              }`}>
+              <span className={activeTab === t.id ? 'text-white' : 'text-gray-400'}>{t.icon}</span>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* ══════════ FIN MOBILE HERO ══════════ */}
+
+      {/* ── HEADER (solo desktop) ── */}
+      <div className="hidden sm:flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="flex items-center gap-2 text-[10px] font-bold tracking-[0.22em] uppercase mb-1 text-gray-400">
             <span className="h-1.5 w-1.5 rounded-full bg-[#004d4d] inline-block"/>
@@ -363,8 +459,8 @@ export default function GeneralSettings() {
         </button>
       </div>
 
-      {/* ── LOGO + PREVIEW CARD ── */}
-      <div className="bg-[#001a1a] rounded-3xl p-6 flex items-center gap-6 relative overflow-hidden">
+      {/* ── LOGO + PREVIEW CARD (solo desktop) ── */}
+      <div className="hidden sm:flex bg-[#001a1a] rounded-3xl p-6 items-center gap-6 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-[#004d4d]/40 to-transparent pointer-events-none"/>
         {/* Avatar/logo */}
         <div className="relative shrink-0 z-10">
@@ -403,8 +499,8 @@ export default function GeneralSettings() {
         </div>
       </div>
 
-      {/* ── TABS ── */}
-      <div className="flex p-1 rounded-2xl gap-1 w-fit bg-gray-100">
+      {/* ── TABS (solo desktop) ── */}
+      <div className="hidden sm:flex p-1 rounded-2xl gap-1 w-fit bg-gray-100">
         {tabs.map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-widest transition-all duration-150 ${
@@ -470,10 +566,6 @@ export default function GeneralSettings() {
                   {!validatePhone(contact.phone) && contact.phone && (
                     <p className="text-[9px] text-rose-500 flex items-center gap-1 mt-1"><AlertCircle size={10}/> Debe tener 10 dígitos</p>
                   )}
-                </Field>
-                <Field label="Sitio web (opcional)">
-                  <Input value={contact.website} onChange={(e: any) => setContact(p => ({ ...p, website: e.target.value }))}
-                    placeholder="https://tutienda.com" icon={<Globe/>}/>
                 </Field>
               </SectionCard>
 
@@ -587,6 +679,48 @@ export default function GeneralSettings() {
                 </p>
               </div>
             </SectionCard>
+          </motion.div>
+        )}
+
+        {/* ══ TAB: LEGAL ══ */}
+        {activeTab === 'legal' && (
+          <motion.div key="legal" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
+            <div className="flex items-start gap-3 p-4 bg-[#004d4d]/5 border border-[#004d4d]/15 rounded-2xl">
+              <BadgeCheck size={15} className="text-[#004d4d] mt-0.5 shrink-0"/>
+              <p className="text-[11px] text-[#004d4d]/80 leading-relaxed">
+                Estos textos se publican en el pie de página de tu tienda online. Tenerlos completos genera confianza
+                y es un requisito legal para operar un comercio electrónico en Colombia.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <SectionCard title="Términos y condiciones" sub="Reglas de uso y compra en tu tienda" icon={<Gavel/>} accent="teal">
+                <Field label="Términos y condiciones" hint="Condiciones de compra, garantías, responsabilidades y uso del sitio.">
+                  <Textarea value={legal.terms_conditions} onChange={(e: any) => setLegal(p => ({ ...p, terms_conditions: e.target.value }))}
+                    placeholder="Al realizar una compra en esta tienda, el cliente acepta..." rows={9}/>
+                </Field>
+              </SectionCard>
+
+              <SectionCard title="Política de privacidad" sub="Manejo de los datos de tus clientes" icon={<Lock/>} accent="blue">
+                <Field label="Política de privacidad" hint="Cómo recolectas, usas y proteges los datos personales de tus clientes.">
+                  <Textarea value={legal.privacy_policy} onChange={(e: any) => setLegal(p => ({ ...p, privacy_policy: e.target.value }))}
+                    placeholder="Tu información personal es tratada de forma confidencial..." rows={9}/>
+                </Field>
+              </SectionCard>
+
+              <SectionCard title="Devoluciones y cambios" sub="Condiciones para devolver o cambiar un producto" icon={<RotateCcw/>} accent="amber">
+                <Field label="Política de devoluciones y cambios" hint="Plazos, condiciones del producto y proceso para solicitar un cambio o devolución.">
+                  <Textarea value={legal.return_policy} onChange={(e: any) => setLegal(p => ({ ...p, return_policy: e.target.value }))}
+                    placeholder="Tienes hasta 5 días hábiles después de recibir tu pedido para..." rows={9}/>
+                </Field>
+              </SectionCard>
+
+              <SectionCard title="Política de envíos" sub="Tiempos, costos y cobertura de entrega" icon={<Truck/>} accent="violet">
+                <Field label="Política de envíos" hint="Tiempos de entrega, costos, transportadoras y zonas de cobertura.">
+                  <Textarea value={legal.shipping_policy} onChange={(e: any) => setLegal(p => ({ ...p, shipping_policy: e.target.value }))}
+                    placeholder="Realizamos envíos a nivel nacional. El tiempo estimado de entrega es..." rows={9}/>
+                </Field>
+              </SectionCard>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

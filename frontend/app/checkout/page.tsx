@@ -55,26 +55,68 @@ export default function CheckoutPage() {
     };
   }, []);
 
+  // El script del widget de Wompi carga en paralelo (async) — si el backend
+  // responde muy rápido, puede que aún no esté listo. Esperamos un poco
+  // antes de rendirnos, en vez de fallar de inmediato.
+  const waitForWompiScript = async (maxWaitMs = 6000): Promise<boolean> => {
+    const start = Date.now();
+    while (typeof window.WidgetCheckout !== 'function') {
+      if (Date.now() - start > maxWaitMs) return false;
+      await new Promise(r => setTimeout(r, 150));
+    }
+    return true;
+  };
+
+  // Espera a que el backend confirme el pago vía webhook (única fuente de verdad).
+  // El navegador NUNCA marca un pago como aprobado por su cuenta.
+  const waitForPaymentConfirmation = async (apiUrl: string, paymentId: string, maxTries = 10): Promise<any> => {
+    for (let i = 0; i < maxTries; i++) {
+      await new Promise(r => setTimeout(r, 1500));
+      const res = await fetch(`${apiUrl}/public/payment/${paymentId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 'approved' || data.status === 'failed') return data;
+      }
+    }
+    return null;
+  };
+
   const handleWompiPayment = async () => {
     setIsProcessing(true);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
-      const currentTotal = items.length > 0 ? total : 149000;
-      
-      // 1. Obtener configuración y firma desde nuestro Backend
-      const res = await fetch(`${apiUrl}/admin/payments/wompi-config?amount=${currentTotal}`);
-      if (!res.ok) throw new Error("No se pudo obtener la configuración de pago");
-      
-      const config = await res.json();
+      const tenant_id = items[0]?.tenant_id || items[0]?.owner_id;
+      if (!tenant_id) throw new Error("No se pudo identificar la tienda propietaria de los productos");
 
-      // 2. Configurar y abrir el Widget de Wompi
+      // 1. Crear el Payment en el backend (recalcula precios reales desde la DB)
+      const res = await fetch(`${apiUrl}/public/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenant_id,
+          customer_name: `${customerData.name} ${customerData.lastName}`,
+          customer_email: customerData.email,
+          customer_phone: customerData.phone,
+          items: items.map(i => ({ product_variant_id: i.id, quantity: i.quantity })),
+          currency: 'COP',
+        }),
+      });
+      if (!res.ok) throw new Error("No se pudo iniciar el pago");
+      const config = await res.json();
+      if (!config.public_key) throw new Error("Pasarela de pago no disponible en este momento");
+
+      if (typeof window.WidgetCheckout !== 'function') {
+        const ready = await waitForWompiScript();
+        if (!ready) throw new Error('La pasarela de pago tardó demasiado en cargar. Recarga la página e intenta de nuevo.');
+      }
+
+      // 2. Abrir el Widget de Wompi con la sesión firmada por el backend
       const checkout = new window.WidgetCheckout({
         currency: config.currency,
         amountInCents: config.amount_in_cents,
         reference: config.reference,
         publicKey: config.public_key,
         signature: { integrity: config.signature },
-        redirectUrl: config.redirect_url,
         customerData: {
           email: customerData.email,
           fullName: `${customerData.name} ${customerData.lastName}`,
@@ -84,53 +126,30 @@ export default function CheckoutPage() {
       });
 
       checkout.open(async (result: any) => {
-        const transaction = result.transaction;
-        if (transaction.status === 'APPROVED') {
-          // 3. Registrar la orden oficialmente en nuestro Backend (Público)
-          try {
-            // Extraer el owner_id/tenant_id de la tienda desde los items del carrito
-            const tenant_id = items[0]?.tenant_id || items[0]?.owner_id;
-            
-            if (!tenant_id) {
-                throw new Error("No se pudo identificar la tienda propietaria de los productos");
-            }
+        const clientStatus = result?.transaction?.status;
+        if (clientStatus !== 'APPROVED') {
+          showToast(`Pago no completado (${clientStatus || 'cancelado'})`, "info");
+          setIsProcessing(false);
+          return;
+        }
 
-            await fetch(`${apiUrl}/public/orders`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                tenant_id: tenant_id,
-                customer_name: `${customerData.name} ${customerData.lastName}`,
-                customer_email: customerData.email,
-                customer_phone: customerData.phone,
-                items: items.map(i => ({
-                  product_variant_id: i.id, // En el checkout el id suele ser el del variant o fallback
-                  quantity: i.quantity,
-                  price_at_purchase: i.price
-                })),
-                payment_status: "paid",
-                payment_method: "wompi",
-                total_price: currentTotal,
-                source: "web"
-              })
-            });
-            
-            showToast("¡Pago aprobado! Tu pedido está en camino.", "success");
-            clearCart();
-            router.push("/dashboard/orders");
-          } catch (orderErr) {
-            console.error("Error al registrar orden:", orderErr);
-            showToast("Pago aprobado, pero hubo un error al registrar el pedido. Contacta a soporte.", "error");
-          }
+        // 3. Confirmar contra el backend — el webhook de Wompi es quien realmente
+        // aprueba el pago y crea el pedido, no este resultado del navegador.
+        showToast("Confirmando tu pago…", "info");
+        const confirmed = await waitForPaymentConfirmation(apiUrl, config.payment_id);
+        if (confirmed?.status === 'approved') {
+          showToast("¡Pago aprobado! Tu pedido está en camino.", "success");
+          clearCart();
+          router.push(confirmed.order_id ? `/pedido/${confirmed.order_id}` : "/");
         } else {
-          showToast(`Estado del pago: ${transaction.status}`, "info");
+          showToast("Tu pago está siendo verificado. Te notificaremos por correo en cuanto se confirme.", "info");
         }
         setIsProcessing(false);
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Wompi Error:", error);
-      showToast("Error al iniciar el proceso de pago", "error");
+      showToast(error?.message || "Error al iniciar el proceso de pago", "error");
       setIsProcessing(false);
     }
   };

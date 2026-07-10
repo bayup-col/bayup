@@ -65,6 +65,20 @@ const PREVIEW_DATA = {
     custom_schema: null
 };
 
+// Declaración para el objeto Wompi global que inyecta el script del widget
+declare global {
+    interface Window {
+        WidgetCheckout: any;
+    }
+}
+
+const LEGAL_LABELS: Record<string, string> = {
+    terms_conditions: 'Términos y condiciones',
+    privacy_policy:   'Política de privacidad',
+    return_policy:    'Devoluciones y cambios',
+    shipping_policy:  'Política de envíos',
+};
+
 export default function PublicShopPage() {
     return (
         <Suspense fallback={
@@ -103,6 +117,17 @@ function ShopContent() {
         name: "", phone: "", email: "", address: "", city: "", notes: ""
     });
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+    const [placingOrderStep, setPlacingOrderStep] = useState<'idle' | 'creating' | 'confirming'>('idle');
+    const [legalModalOpen, setLegalModalOpen] = useState<null | keyof typeof LEGAL_LABELS>(null);
+
+    // Carga el script del widget de Wompi al montar
+    useEffect(() => {
+        const script = document.createElement('script');
+        script.src = 'https://checkout.wompi.co/widget.js';
+        script.async = true;
+        document.body.appendChild(script);
+        return () => { document.body.removeChild(script); };
+    }, []);
 
     const addToCart = (product: any) => {
         const totalStock = product.variants?.reduce((a: any, b: any) => a + (b.stock || 0), 0) || 0;
@@ -122,73 +147,157 @@ function ShopContent() {
         });
     };
 
-    const [isOrderSuccess, setIsOrderSuccess] = useState(false);
-    const [lastOrderNum, setLastOrderNum] = useState("");
+    const extractErrorMessage = async (res: Response, fallback: string) => {
+        try {
+            const err = await res.json();
+            if (typeof err.detail === 'string') return err.detail;
+            if (Array.isArray(err.detail)) return err.detail.map((d: any) => d.msg || JSON.stringify(d)).join('. ');
+        } catch {}
+        return fallback;
+    };
+
+    // El script del widget de Wompi carga en paralelo (async) — si el backend
+    // responde muy rápido, puede que aún no esté listo. Esperamos un poco
+    // antes de rendirnos, en vez de fallar de inmediato.
+    const waitForWompiScript = async (maxWaitMs = 6000): Promise<boolean> => {
+        const start = Date.now();
+        while (typeof window.WidgetCheckout !== 'function') {
+            if (Date.now() - start > maxWaitMs) return false;
+            await new Promise(r => setTimeout(r, 150));
+        }
+        return true;
+    };
+
+    // Espera a que el backend confirme el pago vía webhook (única fuente de verdad).
+    // El navegador nunca marca un pago como aprobado por su cuenta.
+    const waitForPaymentConfirmation = async (apiBase: string, paymentId: string, maxTries = 10): Promise<any> => {
+        for (let i = 0; i < maxTries; i++) {
+            await new Promise(r => setTimeout(r, 1500));
+            const res = await fetch(`${apiBase}/public/payment/${paymentId}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.status === 'approved' || data.status === 'failed') return data;
+            }
+        }
+        return null;
+    };
 
     const handlePlaceOrder = async (e: React.FormEvent) => {
         e.preventDefault();
         if (cart.length === 0) return;
         setIsPlacingOrder(true);
+        setPlacingOrderStep('creating');
 
         try {
             const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
-            
+
             // BUSCAMOS EL VARIANT_ID CORRECTO
             // Para el Plan Básico, si no hay variantes seleccionadas, enviamos la primera disponible
             const itemsWithVariants = await Promise.all(cart.map(async (item) => {
                 const prod = shopData.products.find((p: any) => p.id === item.id);
-                const variantId = (prod?.variants && prod.variants.length > 0) 
-                    ? prod.variants[0].id 
+                const variantId = (prod?.variants && prod.variants.length > 0)
+                    ? prod.variants[0].id
                     : item.id; // Fallback
-                return {
-                    product_variant_id: variantId,
-                    quantity: item.quantity,
-                    price_at_purchase: item.price
-                };
+                return { product_variant_id: variantId, quantity: item.quantity };
             }));
 
-            const payload = {
-                customer_name: customerData.name,
-                customer_phone: customerData.phone,
-                customer_email: customerData.email,
-                shipping_address: `${customerData.address}, ${customerData.city}`,
-                tenant_id: shopData.id,
-                total_price: cartTotal,
-                payment_method: "WhatsApp",
-                source: "web",
-                items: itemsWithVariants
-            };
-
-            const res = await fetch(`${apiBase}/public/orders`, {
+            const res = await fetch(`${apiBase}/public/checkout`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                    tenant_id: shopData.id,
+                    customer_name: customerData.name,
+                    customer_phone: customerData.phone,
+                    customer_email: customerData.email,
+                    shipping_address: `${customerData.address}, ${customerData.city}`,
+                    currency: 'COP',
+                    items: itemsWithVariants,
+                }),
             });
 
-            if (res.ok) {
-                const orderData = await res.json();
-                const orderId = orderData.id.slice(0, 8).toUpperCase();
-                setLastOrderNum(orderId);
-                
-                const shopPhone = shopData.phone || "3000000000"; 
-                const message = encodeURIComponent(`¡Hola! Acabo de realizar un pedido en tu tienda ${shopData.full_name} 🚀\n\n🆔 Pedido: #${orderId}\n👤 Nombre: ${customerData.name}\n💰 Total: $${cartTotal.toLocaleString()}\n📍 Dirección: ${customerData.address}, ${customerData.city}\n\nQuedo atento a la confirmación. ✨`);
-                
-                clearCart();
-                setIsCheckoutOpen(false);
-                setIsOrderSuccess(true);
-                
-                setTimeout(() => {
-                    window.open(`https://wa.me/57${shopPhone.replace(/\D/g, '')}?text=${message}`, '_blank');
-                }, 3000);
-
-            } else {
-                const err = await res.json();
-                alert(`Error: ${err.detail || 'No se pudo crear el pedido.'}`);
+            if (!res.ok) {
+                alert(`Error: ${await extractErrorMessage(res, 'No se pudo iniciar el pago.')}`);
+                setIsPlacingOrder(false);
+                setPlacingOrderStep('idle');
+                return;
             }
-        } catch (error) {
-            alert("Error de conexión. Intenta de nuevo.");
-        } finally {
+
+            const config = await res.json();
+
+            if (!config.public_key) {
+                // Pasarela no disponible: no se puede cobrar en línea en este momento.
+                alert(
+                    'Los pagos en línea no están disponibles en este momento. ' +
+                    (config.whatsapp_url ? 'Contacta directamente a la tienda para coordinar tu compra.' : 'Intenta de nuevo más tarde.')
+                );
+                if (config.whatsapp_url) window.open(config.whatsapp_url, '_blank');
+                setIsPlacingOrder(false);
+                setPlacingOrderStep('idle');
+                return;
+            }
+
+            if (typeof window.WidgetCheckout !== 'function') {
+                const ready = await waitForWompiScript();
+                if (!ready) {
+                    throw new Error('La pasarela de pago tardó demasiado en cargar. Recarga la página e intenta de nuevo.');
+                }
+            }
+
+            // redirectUrl es obligatorio para métodos como transferencia bancaria/PSE:
+            // esos flujos sacan al comprador del sitio para autenticarse con su banco,
+            // por lo que el callback in-page nunca se ejecuta. Sin esto, Wompi lo deja
+            // varado en su propia página de confirmación sin forma de volver a la tienda.
+            const redirectUrl = `${window.location.origin}/pago/confirmando?payment_id=${config.payment_id}&slug=${slug}`;
+
+            const checkout = new window.WidgetCheckout({
+                currency: config.currency,
+                amountInCents: config.amount_in_cents,
+                reference: config.reference,
+                publicKey: config.public_key,
+                signature: { integrity: config.signature },
+                redirectUrl,
+                customerData: {
+                    email: customerData.email,
+                    fullName: customerData.name,
+                    phoneNumber: customerData.phone.replace(/\D/g, ''),
+                    phoneNumberPrefix: '+57',
+                },
+            });
+
+            checkout.open(async (result: any) => {
+                const clientStatus = result?.transaction?.status;
+                if (clientStatus !== 'APPROVED') {
+                    alert(`Pago no completado (${clientStatus || 'cancelado'}).`);
+                    setIsPlacingOrder(false);
+                    setPlacingOrderStep('idle');
+                    return;
+                }
+
+                // El widget dice "aprobado", pero solo el webhook firmado de Wompi
+                // confirma de verdad y crea el pedido — nunca confiamos en el navegador.
+                setPlacingOrderStep('confirming');
+                const confirmed = await waitForPaymentConfirmation(apiBase, config.payment_id);
+
+                if (confirmed?.status === 'approved') {
+                    clearCart();
+                    setIsCheckoutOpen(false);
+                    if (confirmed.order_id) {
+                        router.push(`/pedido/${confirmed.order_id}`);
+                    } else {
+                        alert('¡Pago aprobado! Tu pedido está en camino.');
+                    }
+                } else {
+                    alert('Tu pago está siendo verificado. Te notificaremos por correo en cuanto se confirme.');
+                }
+                setIsPlacingOrder(false);
+                setPlacingOrderStep('idle');
+            });
+
+        } catch (error: any) {
+            console.error('handlePlaceOrder error:', error);
+            alert(`Error de conexión: ${error?.message || 'Intenta de nuevo.'}`);
             setIsPlacingOrder(false);
+            setPlacingOrderStep('idle');
         }
     };
 
@@ -488,6 +597,23 @@ function ShopContent() {
                 )}
             </main>
 
+            {/* --- FOOTER LEGAL --- */}
+            {(shopData.terms_conditions || shopData.privacy_policy || shopData.return_policy || shopData.shipping_policy) && (
+                <footer className="border-t border-gray-100 bg-white py-10 px-6">
+                    <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <p className="text-[11px] text-gray-400 font-medium">© {new Date().getFullYear()} {shopData.full_name}. Todos los derechos reservados.</p>
+                        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+                            {(Object.keys(LEGAL_LABELS) as (keyof typeof LEGAL_LABELS)[]).map(key => shopData[key] && (
+                                <button key={key} onClick={() => setLegalModalOpen(key)}
+                                    className="text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-[#004d4d] transition-colors">
+                                    {LEGAL_LABELS[key]}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </footer>
+            )}
+
             {/* --- COMPONENTES GLOBALES (SIEMPRE DISPONIBLES) --- */}
             
             {/* SIDEBAR CARRITO */}
@@ -543,7 +669,9 @@ function ShopContent() {
                                     <input required placeholder="Dirección" value={customerData.address} onChange={e => setCustomerData({...customerData, address: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
                                     <input required placeholder="Ciudad" value={customerData.city} onChange={e => setCustomerData({...customerData, city: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
                                 </div>
-                                <button type="submit" disabled={isPlacingOrder} className="w-full py-6 bg-[#004d4d] text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-4">{isPlacingOrder ? "Procesando..." : <>Confirmar Pedido <ArrowRight size={18}/></>}</button>
+                                <button type="submit" disabled={isPlacingOrder} className="w-full py-6 bg-[#004d4d] text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-4">
+                                    {placingOrderStep === 'confirming' ? "Confirmando pago…" : isPlacingOrder ? "Procesando…" : <>Pagar ahora <ArrowRight size={18}/></>}
+                                </button>
                             </form>
                         </motion.div>
                     </div>
@@ -568,6 +696,22 @@ function ShopContent() {
                                 <p className="text-[9px] text-center text-gray-400 font-bold uppercase tracking-wider mt-4">¿Aún no tienes cuenta? <span className="text-[#004d4d] cursor-pointer hover:underline">Regístrate gratis</span></p>
                             </div>
                             <button onClick={() => setIsClientLoginOpen(false)} className="absolute top-6 right-6 text-gray-300 hover:text-rose-500 transition-colors"><X size={20}/></button>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* MODAL TEXTOS LEGALES */}
+            <AnimatePresence>
+                {legalModalOpen && (
+                    <div className="fixed inset-0 z-[4000] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setLegalModalOpen(null)} className="absolute inset-0 bg-[#001A1A]/80 backdrop-blur-sm" />
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-white w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-[2rem] shadow-2xl p-8 sm:p-10">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-xl font-black uppercase tracking-tight text-gray-900">{LEGAL_LABELS[legalModalOpen]}</h3>
+                                <button onClick={() => setLegalModalOpen(null)} className="h-9 w-9 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors shrink-0"><X size={16}/></button>
+                            </div>
+                            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{shopData[legalModalOpen]}</p>
                         </motion.div>
                     </div>
                 )}

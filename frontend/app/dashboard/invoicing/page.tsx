@@ -105,6 +105,7 @@ export default function InvoicingPage() {
   // Core state
   const [registeredCustomers,      setRegisteredCustomers]      = useState<any[]>([]);
   const [isPOSActive,              setIsPOSActive]              = useState(false);
+  const [posMobileTab,             setPosMobileTab]             = useState<'form'|'preview'>('form');
   const [selectedInvoice,          setSelectedInvoice]          = useState<PastInvoice | null>(null);
   const [fullSelectedOrder,        setFullSelectedOrder]        = useState<any>(null);
   const [selectedMetric,           setSelectedMetric]           = useState<any>(null);
@@ -461,6 +462,22 @@ export default function InvoicingPage() {
   // ── Input base style ──
   const inputCls = "w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 text-sm font-semibold text-gray-800 placeholder:text-gray-300 focus:outline-none focus:border-[#004d4d]/40 focus:bg-white transition-all";
 
+  // ── Mobile KPI values ──
+  const mobileKpis = useMemo(() => {
+    const billed   = history.filter(isFacturable);
+    const today    = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    const totalRev  = billed.reduce((a, b) => a + Number(b.total), 0);
+    const todayRev  = billed.filter(inv => inv.date?.split('T')[0] === today).reduce((a, b) => a + Number(b.total), 0);
+    const yestRev   = billed.filter(inv => inv.date?.split('T')[0] === yesterday).reduce((a, b) => a + Number(b.total), 0);
+    const pct       = yestRev > 0 ? ((todayRev - yestRev) / yestRev) * 100 : (todayRev > 0 ? 100 : 0);
+    const pending   = history.filter(inv => inv.status === 'pending' || inv.status === 'pendiente');
+    const pendingTotal = pending.reduce((a, b) => a + Number(b.total), 0);
+    const dateStr   = new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
+    return { totalRev, todayRev, pct, pendingTotal, pendingCount: pending.length, dateStr, recent: billed };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [history]);
+
   return (
     <div className="max-w-[1400px] mx-auto pb-20 space-y-6">
       <AnimatePresence mode="wait">
@@ -470,8 +487,159 @@ export default function InvoicingPage() {
           <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="space-y-6">
 
-            {/* Header */}
-            <div className="flex items-end justify-between">
+            {/* ── MOBILE HERO (solo visible en pantallas < sm) ── */}
+            <div className="block sm:hidden -mx-3 space-y-3 pt-2">
+
+              {/* Hero card oscuro */}
+              <div className="mx-3 rounded-3xl p-5 relative overflow-hidden"
+                style={{ background: 'linear-gradient(145deg,#001a1a 0%,#003333 50%,#005252 100%)' }}>
+                <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full"
+                  style={{ background: 'radial-gradient(circle,rgba(0,242,255,0.12),transparent 70%)' }}/>
+                <div className="absolute -bottom-6 -left-6 h-28 w-28 rounded-full"
+                  style={{ background: 'radial-gradient(circle,rgba(0,178,189,0.08),transparent 70%)' }}/>
+
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-6 w-6 rounded-lg bg-[#00f2ff]/15 flex items-center justify-center">
+                      <Wallet size={12} className="text-[#00f2ff]"/>
+                    </div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[#00f2ff]/70">Flujo de caja</p>
+                  </div>
+                  <span className={`flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full border ${mobileKpis.pct >= 0 ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' : 'bg-red-500/15 text-red-400 border-red-500/20'}`}>
+                    <TrendingUp size={9}/> {mobileKpis.pct >= 0 ? '+' : ''}{mobileKpis.pct.toFixed(1)}%
+                  </span>
+                </div>
+
+                <div className="mb-1">
+                  <p className="text-[11px] font-bold text-white/30">$</p>
+                  <p className="text-[42px] font-black text-white leading-none tracking-tight -mt-1">
+                    {new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(mobileKpis.totalRev)}
+                    <span className="text-[22px] text-white/25">.00</span>
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/[0.08]">
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-1.5 w-1.5 rounded-full bg-[#00f2ff] animate-pulse"/>
+                    <p className="text-[9px] text-white/40">En vivo · {mobileKpis.dateStr}</p>
+                  </div>
+                  <div className="ml-auto flex items-center gap-1 text-[9px] text-white/35 font-bold">
+                    <Activity size={9}/> {history.filter(isFacturable).length} ventas
+                  </div>
+                </div>
+              </div>
+
+              {/* Dos mini stats */}
+              <div className="grid grid-cols-2 gap-2.5 mx-3">
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100/80">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <div className="h-7 w-7 rounded-xl bg-[#004d4d]/8 flex items-center justify-center">
+                      <FileText size={13} className="text-[#004d4d]"/>
+                    </div>
+                    <span className="text-[8px] font-black text-[#004d4d] bg-[#004d4d]/8 px-1.5 py-0.5 rounded-full uppercase tracking-wide">Hoy</span>
+                  </div>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Facturado</p>
+                  <p className="text-[22px] font-black text-gray-900 leading-none">{fmtCOP(mobileKpis.todayRev)}</p>
+                  <p className="text-[9px] text-gray-400 mt-1.5">
+                    {history.filter(isFacturable).filter(inv => inv.date?.split('T')[0] === new Date().toISOString().split('T')[0]).length} facturas
+                  </p>
+                </div>
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100/80">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <div className="h-7 w-7 rounded-xl bg-amber-50 flex items-center justify-center">
+                      <Receipt size={13} className="text-amber-500"/>
+                    </div>
+                    {mobileKpis.pendingCount > 0 && (
+                      <span className="text-[8px] font-black text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">{mobileKpis.pendingCount}</span>
+                    )}
+                  </div>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Pendiente</p>
+                  <p className="text-[22px] font-black text-gray-900 leading-none">{fmtCOP(mobileKpis.pendingTotal)}</p>
+                  <p className="text-[9px] text-gray-400 mt-1.5">por cobrar</p>
+                </div>
+              </div>
+
+              {/* CTA — Nueva venta */}
+              <div className="mx-3">
+                <button onClick={() => setIsPOSActive(true)}
+                  className="w-full h-[52px] rounded-2xl font-black text-[13px] tracking-[0.12em] uppercase flex items-center justify-center gap-2.5 shadow-md transition-all active:scale-[0.97]"
+                  style={{ background: 'linear-gradient(135deg,#004d4d 0%,#007a7a 50%,#00b2bd 100%)', color: '#ffffff' }}>
+                  <div className="h-6 w-6 rounded-lg bg-white/20 flex items-center justify-center">
+                    <Plus size={14} strokeWidth={3}/>
+                  </div>
+                  Nueva venta
+                </button>
+              </div>
+
+              {/* Lista de transacciones */}
+              <div className="mx-3 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-50">
+                  <div>
+                    <p className="text-[13px] font-black text-gray-900">Transacciones</p>
+                    <p className="text-[9px] text-gray-400 mt-0.5">Historial completo</p>
+                  </div>
+                  {mobileKpis.recent.length > 0 && (
+                    <span className="text-[10px] font-black text-[#004d4d] bg-[#004d4d]/8 px-2.5 py-1 rounded-full">
+                      {mobileKpis.recent.length}
+                    </span>
+                  )}
+                </div>
+
+                {mobileKpis.recent.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 gap-2">
+                    <div className="h-12 w-12 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center">
+                      <Receipt size={18} className="text-gray-300"/>
+                    </div>
+                    <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Sin ventas aún</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-50/80 max-h-[400px] overflow-y-auto">
+                    {mobileKpis.recent.map((inv, i) => {
+                      const src = (inv.source || '').toLowerCase();
+                      const srcCfg =
+                        src === 'whatsapp'                            ? { icon: <MessageSquare size={13} className="text-emerald-600"/>, bg: 'bg-emerald-50' } :
+                        src === 'web' || src === 'página web'         ? { icon: <Globe size={13} className="text-sky-500"/>, bg: 'bg-sky-50' } :
+                        src === 'social' || src === 'redes sociales'  ? { icon: <Zap size={13} className="text-amber-500"/>, bg: 'bg-amber-50' } :
+                                                                        { icon: <ShoppingCart size={13} className="text-[#004d4d]"/>, bg: 'bg-[#004d4d]/8' };
+                      const isPaid = !inv.status || inv.status === 'completed' || inv.status === 'completado';
+                      const dateLabel = (() => {
+                        const d = new Date(inv.date);
+                        const now = new Date();
+                        const diffH = Math.floor((now.getTime() - d.getTime()) / 3600000);
+                        if (diffH < 24) return `Hoy · ${d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`;
+                        if (diffH < 48) return `Ayer · ${d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`;
+                        return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: '2-digit' });
+                      })();
+                      return (
+                        <div key={inv.id || i} className="flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 transition-colors">
+                          <div className={`h-9 w-9 rounded-xl ${srcCfg.bg} flex items-center justify-center shrink-0`}>
+                            {srcCfg.icon}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[12px] font-bold text-gray-800 truncate">
+                              {inv.customer || (inv.invoice_num ? `Factura ${inv.invoice_num}` : `Venta #${String(inv.id).slice(-5).toUpperCase()}`)}
+                            </p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">{dateLabel}</p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-[13px] font-black text-gray-900">{fmtCOP(Number(inv.total))}</p>
+                            <span className={`text-[8px] font-black uppercase tracking-wide ${isPaid ? 'text-emerald-500' : 'text-amber-500'}`}>
+                              {isPaid ? '✓ Pagado' : '⏳ Pendiente'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="h-4"/>
+            </div>
+            {/* ── FIN MOBILE HERO ── */}
+
+            {/* Header (solo desktop) */}
+            <div className="hidden sm:flex items-end justify-between">
               <div>
                 <p className="flex items-center gap-2 text-[9px] font-black tracking-[0.22em] uppercase text-gray-400 mb-1">
                   <span className="h-1.5 w-1.5 rounded-full bg-[#004d4d] inline-block"/>
@@ -488,13 +656,13 @@ export default function InvoicingPage() {
               </button>
             </div>
 
-            {/* KPIs */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* KPIs (solo desktop) */}
+            <div className="hidden sm:grid grid-cols-2 lg:grid-cols-4 gap-4">
               {invoicingKpis.map((k, i) => <KpiCard key={i} {...k}/>)}
             </div>
 
-            {/* Tabla */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            {/* Tabla — solo desktop */}
+            <div className="hidden sm:block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
 
               {/* Toolbar */}
               <div className="flex items-center gap-3 p-4 border-b border-gray-100">
@@ -665,11 +833,30 @@ export default function InvoicingPage() {
           <motion.div key="pos" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[3000] flex flex-col lg:flex-row bg-[#f8f9fa]" style={{ overflow: 'hidden' }}>
 
-            {/* ── Columna izquierda: cliente + productos ── */}
-            <div className="w-1/2 flex flex-col border-r border-gray-100 bg-white" style={{ minHeight: 0 }}>
+            {/* ── Tab bar móvil ── */}
+            <div className="lg:hidden shrink-0 bg-white border-b border-gray-100 flex items-center px-4 gap-2 h-12">
+              <button onClick={() => setIsPOSActive(false)}
+                className="h-7 w-7 flex items-center justify-center rounded-xl bg-gray-100 text-gray-400 shrink-0">
+                <ArrowLeft size={13}/>
+              </button>
+              <div className="flex-1 flex p-0.5 bg-gray-100 rounded-xl gap-0.5">
+                {(['form','preview'] as const).map(tab => (
+                  <button key={tab} onClick={() => setPosMobileTab(tab)}
+                    className={`flex-1 py-1.5 rounded-[10px] text-[9px] font-black uppercase tracking-wide transition-all ${posMobileTab === tab ? 'bg-[#004d4d] text-white shadow-sm' : 'text-gray-400'}`}>
+                    {tab === 'form' ? '📋 Formulario' : '📄 Vista previa'}
+                  </button>
+                ))}
+              </div>
+              <span className="text-[9px] font-black text-[#004d4d] bg-[#004d4d]/8 px-2 py-1 rounded-lg shrink-0">
+                {invoiceItems.length} items
+              </span>
+            </div>
 
-              {/* Header POS */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+            {/* ── Columna izquierda: cliente + productos ── */}
+            <div className={`lg:w-1/2 flex-col border-r border-gray-100 bg-white ${posMobileTab === 'form' ? 'flex' : 'hidden lg:flex'}`} style={{ minHeight: 0 }}>
+
+              {/* Header POS (solo desktop) */}
+              <div className="hidden lg:flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
                 <button onClick={() => setIsPOSActive(false)}
                   className="flex items-center gap-2 text-[9px] font-black text-gray-400 hover:text-rose-500 uppercase tracking-widest transition-all">
                   <ArrowLeft size={14}/> Cancelar
@@ -925,7 +1112,7 @@ export default function InvoicingPage() {
             </div>
 
             {/* ── Columna derecha: preview documento factura ── */}
-            <div className="w-1/2 flex flex-col bg-[#e8e8e8] border-l border-gray-300 overflow-y-auto">
+            <div className={`lg:w-1/2 flex-col bg-[#e8e8e8] border-l border-gray-300 overflow-y-auto ${posMobileTab === 'preview' ? 'flex' : 'hidden lg:flex'}`}>
               <div className="p-5 flex flex-col flex-1">
 
                 {/* Documento */}
@@ -1066,6 +1253,16 @@ export default function InvoicingPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Botón "Ver vista previa" — solo móvil */}
+              {invoiceItems.length > 0 && (
+                <div className="lg:hidden p-3 bg-[#e8e8e8] border-t border-gray-300">
+                  <button onClick={() => setPosMobileTab('preview')}
+                    className="w-full h-10 bg-[#004d4d] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                    Ver vista previa ({invoiceItems.length} items) →
+                  </button>
+                </div>
+              )}
 
               {/* CTAs — sticky al fondo del scroll */}
               <div className="sticky bottom-0 p-4 bg-[#e8e8e8] border-t border-gray-300 flex gap-3 mt-2">

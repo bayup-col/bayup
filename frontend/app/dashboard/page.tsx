@@ -769,8 +769,135 @@ export default function DashboardPage() {
   return (
     <div className="max-w-[1600px] mx-auto space-y-6 pb-20 px-4">
 
-        {/* ── HEADER ── */}
-        <div className="flex flex-col xl:flex-row items-start justify-between gap-4">
+        {/* ══════════ MOBILE VIEW (solo < sm) ══════════ */}
+        <div className="block sm:hidden -mx-4 space-y-3 pt-1">
+
+          {/* Hero card */}
+          <div className="mx-3 rounded-3xl p-5 relative overflow-hidden"
+            style={{ background: 'linear-gradient(145deg,#001a1a 0%,#003333 50%,#005252 100%)' }}>
+            <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full"
+              style={{ background: 'radial-gradient(circle,rgba(0,242,255,0.12),transparent 70%)' }}/>
+            <div className="absolute -bottom-6 -left-6 h-28 w-28 rounded-full"
+              style={{ background: 'radial-gradient(circle,rgba(0,178,189,0.08),transparent 70%)' }}/>
+
+            <div className="flex items-start justify-between mb-3 relative z-10">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[#00f2ff]/70 mb-0.5 flex items-center gap-1.5">
+                  <Calendar size={9}/> {new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'}).toUpperCase()}
+                </p>
+                <h1 className="text-[22px] font-black text-white leading-tight">Bienvenido, {companyName}</h1>
+              </div>
+              <button onClick={() => setIsCustomReportModalOpen(!isCustomReportModalOpen)}
+                className="h-8 w-8 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-white/60 active:bg-white/20 transition-colors shrink-0">
+                <Download size={13}/>
+              </button>
+            </div>
+
+            {/* Ventas del día destacado */}
+            <div className="mt-3 pt-3 border-t border-white/[0.08] relative z-10">
+              <p className="text-[10px] font-bold text-white/30">Ventas de hoy</p>
+              <p className="text-[34px] font-black text-white leading-none tracking-tight">
+                {new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(realStats.revenue ?? 0)}
+              </p>
+              <div className="flex items-center gap-3 mt-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"/>
+                  <p className="text-[9px] text-white/40">{realStats.online_now} en línea ahora</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 4 mini stats */}
+          <div className="grid grid-cols-2 gap-2 mx-3">
+            {[
+              { label:'Tráfico', value: `${realStats.online_now} en línea`, icon:<Activity size={13} className="text-emerald-500"/>, bg:'bg-emerald-50', badge:'En vivo', badgeColor:'text-emerald-600 bg-emerald-50' },
+              { label:'Ventas hoy', value: new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(realStats.revenue??0), icon:<DollarSign size={13} className="text-[#004d4d]"/>, bg:'bg-[#004d4d]/8', badge:'En vivo', badgeColor:'text-[#004d4d] bg-[#004d4d]/8' },
+              { label:'Pedidos pendientes', value: `${orders.filter(o=>o.status==='pending').length}`, icon:<ShoppingBag size={13} className="text-amber-500"/>, bg:'bg-amber-50', badge:'Pendientes', badgeColor:'text-amber-600 bg-amber-50' },
+              { label:'Inventario bajo', value: `${realStats.low_stock??0}`, icon:<Package size={13} className="text-rose-500"/>, bg:'bg-rose-50', badge:'Atención', badgeColor:'text-rose-600 bg-rose-50' },
+            ].map((s,i)=>(
+              <div key={i} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100/80 flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <div className={`h-7 w-7 rounded-xl ${s.bg} flex items-center justify-center`}>{s.icon}</div>
+                  <span className={`text-[7px] font-black px-1.5 py-0.5 rounded-full ${s.badgeColor}`}>{s.badge}</span>
+                </div>
+                <p className="text-[17px] font-black text-gray-900 leading-none truncate">{s.value}</p>
+                <p className="text-[8px] font-black text-gray-400 uppercase tracking-wide">{s.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Gráfica compacta */}
+          <div className="mx-3 bg-white rounded-3xl border border-gray-100 shadow-sm p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-[13px] font-black text-gray-900">Ventas del mes</p>
+                <p className="text-[9px] text-gray-400 mt-0.5">Evolución diaria</p>
+              </div>
+              <button onClick={loadDashboardData} className="h-7 w-7 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400 active:bg-gray-100 transition-colors">
+                <RefreshCw size={11}/>
+              </button>
+            </div>
+            <div style={{ height: 130 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gradMob" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#004d4d" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#004d4d" stopOpacity={0.01}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" vertical={false}/>
+                  <XAxis dataKey="day" tick={{ fontSize: 9, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={Math.max(0,Math.floor(chartData.length/5)-1)}/>
+                  <Tooltip content={<ChartTooltip/>}/>
+                  <Area type="monotone" dataKey="cumReal" name="Ventas" stroke="#004d4d" strokeWidth={2} fill="url(#gradMob)" dot={false} activeDot={{ r: 3, fill: '#004d4d' }}/>
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Actividad reciente */}
+          <div className="mx-3 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-50">
+              <p className="text-[13px] font-black text-gray-900">Actividad reciente</p>
+              <button onClick={() => router.push('/dashboard/orders')} className="text-[9px] font-black text-[#004d4d] flex items-center gap-1">Ver todo <ChevronRight size={10}/></button>
+            </div>
+            {recentOrders.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-2">
+                <ShoppingBag size={18} className="text-gray-200"/>
+                <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Sin pedidos aún</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-50 max-h-[340px] overflow-y-auto">
+                {recentOrders.slice(0,15).map((o,i)=>{
+                  const diffH = Math.floor((Date.now()-new Date(o.created_at).getTime())/3600000);
+                  const dateLabel = diffH < 24 ? `Hoy · ${new Date(o.created_at).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})}` : diffH < 48 ? 'Ayer' : new Date(o.created_at).toLocaleDateString('es-CO',{day:'2-digit',month:'short'});
+                  return (
+                    <div key={i} className="flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 transition-colors cursor-pointer" onClick={()=>router.push('/dashboard/orders')}>
+                      <div className="h-9 w-9 rounded-xl bg-[#004d4d]/8 flex items-center justify-center shrink-0">
+                        <ShoppingBag size={13} className="text-[#004d4d]"/>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] font-bold text-gray-800 truncate">{o.customer_name||o.customer||'Cliente'}</p>
+                        <p className="text-[9px] text-gray-400 mt-0.5">{dateLabel}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-[13px] font-black text-gray-900">{new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(o.total_price||0)}</p>
+                        <div className="mt-0.5">{statusBadge(o.status||'pending')}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="h-4"/>
+        </div>
+        {/* ══════════ FIN MOBILE VIEW ══════════ */}
+
+        {/* ── HEADER (solo desktop) ── */}
+        <div className="hidden sm:flex flex-col xl:flex-row items-start justify-between gap-4">
             <div>
                 <p className={`flex items-center gap-2 text-[10px] font-bold tracking-[0.22em] uppercase mb-1 ${theme === 'dark' ? 'text-white/30' : 'text-gray-400'}`}>
                     <span className="h-1.5 w-1.5 rounded-full bg-[#004d4d] inline-block"/>
@@ -827,8 +954,8 @@ export default function DashboardPage() {
             </div>
         </div>
 
-        {/* ── FILA DE 4 MÉTRICAS ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* ── FILA DE 4 MÉTRICAS (solo desktop) ── */}
+        <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {/* CARD 1: Tráfico */}
             <div>
                 <div className={`group relative h-full rounded-3xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5 ${
@@ -871,8 +998,8 @@ export default function DashboardPage() {
             ))}
         </div>
 
-        {/* ── CHART + INSIGHTS ── */}
-        <div className="grid grid-cols-12 gap-6">
+        {/* ── CHART + INSIGHTS (solo desktop) ── */}
+        <div className="hidden sm:grid grid-cols-12 gap-6">
 
             {/* COMPARATIVA DE VENTAS */}
             <div className="col-span-12 lg:col-span-8">
@@ -1027,8 +1154,8 @@ export default function DashboardPage() {
             </div>
         </div>
 
-        {/* ── ACTIVIDAD RECIENTE ── */}
-        <PremiumCard dark={theme === 'dark'} className="overflow-hidden">
+        {/* ── ACTIVIDAD RECIENTE (solo desktop) ── */}
+        <PremiumCard dark={theme === 'dark'} className="hidden sm:block overflow-hidden">
             <div className={`px-7 py-5 flex items-center justify-between border-b ${theme === 'dark' ? 'border-white/5' : 'border-gray-100'}`}>
                 <h4 className={`font-bold text-sm uppercase tracking-[0.12em] ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Actividad Reciente</h4>
                 <button onClick={() => router.push('/dashboard/orders')} className={`text-[9px] font-semibold tracking-widest uppercase flex items-center gap-1.5 transition-colors duration-150 ${theme === 'dark' ? 'text-white/30 hover:text-white/60' : 'text-gray-400 hover:text-[#004d4d]'}`}>
