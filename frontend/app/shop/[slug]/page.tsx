@@ -224,6 +224,10 @@ function ShopContent() {
                 return;
             }
 
+            if (typeof window.WidgetCheckout !== 'function') {
+                throw new Error('La pasarela de pago aún está cargando. Espera un segundo e intenta de nuevo.');
+            }
+
             const checkout = new window.WidgetCheckout({
                 currency: config.currency,
                 amountInCents: config.amount_in_cents,
@@ -267,8 +271,9 @@ function ShopContent() {
                 setPlacingOrderStep('idle');
             });
 
-        } catch (error) {
-            alert("Error de conexión. Intenta de nuevo.");
+        } catch (error: any) {
+            console.error('handlePlaceOrder error:', error);
+            alert(`Error de conexión: ${error?.message || 'Intenta de nuevo.'}`);
             setIsPlacingOrder(false);
             setPlacingOrderStep('idle');
         }
