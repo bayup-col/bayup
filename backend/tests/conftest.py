@@ -82,8 +82,14 @@ def client(db_session):
             pass
 
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app, raise_server_exceptions=False) as c:
-        yield c
+    # Sin "with": evita disparar el lifespan de FastAPI en cada test. El lifespan
+    # arranca un hilo en segundo plano que corre create_all/schema-sync contra la
+    # misma conexión SQLite en memoria (StaticPool), compitiendo con el DROP TABLE
+    # del teardown de sesión y causando "database table is locked" intermitente.
+    # Ningún test depende de efectos del lifespan (routers ya están registrados
+    # al importar main; el worker de email_queue está no-op vía _worker_started).
+    c = TestClient(app, raise_server_exceptions=False)
+    yield c
     app.dependency_overrides.clear()
 
 

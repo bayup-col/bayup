@@ -22,6 +22,144 @@ const TikTokIcon = ({ size = 16 }: { size?: number }) => (
   </svg>
 );
 
+// ── BANK CARD FLIP ───────────────────────────────────────────────────────────
+function BankCard({ acc, onRemove }: { acc: any; onRemove: () => void }) {
+  const [flipped, setFlipped] = useState(false);
+  const num = String(acc.account_number || '');
+  const last4 = num.slice(-4).padStart(4, '0');
+  const masked = `•••• •••• •••• ${last4}`;
+
+  return (
+    <div className="flex flex-col items-center gap-3">
+      {/* Hint */}
+      <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest">
+        {flipped ? 'Reverso — clic para girar' : 'Frente — clic para ver reverso'}
+      </p>
+
+      {/* Card wrapper */}
+      <div
+        className="w-full max-w-[380px] cursor-pointer"
+        style={{ perspective: '1000px', height: 220 }}
+        onClick={() => setFlipped(f => !f)}
+      >
+        <div
+          style={{
+            position: 'relative', width: '100%', height: '100%',
+            transformStyle: 'preserve-3d',
+            transition: 'transform 0.6s cubic-bezier(0.4,0.2,0.2,1)',
+            transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+          }}
+        >
+          {/* ── FRENTE ── */}
+          <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
+            <div className="w-full h-full rounded-[22px] overflow-hidden shadow-xl relative select-none"
+              style={{ background: 'linear-gradient(135deg,#001a1a 0%,#003333 55%,#005252 100%)' }}>
+              {/* Bayup logo watermark */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.13 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/assets/bayup-logo.png" alt="" style={{ width: 180, height: 180, objectFit: 'contain', filter: 'grayscale(20%) blur(0.5px)' }} />
+              </div>
+              {/* Círculos decorativos */}
+              <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full" style={{ background: 'rgba(0,242,255,0.07)' }}/>
+              <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full" style={{ background: 'rgba(0,242,255,0.05)' }}/>
+
+              <div className="relative z-10 h-full flex flex-col justify-between p-6">
+                {/* Top row */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Cuenta bancaria</p>
+                    <p className="text-[13px] font-black text-white mt-0.5">{acc.bank}</p>
+                  </div>
+                  <div className="h-9 w-14 rounded-xl flex items-center justify-center"
+                    style={{ background: 'linear-gradient(135deg,#f5c518,#f59718)', opacity: 0.92 }}>
+                    <div className="flex gap-[-4px]">
+                      <div className="h-6 w-6 rounded-full bg-red-500 opacity-90"/>
+                      <div className="h-6 w-6 rounded-full bg-yellow-400 opacity-90 -ml-2"/>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Chip + número */}
+                <div className="space-y-3">
+                  <div className="h-8 w-12 rounded-md"
+                    style={{ background: 'linear-gradient(135deg,#c8a86b,#e8c87a)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4)' }}/>
+                  <p className="text-[17px] font-mono font-bold text-white tracking-[3px]">{masked}</p>
+                </div>
+
+                {/* Bottom row */}
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest mb-0.5">Titular</p>
+                    <p className="text-[12px] font-black text-white uppercase tracking-wide">{acc.holder_name}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest mb-0.5">Tipo</p>
+                    <p className="text-[11px] font-black text-[#00f2ff]">{acc.account_type}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── REVERSO ── */}
+          <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
+            <div className="w-full h-full rounded-[22px] overflow-hidden shadow-xl relative select-none"
+              style={{ background: 'linear-gradient(135deg,#001a1a 0%,#003333 55%,#005252 100%)' }}>
+              {/* Bayup watermark */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.13 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/assets/bayup-logo.png" alt="" style={{ width: 180, height: 180, objectFit: 'contain', filter: 'grayscale(20%) blur(0.5px)' }} />
+              </div>
+
+              <div className="relative z-10 h-full flex flex-col justify-between py-5">
+                {/* Franja magnética */}
+                <div className="h-10 w-full bg-black/70 mt-2"/>
+
+                <div className="px-6 space-y-3">
+                  {/* Franja firma */}
+                  <div className="h-9 rounded-lg flex items-center px-3 justify-between"
+                    style={{ background: 'repeating-linear-gradient(90deg,#e5e7eb 0px,#e5e7eb 4px,#d1d5db 4px,#d1d5db 8px)' }}>
+                    <p className="text-[11px] font-mono font-bold text-gray-800 italic">{acc.holder_name}</p>
+                    <div className="h-7 w-14 bg-white rounded flex items-center justify-center">
+                      <p className="text-[11px] font-black text-gray-800">CVV</p>
+                    </div>
+                  </div>
+
+                  {/* ID / NIT */}
+                  {acc.holder_id && (
+                    <div className="flex items-center gap-2">
+                      <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">C.C. / NIT:</p>
+                      <p className="text-[11px] font-mono font-bold text-white">{acc.holder_id}</p>
+                    </div>
+                  )}
+
+                  {/* Número completo */}
+                  <div className="flex items-center gap-2">
+                    <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">N° Cuenta:</p>
+                    <p className="text-[11px] font-mono font-bold text-[#00f2ff]">{acc.account_number}</p>
+                  </div>
+                </div>
+
+                {/* Bottom */}
+                <div className="px-6 flex items-center justify-between">
+                  <p className="text-[8px] text-white/30 font-semibold">bayup.com.co</p>
+                  <p className="text-[9px] font-black text-white/50 tracking-widest">BAYUP.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Eliminar */}
+      <button onClick={onRemove}
+        className="flex items-center gap-1.5 h-8 px-4 rounded-full bg-rose-50 hover:bg-rose-500 text-rose-400 hover:text-white text-[10px] font-bold transition-all">
+        <Trash2 size={12}/> Eliminar cuenta
+      </button>
+    </div>
+  );
+}
+
 // ── TIPOS ────────────────────────────────────────────────────────────────────
 const CATEGORIES = [
   { id: 'Moda & Accesorios',  label: 'Moda & Accesorios',   icon: <ShoppingBag size={14}/> },
@@ -280,6 +418,7 @@ export default function GeneralSettings() {
         privacy_policy:   legal.privacy_policy,
         return_policy:    legal.return_policy,
         shipping_policy:  legal.shipping_policy,
+        bank_accounts:    bankAccounts,
       };
 
       await apiRequest('/admin/update-profile', { method: 'PUT', token, body: JSON.stringify(payload) });
@@ -785,27 +924,11 @@ export default function GeneralSettings() {
               </p>
             </div>
 
-            {/* Cuentas existentes */}
+            {/* Cuentas existentes — tarjeta flip 3D */}
             {bankAccounts.length > 0 && (
-              <div className="space-y-3">
+              <div className="space-y-6">
                 {bankAccounts.map((acc: any) => (
-                  <div key={acc.id} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm flex items-center gap-4">
-                    <div className="h-11 w-11 rounded-2xl bg-[#004d4d]/5 flex items-center justify-center shrink-0">
-                      <CreditCard size={18} className="text-[#004d4d]"/>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-[13px] font-black text-gray-900">{acc.bank}</p>
-                        <span className="text-[9px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full uppercase">{acc.account_type}</span>
-                      </div>
-                      <p className="text-[11px] text-gray-500 mt-0.5">···· {String(acc.account_number).slice(-4)} · {acc.holder_name}</p>
-                      {acc.holder_id && <p className="text-[10px] text-gray-400">C.C. / NIT: {acc.holder_id}</p>}
-                    </div>
-                    <button onClick={() => removeAccount(acc.id)}
-                      className="h-8 w-8 rounded-xl bg-rose-50 hover:bg-rose-500 text-rose-400 hover:text-white flex items-center justify-center transition-all">
-                      <Trash2 size={13}/>
-                    </button>
-                  </div>
+                  <BankCard key={acc.id} acc={acc} onRemove={() => removeAccount(acc.id)} />
                 ))}
               </div>
             )}

@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger("bayup")
 
 # Re-exportar get_db para que los routers importen desde aquí
-__all__ = ["get_db", "current_user", "tenant_id_dep", "require_super_admin_dep", "push_notification"]
+__all__ = ["get_db", "current_user", "tenant_id_from", "require_super_admin", "push_notification"]
 
 
 async def current_user(request: Request, db: Session = Depends(get_db)):

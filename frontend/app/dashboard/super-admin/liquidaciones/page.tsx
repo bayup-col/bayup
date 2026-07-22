@@ -33,7 +33,7 @@ function Dot({ status }: { status: string }) {
 
 export default function SuperAdminLiquidacionesPage() {
   const { token } = useAuth();
-  const [tab, setTab]               = useState<'pending' | 'pos' | 'history'>('pending');
+  const [tab, setTab]               = useState<'pending' | 'history'>('pending');
   const [loading, setLoading]       = useState(true);
   const [balances, setBalances]     = useState<any[]>([]);
   const [allLiqs, setAllLiqs]       = useState<any[]>([]);
@@ -161,38 +161,48 @@ export default function SuperAdminLiquidacionesPage() {
         </div>
       </div>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'Por dispersar (web)', value: fmtCOP(totalPending), sub: `${balances.length} empresas`, color: 'text-[#004d4d]', icon: <Wallet size={18}/>, bg: 'bg-[#004d4d]/5' },
-          { label: 'Comisión POS por cobrar', value: fmtCOP(totalPosCommission), sub: `${posBalances.length} empresas con POS`, color: 'text-amber-600', icon: <Store size={18}/>, bg: 'bg-amber-50' },
-          { label: 'Dispersiones realizadas', value: countPaid.toString(), sub: 'historial total', color: 'text-blue-600', icon: <BadgeCheck size={18}/>, bg: 'bg-blue-50' },
-          { label: 'Total transferido', value: fmtCOP(totalPaidNet), sub: 'a empresas', color: 'text-emerald-600', icon: <CheckCircle2 size={18}/>, bg: 'bg-emerald-50' },
-        ].map(c => (
-          <div key={c.label} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-3">
-            <div className={`h-10 w-10 rounded-xl ${c.bg} flex items-center justify-center shrink-0 ${c.color}`}>{c.icon}</div>
-            <div>
-              <p className="text-xl font-black text-gray-900">{c.value}</p>
-              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{c.label}</p>
-              <p className="text-[9px] text-gray-300 mt-0.5">{c.sub}</p>
-            </div>
+      {/* KPI cards — resumen global */}
+      {(() => {
+        // Merge por empresa: web balance + pos balance
+        const allTenantIds = new Set([
+          ...balances.map((b: any) => b.tenant_id),
+          ...posBalances.map((b: any) => b.tenant_id),
+        ]);
+        const totalWebGross = balances.reduce((a: number, b: any) => a + (b.gross || 0), 0);
+        const totalWebFee   = balances.reduce((a: number, b: any) => a + (b.bayup_fee || 0), 0);
+        const totalWebNet   = balances.reduce((a: number, b: any) => a + (b.net || 0), 0);
+        const totalPosComm  = posBalances.reduce((a: number, b: any) => a + (b.commission || 0), 0);
+        const totalBayupGanancia = totalWebFee + totalPosComm;
+        return (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: 'Ventas web pendientes', value: fmtCOP(totalWebGross), sub: `${balances.length} empresas`, color: 'text-[#004d4d]', icon: <Wallet size={18}/>, bg: 'bg-[#004d4d]/5' },
+              { label: 'Comisión POS pendiente', value: fmtCOP(totalPosComm), sub: `${posBalances.length} empresas con POS`, color: 'text-amber-600', icon: <Store size={18}/>, bg: 'bg-amber-50' },
+              { label: 'Neto a transferir', value: fmtCOP(totalWebNet), sub: 'web neto – ya descontado', color: 'text-emerald-600', icon: <Send size={18}/>, bg: 'bg-emerald-50' },
+              { label: 'Ganancia Bayup total', value: fmtCOP(totalBayupGanancia), sub: `Fee web + comisión POS`, color: 'text-violet-600', icon: <TrendingUp size={18}/>, bg: 'bg-violet-50' },
+            ].map(c => (
+              <div key={c.label} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-3">
+                <div className={`h-10 w-10 rounded-xl ${c.bg} flex items-center justify-center shrink-0 ${c.color}`}>{c.icon}</div>
+                <div>
+                  <p className="text-xl font-black text-gray-900">{c.value}</p>
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{c.label}</p>
+                  <p className="text-[9px] text-gray-300 mt-0.5">{c.sub}</p>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        );
+      })()}
 
       {/* Tabs */}
       <div className="flex gap-1 p-1 bg-gray-100 rounded-2xl w-fit">
         {([
-          ['pending', 'Dispersiones web'],
-          ['pos',     'Comisión POS'],
+          ['pending', 'Por empresa'],
           ['history', 'Historial'],
         ] as const).map(([k, l]) => (
-          <button key={k} onClick={() => setTab(k)}
+          <button key={k} onClick={() => setTab(k as any)}
             className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${tab === k ? 'bg-white shadow-sm text-[#004d4d]' : 'text-gray-400 hover:text-gray-600'}`}>
             {l}
-            {k === 'pos' && posBalances.length > 0 && (
-              <span className="ml-1.5 text-[8px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full">{posBalances.length}</span>
-            )}
           </button>
         ))}
       </div>
@@ -201,91 +211,118 @@ export default function SuperAdminLiquidacionesPage() {
         <div className="flex items-center justify-center h-40"><Loader2 size={24} className="animate-spin text-[#004d4d]"/></div>
       ) : tab === 'pending' ? (
 
-        /* ── Saldos pendientes ── */
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-          {balances.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16">
+        /* ── Vista unificada por empresa ── */
+        (() => {
+          // Merge web + pos por tenant
+          const map = new Map<string, any>();
+          balances.forEach((b: any) => {
+            map.set(b.tenant_id, {
+              tenant_id: b.tenant_id, tenant_name: b.tenant_name, tenant_email: b.tenant_email,
+              bank_accounts: b.bank_accounts || [],
+              web_gross: b.gross || 0, web_fee: b.bayup_fee || 0, web_net: b.net || 0, web_orders: b.order_count || 0,
+              pos_gross: 0, pos_orders: 0, pos_commission: 0,
+            });
+          });
+          posBalances.forEach((b: any) => {
+            if (map.has(b.tenant_id)) {
+              const e = map.get(b.tenant_id);
+              e.pos_gross = b.pos_gross || 0;
+              e.pos_orders = b.pos_count || 0;
+              e.pos_commission = b.commission || 0;
+            } else {
+              map.set(b.tenant_id, {
+                tenant_id: b.tenant_id, tenant_name: b.tenant_name, tenant_email: b.tenant_email,
+                bank_accounts: [],
+                web_gross: 0, web_fee: 0, web_net: 0, web_orders: 0,
+                pos_gross: b.pos_gross || 0, pos_orders: b.pos_count || 0, pos_commission: b.commission || 0,
+              });
+            }
+          });
+          const rows = Array.from(map.values());
+
+          if (rows.length === 0) return (
+            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm flex flex-col items-center justify-center py-16">
               <CheckCircle2 size={32} className="text-emerald-300 mb-2"/>
               <p className="font-bold text-gray-400">Todas las empresas están al día</p>
             </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-6 px-5 py-3 bg-gray-50 border-b border-gray-100">
-                {['Empresa','Órdenes','Venta bruta','Comisión Bayup','Neto a pagar','Acción'].map(h => (
-                  <p key={h} className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{h}</p>
-                ))}
-              </div>
-              <div className="divide-y divide-gray-50">
-                {balances.map((b: any) => (
-                  <div key={b.tenant_id} className="grid grid-cols-6 px-5 py-4 hover:bg-gray-50 transition-colors items-center">
-                    <div>
-                      <p className="text-[11px] font-bold text-gray-800 truncate">{b.tenant_name}</p>
-                      <p className="text-[9px] text-gray-400 truncate">{b.tenant_email}</p>
-                      {b.bank_accounts?.length > 0 && (
-                        <p className="text-[9px] text-[#004d4d] mt-0.5">🏦 {b.bank_accounts[0].bank} ···{String(b.bank_accounts[0].account || '').slice(-4)}</p>
-                      )}
+          );
+
+          return (
+            <div className="space-y-4">
+              {rows.map((r: any) => {
+                const saldoFinal = r.web_net - r.pos_commission; // lo que realmente le transfiero (web neto menos la comisión POS que me deben)
+                const ganancia   = r.web_fee + r.pos_commission;
+                const bank       = r.bank_accounts?.[0];
+                return (
+                  <div key={r.tenant_id} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+                    {/* Header empresa */}
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-[#004d4d]/8 flex items-center justify-center">
+                          <Building2 size={16} className="text-[#004d4d]"/>
+                        </div>
+                        <div>
+                          <p className="text-[13px] font-black text-gray-900">{r.tenant_name}</p>
+                          <p className="text-[10px] text-gray-400">{r.tenant_email}</p>
+                          {bank && (
+                            <p className="text-[9px] text-[#004d4d] mt-0.5 font-bold">
+                              🏦 {bank.bank} · {bank.account_type} ···{String(bank.account_number || '').slice(-4)} · {bank.holder_name}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {r.web_net > 0 && (
+                          <button onClick={() => { setForm(f => ({ ...f, tenant_id: r.tenant_id })); setShowCreate(true); }}
+                            className="flex items-center gap-1.5 h-8 px-4 rounded-xl bg-[#004d4d] hover:bg-[#003838] text-white text-[9px] font-black uppercase tracking-widest transition-all">
+                            <Send size={10}/> Liquidar web
+                          </button>
+                        )}
+                        {r.pos_commission > 0 && (
+                          <button onClick={() => { setShowCollectPos(posBalances.find((b: any) => b.tenant_id === r.tenant_id)); setPosForm({ reference: '', notes: '' }); }}
+                            className="flex items-center gap-1.5 h-8 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-[9px] font-black uppercase tracking-widest transition-all">
+                            <Receipt size={10}/> Cobrar POS
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-[11px] font-bold text-gray-600">{b.order_count}</p>
-                    <p className="text-[11px] font-bold text-gray-700">{fmtCOP(b.gross)}</p>
-                    <p className="text-[11px] font-bold text-rose-500">-{fmtCOP(b.bayup_fee)}</p>
-                    <p className="text-[13px] font-black text-emerald-600">{fmtCOP(b.net)}</p>
-                    <button
-                      onClick={() => { setForm(f => ({ ...f, tenant_id: b.tenant_id })); setShowCreate(true); }}
-                      className="flex items-center gap-1.5 h-8 px-3 rounded-xl bg-[#004d4d] hover:bg-[#003838] text-[#ffffff] text-[9px] font-black uppercase tracking-widest transition-all w-fit">
-                      <Send size={10}/> Liquidar
-                    </button>
+
+                    {/* Desglose numérico */}
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-0 divide-x divide-gray-50">
+                      <div className="px-5 py-4">
+                        <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1">Ventas web</p>
+                        <p className="text-[15px] font-black text-gray-800">{fmtCOP(r.web_gross)}</p>
+                        <p className="text-[9px] text-gray-400 mt-0.5">{r.web_orders} órdenes</p>
+                      </div>
+                      <div className="px-5 py-4">
+                        <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1">Fee Bayup (web)</p>
+                        <p className="text-[15px] font-black text-rose-500">-{fmtCOP(r.web_fee)}</p>
+                        <p className="text-[9px] text-gray-400 mt-0.5">Comisión plataforma</p>
+                      </div>
+                      <div className="px-5 py-4">
+                        <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1">Ventas POS</p>
+                        <p className="text-[15px] font-black text-gray-800">{fmtCOP(r.pos_gross)}</p>
+                        <p className="text-[9px] text-gray-400 mt-0.5">{r.pos_orders} facturas</p>
+                      </div>
+                      <div className="px-5 py-4">
+                        <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1">Comisión POS</p>
+                        <p className="text-[15px] font-black text-amber-600">-{fmtCOP(r.pos_commission)}</p>
+                        <p className="text-[9px] text-gray-400 mt-0.5">Cobrar al cliente</p>
+                      </div>
+                      <div className="px-5 py-4 bg-[#004d4d]/3">
+                        <p className="text-[8px] font-bold text-[#004d4d] uppercase tracking-widest mb-1">Saldo a transferir</p>
+                        <p className={`text-[18px] font-black ${saldoFinal >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>{fmtCOP(Math.abs(saldoFinal))}</p>
+                        <p className="text-[9px] text-gray-400 mt-0.5">
+                          Ganancia Bayup: <span className="font-bold text-violet-600">{fmtCOP(ganancia)}</span>
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-      ) : tab === 'pos' ? (
-
-        /* ── Comisión POS ── */
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-          {posBalances.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16">
-              <Store size={32} className="text-amber-200 mb-2"/>
-              <p className="font-bold text-gray-400">Sin comisiones POS pendientes</p>
-              <p className="text-[11px] text-gray-300 mt-1">Todas las empresas están al día con sus ventas en punto físico</p>
+                );
+              })}
             </div>
-          ) : (
-            <>
-              <div className="px-5 py-3 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
-                <Receipt size={13} className="text-amber-600"/>
-                <p className="text-[10px] font-bold text-amber-700">
-                  Comisiones de ventas POS que ya cobró el tenant. Bayup debe cobrar su 2.5% por cuenta aparte.
-                </p>
-              </div>
-              <div className="grid grid-cols-6 px-5 py-3 bg-gray-50 border-b border-gray-100">
-                {['Empresa','Ventas POS','Pedidos','Últ. cobro','Comisión a cobrar','Acción'].map(h => (
-                  <p key={h} className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{h}</p>
-                ))}
-              </div>
-              <div className="divide-y divide-gray-50">
-                {posBalances.map((b: any) => (
-                  <div key={b.tenant_id} className="grid grid-cols-6 px-5 py-4 hover:bg-gray-50 transition-colors items-center">
-                    <div>
-                      <p className="text-[11px] font-bold text-gray-800 truncate">{b.tenant_name}</p>
-                      <p className="text-[9px] text-gray-400 truncate">{b.tenant_email}</p>
-                    </div>
-                    <p className="text-[11px] font-bold text-gray-700">{fmtCOP(b.pos_gross)}</p>
-                    <p className="text-[11px] font-bold text-gray-600">{b.pos_count}</p>
-                    <p className="text-[10px] text-gray-400">{b.last_collected ? fmtDate(b.last_collected) : 'Nunca'}</p>
-                    <p className="text-[13px] font-black text-amber-600">{fmtCOP(b.commission)}</p>
-                    <button
-                      onClick={() => { setShowCollectPos(b); setPosForm({ reference: '', notes: '' }); }}
-                      className="flex items-center gap-1.5 h-8 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-[9px] font-black uppercase tracking-widest transition-all w-fit">
-                      <Receipt size={10}/> Cobrar
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+          );
+        })()
 
       ) : (
 
