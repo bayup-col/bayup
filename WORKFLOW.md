@@ -4,11 +4,16 @@
 
 | Rama | Entorno | Plataforma | URL |
 |------|---------|------------|-----|
-| `development` | **Producción** | Vercel (auto-deploy) + Render (auto-deploy) | www.bayup.com.co |
+| `main` | **Producción** | Vercel (auto-deploy, alias de producción) + Render (auto-deploy) | www.bayup.com.co |
+| `development` | Integración | Vercel (preview automático por push) | `bayup-git-development-*.vercel.app` |
 
-> Por ahora `development` ES producción. Cada push a esta rama despliega
-> automáticamente. Cambiar esto requiere modificar la rama de producción en
-> la configuración del proyecto en Vercel y en el webhook de Render.
+> `main` ES producción. `development` es la rama donde se integra el trabajo
+> del equipo antes de pasar a producción — Vercel genera un preview del
+> frontend en cada push, pero **no hay un backend de Render separado para
+> `development`**: ese preview sigue hablando con la API de producción salvo
+> que se configure `NEXT_PUBLIC_API_URL` distinto. No asumir que `development`
+> es un entorno aislado de extremo a extremo todavía (ver "Estrategia de
+> staging" más abajo).
 
 ---
 
@@ -31,15 +36,24 @@ development ← PR desde feature/fix-branch
    git checkout -b feature/nombre-descriptivo
    ```
 
-2. Desarrollar y hacer commit localmente.
+2. Desarrollar y hacer commit localmente. Correr `pytest` (backend) y
+   `npm run build` (frontend) antes de subir — el CI corre lo mismo, pero
+   detectarlo localmente ahorra una vuelta.
 
 3. Abrir Pull Request hacia `development` en GitHub.
-   - El Quality Gate se ejecuta automáticamente (typecheck TS + syntax Python).
+   - `BaseCommerce CI` corre flake8 + pytest (backend) y build (frontend).
+   - `Quality Gate` corre typecheck TS + syntax check Python.
    - El bot añade un comentario con el resumen en el PR.
 
-4. Revisar el comentario del bot. Si Python syntax falla: **no mergear**.
+4. Revisar el comentario del bot. Si el syntax check de Python o `BaseCommerce CI`
+   fallan: **no mergear**.
 
-5. Merge → Vercel y Render despliegan automáticamente.
+5. Merge a `development` → solo despliega el preview de Vercel, no producción.
+
+6. Cuando `development` esté estable y confirmado: merge `development → main`.
+   - Verificar antes: `pytest` (204 tests) y `npm run build` en local o CI en verde.
+   - Push a `main` → Vercel y Render despliegan producción automáticamente.
+   - Confirmar tras el deploy: `curl https://api.bayup.com.co/health`.
 
 ---
 
@@ -54,15 +68,14 @@ Cuando se necesite un entorno de staging separado:
    `staging`.
 4. El flujo queda:
    ```
-   feature/* → staging → (QA aprueba) → development (= producción)
+   feature/* → staging → (QA aprueba) → development → main (= producción)
    ```
 
 ---
 
 ## Cómo hacer un release
 
-No existe un proceso formal de release mientras `development = producción`.
-El "release" es el merge a `development`. Para marcar hitos:
+El "release" es el merge `development → main`. Para marcar hitos:
 
 ```bash
 git tag -a v1.2.0 -m "Release 1.2.0: descripción del cambio principal"
@@ -83,18 +96,20 @@ Ver `scripts/rollback.sh` para instrucciones detalladas.
 - **Backend (Render):** Dashboard → servicio → Events → deployment anterior → `Rollback to this deploy`
   Tarda ~1-2 minutos.
 
-- **Alternativa universal:** `git revert <SHA> && git push origin development`
+- **Alternativa universal:** `git revert <SHA> && git push origin main`
   Crea un commit de reversión; Vercel y Render reaccionan automáticamente.
 
 ---
 
 ## Reglas del equipo
 
-- **Nunca hacer `git push --force` a `development`.**
-- Si un PR falla el syntax check de Python: resolver antes de mergear.
+- **Nunca hacer `git push --force` a `development` ni a `main`.**
+- Si un PR falla el syntax check de Python o `BaseCommerce CI`: resolver antes de mergear.
 - Si el typecheck de TS reporta errores nuevos (distintos de los 7 preexistentes):
   resolverlos antes de mergear.
-- Después de cada deploy que toque la base de datos: verificar `/health`
+- Antes de mergear `development → main`: confirmar que `pytest` y `npm run build`
+  pasan (local o vía CI en `development`).
+- Después de cada deploy a `main` que toque la base de datos: verificar `/health`
   (`curl https://api.bayup.com.co/health`) antes de cerrar el ticket.
 - Documentar incidentes de producción con: qué falló, cuánto tardó el rollback,
   cómo se previene en el futuro.
