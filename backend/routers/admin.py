@@ -449,6 +449,12 @@ async def upload_image(request: Request, file: UploadFile = File(...), db: Sessi
         _IMG_MAGIC = [b'\xff\xd8\xff', b'\x89PNG\r\n\x1a\n', b'GIF87a', b'GIF89a', b'RIFF', b'WEBP']
         if not any(contents[:8].startswith(sig) for sig in _IMG_MAGIC):
             raise HTTPException(status_code=400, detail="El archivo no es una imagen válida")
+    else:
+        is_mp4_or_mov = contents[4:8] == b'ftyp'
+        is_webm_mkv = contents[:4] == b'\x1a\x45\xdf\xa3'
+        is_avi = contents[:4] == b'RIFF' and contents[8:12] == b'AVI '
+        if not (is_mp4_or_mov or is_webm_mkv or is_avi):
+            raise HTTPException(status_code=400, detail="El archivo no es un video válido")
     url = s3_service.upload_file_and_get_public_url(contents, file.content_type, file.filename or "file")
     if not url:
         raise HTTPException(status_code=503, detail="Error al guardar el archivo")
