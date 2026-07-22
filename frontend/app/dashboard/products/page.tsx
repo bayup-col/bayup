@@ -894,7 +894,6 @@ export default function ProductsPage() {
                                 <div className="h-9 w-9 rounded-xl bg-gray-50 overflow-hidden border border-gray-100 shrink-0 flex items-center justify-center">
                                   {getProductImage(p) ? <ProductMedia src={getProductImage(p)} className="h-full w-full object-cover" alt={p.name}/> : <ImageIcon size={12} className="text-gray-300"/>}
                                 </div>
-<<<<<<< HEAD
                                 <div className="flex-1 min-w-0">
                                   <p className="text-[12px] font-black text-gray-800 truncate">{p.name}</p>
                                   <p className="text-[9px] text-gray-400 mt-0.5">{pRows.length} variante{pRows.length !== 1 ? 's' : ''}</p>
@@ -975,52 +974,6 @@ export default function ProductsPage() {
                       </div>
                     );
                   })()}
-=======
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-[10px] font-medium text-gray-500">{v ? v.name : <span className="text-gray-300 italic">Sin variante</span>}</td>
-                            <td className="px-4 py-3 text-[10px] font-mono text-gray-400">{v?.sku || p.sku || '—'}</td>
-                            <td className="px-4 py-3">
-                              <span className="text-sm font-black tabular-nums" style={{ color: stockColor }}>{stock}</span>
-                              <span className="text-[9px] text-gray-400 ml-1">uds</span>
-                            </td>
-                            {/* Input editable */}
-                            <td className="px-4 py-3">
-                              <input
-                                type="number" min={0}
-                                value={displayStock === 0 ? '' : displayStock}
-                                onChange={e => {
-                                  const varKey = v ? v.id : '__novariant';
-                                  handleStockChange(p.id, varKey, Number(e.target.value));
-                                }}
-                                className={`w-20 h-8 rounded-lg border text-center text-sm font-black outline-none transition-all ${isDirty ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-gray-200 bg-gray-50 text-gray-700 focus:border-[#004d4d]/40 focus:bg-white'}`}
-                              />
-                            </td>
-                            <td className="px-4 py-3 text-[11px] font-bold text-gray-600">{stock > 0 ? fmt(stockValue) : <span className="text-gray-300">—</span>}</td>
-                            <td className="px-4 py-3">
-                              {isDirty && (
-                                <button onClick={() => handleSaveStock(p)} disabled={savingStock === p.id}
-                                  className="h-7 px-3 rounded-lg bg-[#004d4d] text-white text-[9px] font-black uppercase tracking-widest hover:bg-[#003838] transition-all flex items-center gap-1.5 disabled:opacity-60">
-                                  {savingStock === p.id ? <Loader2 size={10} className="animate-spin"/> : <CheckCheck size={10}/>}
-                                  Guardar
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                    {invRows.length > 0 && (
-                      <tfoot>
-                        <tr className="border-t border-gray-100 bg-gray-50/60">
-                          <td colSpan={5} className="px-4 py-3 text-[9px] font-bold text-gray-400 uppercase tracking-widest">Total en bodega</td>
-                          <td className="px-4 py-3 text-[11px] font-black text-[#004d4d]">{fmt(invStats.totalSaleValue)}</td>
-                          <td/>
-                        </tr>
-                      </tfoot>
-                    )}
-                  </table>
->>>>>>> 2d43f2bb6958c829bd89564523dbe63c63ba8db0
                 </div>
               </motion.div>
             )}

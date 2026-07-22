@@ -8,6 +8,7 @@ out
 .vercel
 .env.local
 *.log
+*.tsbuildinfo
 
 # Python
 __pycache__/
