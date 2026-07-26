@@ -208,11 +208,14 @@ export default function InvoicingPage() {
     return () => document.body.classList.remove('sidebar-hide');
   }, [isPOSActive]);
 
-  // Ventas visibles en facturación: POS (cualquier estado) + web solo si completado
+  // Ventas visibles en facturación: POS (cualquier estado) + web desde que
+  // pasa a "en proceso" (venta ya aceptada por la tienda, no solo entregada).
+  // Antes de "en proceso" (pending) todavía puede cambiar o cancelarse, así
+  // que no cuenta como venta facturable.
   const isFacturable = (inv: PastInvoice) => {
     const src = (inv.source || '').toLowerCase();
     const isWeb = src === 'web' || src === 'página web';
-    return !isWeb || inv.status === 'completed';
+    return !isWeb || inv.status === 'processing' || inv.status === 'completed';
   };
 
   // ── KPIs ── (POS + pedidos web completados)

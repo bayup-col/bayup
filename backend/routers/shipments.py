@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from deps import current_user, tenant_id_from
+import email_queue as _eq
 import models
 
 router = APIRouter(prefix="/shipments", tags=["shipments"])
@@ -15,6 +16,11 @@ VALID_STATUSES = {
     "pendiente", "guia_generada", "en_transito",
     "en_reparto", "entregado", "incidencia", "devuelto",
 }
+
+# Estados de envío que se notifican al cliente por correo. "entregado" no está
+# aquí porque reutiliza el email de pedido "completed" (mismo diseño que usa
+# el resto del ciclo de vida del pedido).
+_NOTIFIABLE_SHIPMENT_STATUSES = {"guia_generada", "en_transito", "en_reparto", "incidencia", "devuelto"}
 
 
 class ShipmentUpdatePayload(BaseModel):
@@ -89,7 +95,9 @@ async def update_shipment(
     if payload.status and payload.status not in VALID_STATUSES:
         raise HTTPException(status_code=400, detail=f"status inválido: {payload.status}")
 
-    if payload.status and payload.status != ship.status:
+    status_changed = bool(payload.status and payload.status != ship.status)
+
+    if status_changed:
         ship.status = payload.status
         history = list(getattr(ship, "history", []) or [])
         history.append({
@@ -98,9 +106,6 @@ async def update_shipment(
             "note": payload.notes or "",
         })
         ship.history = history
-        order = db.query(models.Order).filter(models.Order.id == ship.order_id).first()
-        if order and payload.status == "entregado":
-            order.status = "completed"
 
     if payload.carrier is not None:
         ship.carrier = payload.carrier
@@ -115,5 +120,28 @@ async def update_shipment(
             pass
 
     ship.updated_at = _dt.datetime.now(_dt.timezone.utc)
+
+    if status_changed:
+        order = db.query(models.Order).filter(models.Order.id == ship.order_id).first()
+        if order and payload.status == "entregado":
+            order.status = "completed"
+        if order and order.customer_email and (order.source or "pos") != "pos":
+            tenant_u = db.query(models.User).filter(models.User.id == ship.tenant_id).first()
+            shop_name = (tenant_u.full_name or tenant_u.shop_slug or "Tu tienda") if tenant_u else "Tu tienda"
+            shop_logo = tenant_u.logo_url if tenant_u else None
+            if payload.status == "entregado":
+                _eq.enqueue("send_order_status_update",
+                    email=order.customer_email, name=order.customer_name or "Cliente",
+                    order_id=str(order.id), new_status="completed",
+                    shop_name=shop_name, shop_logo=shop_logo,
+                )
+            elif payload.status in _NOTIFIABLE_SHIPMENT_STATUSES:
+                _eq.enqueue("send_shipment_status_update",
+                    email=order.customer_email, name=order.customer_name or "Cliente",
+                    order_id=str(order.id), new_status=payload.status,
+                    shop_name=shop_name, shop_logo=shop_logo,
+                    tracking_number=ship.tracking_number, carrier=ship.carrier,
+                )
+
     db.commit()
     return {"ok": True, "id": str(ship.id), "status": ship.status}
