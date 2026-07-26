@@ -85,7 +85,7 @@ class ProductVariantBase(BaseModel):
     attributes: Optional[Dict[str, Any]] = None
 
 class ProductVariantCreate(ProductVariantBase):
-    pass
+    id: Optional[uuid.UUID] = None  # presente al editar una variante existente
 
 class ProductVariant(ProductVariantBase):
     id: uuid.UUID

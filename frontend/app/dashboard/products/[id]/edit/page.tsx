@@ -599,7 +599,7 @@ export default function EditProductPage() {
       const payload = {
         ...formData,
         image_url: finalUrls,
-        variants: variants.map(v => ({ name: v.name, sku: v.sku || '', stock: Number(v.stock) || 0 }))
+        variants: variants.map(v => ({ id: v.id || undefined, name: v.name, sku: v.sku || '', stock: Number(v.stock) || 0 }))
       };
       await apiRequest(`/products/${productId}`, { method: 'PUT', token, body: JSON.stringify(payload) });
       window.dispatchEvent(new CustomEvent('bayup_product_update'));
