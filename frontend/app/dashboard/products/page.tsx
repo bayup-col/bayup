@@ -666,25 +666,6 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* ── PLAN BANNER (solo desktop) ── */}
-      {isBasicPlan && (
-        <div className="hidden sm:flex bg-white rounded-2xl border border-gray-100 shadow-sm p-4 items-center gap-4">
-          <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${products.length >= 25 ? 'bg-amber-50 text-amber-500' : 'bg-[#004d4d]/10 text-[#004d4d]'}`}>
-            <Package size={14}/>
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-1.5">
-              <p className="text-[10px] font-bold text-gray-700">Plan Básico — {products.length}/30 productos</p>
-              <button onClick={() => router.push('/planes')} className="text-[9px] font-black text-[#004d4d] hover:underline tracking-widest uppercase">Subir de nivel →</button>
-            </div>
-            <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-              <motion.div initial={{ width: 0 }} animate={{ width: `${(products.length / 30) * 100}%` }}
-                className={`h-full rounded-full ${products.length >= 25 ? 'bg-amber-400' : 'bg-gradient-to-r from-[#004d4d] to-[#00b2bd]'}`}/>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── ALERTAS LÍMITE ── */}
       {isBasicPlan && !loading && limitBannerDismissed !== 'critical' && products.length > 25 && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-amber-50 border border-amber-200">
@@ -1456,13 +1437,6 @@ export default function ProductsPage() {
                         <span className="text-[10px] font-semibold truncate">{item.title}</span>
                       </button>
                     ))}
-                  </div>
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <div className="bg-[#004d4d] rounded-2xl p-4 text-white relative overflow-hidden">
-                      <div className="absolute -right-2 -bottom-2 opacity-10"><Bot size={50}/></div>
-                      <p className="text-[9px] font-bold tracking-widest text-[#00f2ff] mb-1">BAYT AI</p>
-                      <p className="text-[10px] leading-relaxed text-white/70">Registra productos por voz con Bayt AI.</p>
-                    </div>
                   </div>
                 </div>
                 {/* Contenido */}
