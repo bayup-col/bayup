@@ -775,7 +775,7 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
                     {p.name}
                   </h4>
                   <p className={cn("text-xl font-black tracking-tighter", !colors?.primary && s.accentText, isLuxuryLike && "italic")} style={priceStyle}>
-                    $ {p.price.toLocaleString()}
+                    $ {p.price.toLocaleString('es-CO')}
                   </p>
                 </div>
                 {showCategory && (
@@ -1229,7 +1229,7 @@ export const SmartProductDetail = ({ product, relatedProducts = [], variant: var
             )}>
               {product.name}
             </h1>
-            <p className={cn("text-3xl font-black", s.accentText)}>$ {Number(product.price || 0).toLocaleString()}</p>
+            <p className={cn("text-3xl font-black", s.accentText)}>$ {Number(product.price || 0).toLocaleString('es-CO')}</p>
             {product.description && <p className={cn("leading-relaxed", isDark ? "text-slate-400" : "text-gray-500")}>{product.description}</p>}
 
             {colors && colors.length > 0 && (
@@ -1291,7 +1291,7 @@ export const SmartProductDetail = ({ product, relatedProducts = [], variant: var
                     <img src={Array.isArray(p.image_url) ? p.image_url[0] : p.image_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={p.name} />
                   </div>
                   <p className={cn("text-xs font-bold truncate", isDark ? "text-white" : "text-gray-900")}>{p.name}</p>
-                  <p className={cn("text-sm font-black", s.accentText)}>$ {Number(p.price || 0).toLocaleString()}</p>
+                  <p className={cn("text-sm font-black", s.accentText)}>$ {Number(p.price || 0).toLocaleString('es-CO')}</p>
                 </div>
               ))}
             </div>

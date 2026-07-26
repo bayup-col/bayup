@@ -492,7 +492,7 @@ function ShopContent() {
                                                 </div>
                                                 <div className="px-2 space-y-2">
                                                     <h4 className="text-xl font-black text-gray-900 uppercase tracking-tighter leading-tight line-clamp-1">{product.name}</h4>
-                                                    <p className="text-2xl font-black text-[#004d4d] tracking-tighter">${Number(product.price).toLocaleString()}</p>
+                                                    <p className="text-2xl font-black text-[#004d4d] tracking-tighter">${Number(product.price).toLocaleString('es-CO')}</p>
                                                 </div>
                                             </div>
                                         ))}
@@ -542,7 +542,7 @@ function ShopContent() {
                                             <h4 className="text-xl font-black text-gray-900 uppercase tracking-tighter leading-tight line-clamp-1">{product.name}</h4>
                                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{shopData.categories?.find((c:any) => c.id === product.collection_id)?.title || 'Colección'}</p>
                                             <div className="flex items-center justify-between pt-4">
-                                                <p className="text-2xl font-black text-[#004d4d] tracking-tighter">${Number(product.price).toLocaleString()}</p>
+                                                <p className="text-2xl font-black text-[#004d4d] tracking-tighter">${Number(product.price).toLocaleString('es-CO')}</p>
                                                 <button onClick={(e) => { e.stopPropagation(); addToCart(product); }} className="h-14 w-14 rounded-2xl bg-gray-900 text-[#00f2ff] flex items-center justify-center hover:scale-110 active:scale-90 transition-all shadow-xl"><Plus size={24}/></button>
                                             </div>
                                         </div>
@@ -579,7 +579,7 @@ function ShopContent() {
                                             <h1 className="text-4xl font-black uppercase tracking-tighter leading-tight">{product.name}</h1>
                                             {product.description && <p className="text-gray-500 mt-4 leading-relaxed">{product.description}</p>}
                                         </div>
-                                        <p className="text-5xl font-black text-[#004d4d] tracking-tighter">${Number(product.price).toLocaleString()}</p>
+                                        <p className="text-5xl font-black text-[#004d4d] tracking-tighter">${Number(product.price).toLocaleString('es-CO')}</p>
                                         <button
                                             onClick={() => { addToCart(product); setIsCartOpen(true); }}
                                             className="w-full h-16 rounded-3xl bg-gray-900 text-[#00f2ff] font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-black active:scale-95 transition-all shadow-2xl"
@@ -636,7 +636,7 @@ function ShopContent() {
                                         <div className="h-20 w-20 rounded-2xl overflow-hidden bg-gray-100 shrink-0 flex items-center justify-center">{item.image ? <img src={item.image} className="h-full w-full object-cover" alt={item.title}/> : <ShoppingBag size={24} className="text-gray-300"/>}</div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-black text-gray-900 line-clamp-1">{item.title}</p>
-                                            <p className="text-xs font-bold text-[#004d4d] mt-1">${item.price.toLocaleString()}</p>
+                                            <p className="text-xs font-bold text-[#004d4d] mt-1">${item.price.toLocaleString('es-CO')}</p>
                                             <p className="text-[10px] font-black text-gray-400 uppercase mt-2">Cantidad: {item.quantity}</p>
                                         </div>
                                         <button onClick={() => removeItem(item.id)} className="text-gray-300 hover:text-rose-500 self-center"><Trash2 size={18}/></button>
@@ -645,7 +645,7 @@ function ShopContent() {
                             </div>
                             {cart.length > 0 && (
                                 <div className="p-8 border-t bg-gray-50/50 space-y-6">
-                                    <div className="flex justify-between items-end"><p className="text-[10px] font-black text-gray-400 uppercase">Total Estimado</p><p className="text-3xl font-black text-gray-900 tracking-tighter">${cartTotal.toLocaleString()}</p></div>
+                                    <div className="flex justify-between items-end"><p className="text-[10px] font-black text-gray-400 uppercase">Total Estimado</p><p className="text-3xl font-black text-gray-900 tracking-tighter">${cartTotal.toLocaleString('es-CO')}</p></div>
                                     <button onClick={() => { setIsCartOpen(false); setIsCheckoutOpen(true); }} className="w-full py-6 bg-gray-900 text-[#00f2ff] rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl hover:bg-black transition-all">Finalizar Compra</button>
                                 </div>
                             )}
@@ -744,14 +744,14 @@ function ShopContent() {
                                                 <div className="flex-1 min-w-0 flex flex-col justify-center">
                                                     <p className="text-xs font-bold text-gray-800 line-clamp-2 leading-snug">{item.title}</p>
                                                 </div>
-                                                <p className="text-xs font-bold text-gray-600 shrink-0 self-center">${(item.price * item.quantity).toLocaleString()}</p>
+                                                <p className="text-xs font-bold text-gray-600 shrink-0 self-center">${(item.price * item.quantity).toLocaleString('es-CO')}</p>
                                             </div>
                                         ))}
                                     </div>
                                     <div className="border-t border-gray-100 mt-5 pt-5 space-y-2.5">
                                         <div className="flex items-center justify-between text-sm">
                                             <span className="text-gray-500">Subtotal</span>
-                                            <span className="font-bold text-gray-700">${cartTotal.toLocaleString()}</span>
+                                            <span className="font-bold text-gray-700">${cartTotal.toLocaleString('es-CO')}</span>
                                         </div>
                                         <div className="flex items-center justify-between text-sm">
                                             <span className="text-gray-500">Envío</span>
@@ -759,7 +759,7 @@ function ShopContent() {
                                         </div>
                                         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                                             <span className="text-sm font-black text-gray-900">Total</span>
-                                            <span className="text-xl font-black text-[#004d4d]">${cartTotal.toLocaleString()}</span>
+                                            <span className="text-xl font-black text-[#004d4d]">${cartTotal.toLocaleString('es-CO')}</span>
                                         </div>
                                     </div>
                                 </div>

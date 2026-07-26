@@ -427,7 +427,7 @@ export default function InvoicingPage() {
           } catch { /* silencioso — el PDF local ya se descargó */ }
         }
         if (customerInfo.phone)
-          window.open(`https://wa.me/57${customerInfo.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Factura #${String(res.id).slice(-4).toUpperCase()} de ${companyData?.full_name}: $${calculateSubtotal().toLocaleString()}`)}`, '_blank');
+          window.open(`https://wa.me/57${customerInfo.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Factura #${String(res.id).slice(-4).toUpperCase()} de ${companyData?.full_name}: $${calculateSubtotal().toLocaleString('es-CO')}`)}`, '_blank');
 
         // Auto-crear cliente si tiene nombre real y no existe ya
         if (customerInfo.name && customerInfo.name !== 'Cliente') {

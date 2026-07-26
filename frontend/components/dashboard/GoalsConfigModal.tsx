@@ -151,7 +151,7 @@ export default function GoalsConfigModal({ isOpen, onClose, advisors }: GoalsCon
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">$</span>
                                         <input 
                                             type="text" 
-                                            value={goal.toLocaleString()}
+                                            value={goal.toLocaleString('es-CO')}
                                             onChange={(e) => handleGoalChange(advisor.name, e.target.value)}
                                             className="w-32 bg-slate-50 border border-slate-200 rounded-lg py-1.5 pl-6 pr-3 text-right text-sm font-bold text-slate-900 focus:outline-none focus:border-[#00f2ff] focus:ring-2 focus:ring-[#00f2ff]/20 transition-all"
                                         />

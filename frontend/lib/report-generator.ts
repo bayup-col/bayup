@@ -69,9 +69,9 @@ export const generateDailyReport = async (data: ReportData) => {
     doc.line(20, 120, 190, 120);
 
     const kpis = [
-        { label: "DINERO QUE ENTRÓ (VENTAS)", val: `$ ${Math.round(totalSales).toLocaleString()}`, desc: "Este es el valor total de las ventas que hiciste." },
+        { label: "DINERO QUE ENTRÓ (VENTAS)", val: `$ ${Math.round(totalSales).toLocaleString('es-CO')}`, desc: "Este es el valor total de las ventas que hiciste." },
         { label: "NÚMERO DE VENTAS", val: totalOrders.toString(), desc: "Es la cantidad de clientes que te compraron." },
-        { label: "LO QUE GASTA CADA CLIENTE", val: `$ ${Math.round(avgTicket).toLocaleString()}`, desc: "En promedio, esto es lo que cada persona te pagó." },
+        { label: "LO QUE GASTA CADA CLIENTE", val: `$ ${Math.round(avgTicket).toLocaleString('es-CO')}`, desc: "En promedio, esto es lo que cada persona te pagó." },
         { label: "PRODUCTOS POR AGOTARSE", val: stockCritical.toString(), desc: "¡Atención! Estos productos se están acabando." }
     ];
 
@@ -108,7 +108,7 @@ export const generateDailyReport = async (data: ReportData) => {
         p.name || 'Producto sin nombre',
         p.sku || 'Sin código',
         p.variants?.reduce((a: any, v: any) => a + (Number(v.stock) || 0), 0) || 0,
-        `$ ${(Number(p.price) || 0).toLocaleString()}`
+        `$ ${(Number(p.price) || 0).toLocaleString('es-CO')}`
     ]).slice(0, 25);
 
     autoTable(doc, {
@@ -142,7 +142,7 @@ export const generateDailyReport = async (data: ReportData) => {
 
     const salesTable = Object.entries(salesBySource).map(([src, val]: [string, any]) => [
         src.toUpperCase(),
-        `$ ${Math.round(val).toLocaleString()}`,
+        `$ ${Math.round(val).toLocaleString('es-CO')}`,
         `${((val / (totalSales || 1)) * 100).toFixed(1)}% del total`
     ]);
 
@@ -172,9 +172,9 @@ export const generateDailyReport = async (data: ReportData) => {
     const netProfit = totalSales - totalExpenses;
 
     const financeData = [
-        ['(+) Dinero de Ventas', `$ ${Math.round(totalSales).toLocaleString()}`],
-        ['(-) Dinero que Gasté', `$ ${Math.round(totalExpenses).toLocaleString()}`],
-        ['(=) Dinero que me queda libre', `$ ${Math.round(netProfit).toLocaleString()}`],
+        ['(+) Dinero de Ventas', `$ ${Math.round(totalSales).toLocaleString('es-CO')}`],
+        ['(-) Dinero que Gasté', `$ ${Math.round(totalExpenses).toLocaleString('es-CO')}`],
+        ['(=) Dinero que me queda libre', `$ ${Math.round(netProfit).toLocaleString('es-CO')}`],
         ['Mi ganancia real es del:', `${totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : 0}% de lo vendido`]
     ];
 
@@ -201,7 +201,7 @@ export const generateDailyReport = async (data: ReportData) => {
     doc.setFont("helvetica", "normal");
     const advice = [
         `1. PILAS CON EL STOCK: Tienes ${stockCritical} productos que se van a acabar. Si no compras más pronto, vas a dejar de vender esos favoritos de tus clientes.`,
-        `2. ¡VENDE MÁS A CADA UNO!: Cada cliente te compra en promedio $ ${avgTicket.toLocaleString()}. Si armas "combos" de productos, podrías subir esa cuenta a $ ${(avgTicket * 1.2).toLocaleString()}.`,
+        `2. ¡VENDE MÁS A CADA UNO!: Cada cliente te compra en promedio $ ${avgTicket.toLocaleString('es-CO')}. Si armas "combos" de productos, podrías subir esa cuenta a $ ${(avgTicket * 1.2).toLocaleString('es-CO')}.`,
         `3. TU MEJOR CANAL: El canal "${Object.keys(salesBySource)[0] || 'Web'}" es el que más dinero te da. Sigue publicando allí tus mejores fotos hoy mismo.`,
         `4. CUIDA TU PLATA: Tus gastos son el ${totalSales > 0 ? ((totalExpenses / totalSales) * 100).toFixed(1) : 0}% de lo que vendes. Trata de no gastar más de lo necesario para que te quede más dinero libre.`
     ];
@@ -252,7 +252,7 @@ export const generateInvoicesAuditPDF = async (data: { userName: string, invoice
         inv.customer,
         inv.source.toUpperCase(),
         inv.payment_method.toUpperCase(),
-        `$ ${inv.total.toLocaleString()}`
+        `$ ${inv.total.toLocaleString('es-CO')}`
     ]);
 
     autoTable(doc, {
@@ -286,13 +286,13 @@ export const generateInvoicesAuditPDF = async (data: { userName: string, invoice
     doc.setTextColor(100, 100, 100);
     doc.setFont("helvetica", "normal");
     doc.text("Total Página Web:", 115, finalY + 18);
-    doc.text(`$ ${webTotal.toLocaleString()}`, 190, finalY + 18, { align: 'right' });
+    doc.text(`$ ${webTotal.toLocaleString('es-CO')}`, 190, finalY + 18, { align: 'right' });
 
     doc.text("Total Efectivo:", 115, finalY + 25);
-    doc.text(`$ ${cashTotal.toLocaleString()}`, 190, finalY + 25, { align: 'right' });
+    doc.text(`$ ${cashTotal.toLocaleString('es-CO')}`, 190, finalY + 25, { align: 'right' });
 
     doc.text("Total Transferencia:", 115, finalY + 32);
-    doc.text(`$ ${transferTotal.toLocaleString()}`, 190, finalY + 32, { align: 'right' });
+    doc.text(`$ ${transferTotal.toLocaleString('es-CO')}`, 190, finalY + 32, { align: 'right' });
 
     // Línea y Total Final
     doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
@@ -302,7 +302,7 @@ export const generateInvoicesAuditPDF = async (data: { userName: string, invoice
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
     doc.setFont("helvetica", "bold");
     doc.text("TOTAL NETO:", 115, finalY + 42);
-    doc.text(`$ ${totalAmount.toLocaleString()}`, 190, finalY + 42, { align: 'right' });
+    doc.text(`$ ${totalAmount.toLocaleString('es-CO')}`, 190, finalY + 42, { align: 'right' });
 
     // Pie de página
     doc.setFontSize(8);
@@ -365,8 +365,8 @@ export const generateInvoicePDF = async (data: { company: any, order: any, custo
             item.product_variant?.product?.name || item.product_name || "Producto",
             item.product_variant?.sku || item.sku || "N/A",
             item.quantity,
-            `$ ${price.toLocaleString()}`,
-            `$ ${(price * item.quantity).toLocaleString()}`
+            `$ ${price.toLocaleString('es-CO')}`,
+            `$ ${(price * item.quantity).toLocaleString('es-CO')}`
         ];
     });
 
@@ -388,7 +388,7 @@ export const generateInvoicePDF = async (data: { company: any, order: any, custo
     doc.setTextColor(100, 100, 100);
     doc.setFontSize(9);
     doc.text("SUBTOTAL BRUTO:", 125, finalY + 10);
-    doc.text(`$ ${order.total_price.toLocaleString()}`, 185, finalY + 10, { align: 'right' });
+    doc.text(`$ ${order.total_price.toLocaleString('es-CO')}`, 185, finalY + 10, { align: 'right' });
 
     doc.text("IMPUESTOS (0%):", 125, finalY + 18);
     doc.text("$ 0", 185, finalY + 18, { align: 'right' });
@@ -400,7 +400,7 @@ export const generateInvoicePDF = async (data: { company: any, order: any, custo
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text("TOTAL NETO:", 125, finalY + 30);
-    doc.text(`$ ${order.total_price.toLocaleString()}`, 185, finalY + 30, { align: 'right' });
+    doc.text(`$ ${order.total_price.toLocaleString('es-CO')}`, 185, finalY + 30, { align: 'right' });
 
     // Pie de página
     doc.setFontSize(8);

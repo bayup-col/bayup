@@ -117,7 +117,7 @@ const MetricModal = ({ metric, onClose }: { metric: MetricData | null, onClose: 
                     </div>
                     <div className="relative z-10 mt-8">
                         <h3 className="text-4xl font-black text-slate-900 tracking-tighter italic">
-                            {metric.id === 'inversion' ? `$ ${metric.value.toLocaleString()}` : metric.id === 'cumplimiento' ? `${metric.value}%` : metric.value}
+                            {metric.id === 'inversion' ? `$ ${metric.value.toLocaleString('es-CO')}` : metric.id === 'cumplimiento' ? `${metric.value}%` : metric.value}
                         </h3>
                         <p className="text-xs font-bold text-slate-600 uppercase tracking-widest opacity-70 mt-1">{metric.title}</p>
                     </div>

@@ -149,7 +149,7 @@ const NewSeparadoModal = ({ isOpen, onClose, onSave }: { isOpen: boolean, onClos
                                         return (
                                             <button key={p.id} onClick={() => isAdded ? removeProduct(p.id) : addProduct(p)} className={`p-4 rounded-3xl border transition-all flex items-center gap-4 text-left ${isAdded ? 'bg-cyan-50 border-[#00f2ff]' : 'bg-white border-gray-100'}`}>
                                                 <div className="h-12 w-12 rounded-xl overflow-hidden shrink-0"><img src={p.img} className="w-full h-full object-cover" /></div>
-                                                <div className="flex-1"><p className="font-black text-xs">{p.name}</p><p className="text-[10px] text-[#004d4d] font-bold mt-1">$ {p.price.toLocaleString()}</p></div>
+                                                <div className="flex-1"><p className="font-black text-xs">{p.name}</p><p className="text-[10px] text-[#004d4d] font-bold mt-1">$ {p.price.toLocaleString('es-CO')}</p></div>
                                                 <div className={`h-6 w-6 rounded-full flex items-center justify-center transition-all ${isAdded ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-transparent'}`}><Check size={14}/></div>
                                             </button>
                                         );
@@ -196,7 +196,7 @@ const NewSeparadoModal = ({ isOpen, onClose, onSave }: { isOpen: boolean, onClos
                                         <p className="text-sm font-black text-gray-900">{selectedCustomer?.name || '---'}</p>
                                         <div className="space-y-2">
                                             {selectedProducts.map(p => (
-                                                <div key={p.id} className="flex justify-between items-center"><p className="text-[10px] font-bold text-gray-500">{p.name}</p><p className="text-[10px] font-black text-[#004d4d]">$ {p.price.toLocaleString()}</p></div>
+                                                <div key={p.id} className="flex justify-between items-center"><p className="text-[10px] font-bold text-gray-500">{p.name}</p><p className="text-[10px] font-black text-[#004d4d]">$ {p.price.toLocaleString('es-CO')}</p></div>
                                             ))}
                                         </div>
                                     </div>
@@ -204,15 +204,15 @@ const NewSeparadoModal = ({ isOpen, onClose, onSave }: { isOpen: boolean, onClos
                                     <div className="space-y-3 pt-4 border-t border-gray-200">
                                         <div className="flex justify-between items-center text-gray-400 text-[10px] font-black uppercase tracking-widest">
                                             <span>Subtotal</span>
-                                            <span>$ {totalValue.toLocaleString()}</span>
+                                            <span>$ {totalValue.toLocaleString('es-CO')}</span>
                                         </div>
                                         <div className="flex justify-between items-center text-emerald-600 text-[10px] font-black uppercase tracking-widest">
                                             <span>Abono Recibido</span>
-                                            <span>- $ {abonoVal.toLocaleString()}</span>
+                                            <span>- $ {abonoVal.toLocaleString('es-CO')}</span>
                                         </div>
                                         <div className="pt-3 border-t border-gray-200 flex justify-between items-end">
                                             <p className="text-[10px] font-black text-gray-900 uppercase">Saldo Pendiente</p>
-                                            <p className="text-2xl font-black text-[#004d4d]">$ {pendingBalance.toLocaleString()}</p>
+                                            <p className="text-2xl font-black text-[#004d4d]">$ {pendingBalance.toLocaleString('es-CO')}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -243,7 +243,7 @@ const PaymentActionModal = ({ isOpen, onClose, reservation, onConfirm }: { isOpe
                     <motion.div initial={{ scale: 0.9, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="bg-white w-full max-w-md rounded-[3.5rem] shadow-3xl overflow-hidden relative border border-white/20 z-10">
                         <div className="bg-[#004d4d] p-10 text-white text-center relative overflow-hidden"><div className="absolute top-0 right-0 p-6 opacity-10"><DollarSign size={80} /></div><h2 className="text-2xl font-black uppercase tracking-tight relative z-10">Registrar Pago</h2><p className="text-[10px] font-black text-[#00f2ff] uppercase mt-2">Folio: #{reservation.id}</p></div>
                         <div className="p-10 space-y-8 bg-white">
-                            <div className="grid grid-cols-2 gap-4"><button onClick={() => setAmount(saldo.toString())} className="p-4 rounded-2xl border border-gray-100 bg-gray-50 hover:border-[#004d4d] transition-all text-center"><p className="text-[8px] font-black text-gray-400 uppercase">Pago Completo</p><p className="text-xs font-black text-[#004d4d] mt-1">$ {saldo.toLocaleString()}</p></button><div className="p-4 rounded-2xl border border-gray-100 bg-white text-center"><p className="text-[8px] font-black text-gray-400 uppercase">Total Pedido</p><p className="text-xs font-black text-gray-900 mt-1">$ {reservation.total_value.toLocaleString()}</p></div></div>
+                            <div className="grid grid-cols-2 gap-4"><button onClick={() => setAmount(saldo.toString())} className="p-4 rounded-2xl border border-gray-100 bg-gray-50 hover:border-[#004d4d] transition-all text-center"><p className="text-[8px] font-black text-gray-400 uppercase">Pago Completo</p><p className="text-xs font-black text-[#004d4d] mt-1">$ {saldo.toLocaleString('es-CO')}</p></button><div className="p-4 rounded-2xl border border-gray-100 bg-white text-center"><p className="text-[8px] font-black text-gray-400 uppercase">Total Pedido</p><p className="text-xs font-black text-gray-900 mt-1">$ {reservation.total_value.toLocaleString('es-CO')}</p></div></div>
                             <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase ml-2">Monto Abono</label><div className="relative"><span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-[#004d4d] text-xl">$</span><input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full pl-10 p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-xl font-black shadow-inner" placeholder="0.00" /></div></div>
                             <button onClick={() => { onConfirm(parseInt(amount)); onClose(); setAmount(""); }} disabled={!amount || parseInt(amount) <= 0} className="w-full py-5 bg-[#004d4d] text-white rounded-[1.5rem] font-black uppercase text-[10px] shadow-2xl disabled:opacity-50 transition-all">Confirmar</button>
                         </div>
@@ -454,7 +454,7 @@ export default function SeparadosPage() {
             doc.setTextColor(255, 255, 255); doc.setFontSize(22); doc.setFont("helvetica", "bold"); doc.text("AUDITORÍA DE SEPARADOS", 15, 20);
             doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.text(`Generado: ${new Date().toLocaleString()}`, 15, 30);
             let y = 60; doc.setFillColor(245, 245, 245); doc.rect(14, y-6, 185, 8, 'F'); doc.setTextColor(0, 0, 0); doc.text("ID", 16, y); doc.text("CLIENTE", 40, y); doc.text("TOTAL", 100, y); doc.text("PAGADO", 140, y);
-            y += 10; filteredReservations.forEach(r => { doc.text(r.id, 16, y); doc.text(r.customer.name.slice(0, 20), 40, y); doc.text(`$ ${r.total_value.toLocaleString()}`, 100, y); doc.text(`$ ${r.paid_amount.toLocaleString()}`, 140, y); y += 8; });
+            y += 10; filteredReservations.forEach(r => { doc.text(r.id, 16, y); doc.text(r.customer.name.slice(0, 20), 40, y); doc.text(`$ ${r.total_value.toLocaleString('es-CO')}`, 100, y); doc.text(`$ ${r.paid_amount.toLocaleString('es-CO')}`, 140, y); y += 8; });
             doc.save(`Reporte_Separados.pdf`); showToast("PDF Generado ✨", "success");
         } catch (e) { console.error(e); }
     };
