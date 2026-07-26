@@ -34,7 +34,7 @@ def _require_admin_role(user) -> None:
         raise HTTPException(status_code=403, detail="Se requiere rol administrador")
 
 
-def _serialize_customer(c) -> dict:
+def _serialize_customer(c, orders_count: int = 0) -> dict:
     return {
         "id": str(c.id),
         "email": c.email,
@@ -48,6 +48,9 @@ def _serialize_customer(c) -> dict:
         "customer_type": getattr(c, "customer_type", None) or "final",
         "acquisition_channel": getattr(c, "acquisition_channel", None) or "web",
         "created_at": c.created_at.isoformat() if getattr(c, "created_at", None) else None,
+        "total_spent": float(getattr(c, "total_spent", 0) or 0),
+        "orders_count": orders_count,
+        "last_purchase": c.last_purchase_date.isoformat() if getattr(c, "last_purchase_date", None) else None,
     }
 
 
@@ -121,7 +124,15 @@ async def get_customers(
             (models.User.phone.like(term))
         )
     rows = query.offset(skip).limit(min(limit, 500)).all()
-    return [_serialize_customer(c) for c in rows]
+
+    from sqlalchemy import func
+    counts = dict(
+        db.query(func.lower(models.Order.customer_email), func.count(models.Order.id))
+        .filter(models.Order.tenant_id == tid, models.Order.customer_email.isnot(None))
+        .group_by(func.lower(models.Order.customer_email))
+        .all()
+    )
+    return [_serialize_customer(c, counts.get((c.email or "").lower(), 0)) for c in rows]
 
 
 @router.delete("/users/{user_id}")
