@@ -283,7 +283,7 @@ export default function CotizacionesPage() {
         let y = 55;
         doc.setFillColor(245, 245, 245); doc.rect(14, y-6, 185, 8, 'F'); doc.setTextColor(0, 0, 0); doc.text("FOLIO", 16, y); doc.text("CLIENTE", 50, y); doc.text("TOTAL", 170, y);
         y += 10;
-        filteredQuotes.forEach(q => { doc.text(`#${q.folio}`, 16, y); doc.text(q.customer.name, 50, y); doc.text(`$ ${q.total.toLocaleString()}`, 170, y); y += 8; });
+        filteredQuotes.forEach(q => { doc.text(`#${q.folio}`, 16, y); doc.text(q.customer.name, 50, y); doc.text(`$ ${q.total.toLocaleString('es-CO')}`, 170, y); y += 8; });
         doc.save(`Reporte_Cotizaciones.pdf`);
         showToast("PDF Exportado ✨", "success");
     } catch (e) { console.error(e); }
@@ -303,7 +303,7 @@ export default function CotizacionesPage() {
         doc.setTextColor(255, 255, 255); doc.setFontSize(24); doc.text("BAYUP", 15, 20);
         doc.setFontSize(10); doc.text(`COTIZACIÓN: #${q.folio}`, 15, 30);
         doc.setTextColor(0, 0, 0); doc.text(`Cliente: ${q.customer.name}`, 15, 50); doc.text(`Empresa: ${q.customer.company}`, 15, 56);
-        doc.setFont("helvetica", "bold"); doc.text("TOTAL PROPUESTA:", 110, 100); doc.text(`$ ${q.total.toLocaleString()}`, 160, 100);
+        doc.setFont("helvetica", "bold"); doc.text("TOTAL PROPUESTA:", 110, 100); doc.text(`$ ${q.total.toLocaleString('es-CO')}`, 160, 100);
         doc.save(`Cotizacion_${q.folio}.pdf`);
         
         // Avanzar el proceso
@@ -316,7 +316,7 @@ export default function CotizacionesPage() {
   };
 
   const handleWhatsAppQuote = (q: Quotation) => {
-    const msg = `¡Hola ${q.customer.name}! 👋 Te envío la cotización #${q.folio} por un valor de $ ${q.total.toLocaleString()}. Puedes ver el detalle aquí: https://bayup.col/q/${q.id}`;
+    const msg = `¡Hola ${q.customer.name}! 👋 Te envío la cotización #${q.folio} por un valor de $ ${q.total.toLocaleString('es-CO')}. Puedes ver el detalle aquí: https://bayup.col/q/${q.id}`;
     window.open(`https://wa.me/${q.customer.phone.replace(/\+/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
     
     // Avanzar el proceso
@@ -400,7 +400,7 @@ export default function CotizacionesPage() {
             </div>
       </div>
 
-      <div className="px-4"><div className="bg-white border border-gray-100 rounded-[2rem] shadow-sm overflow-hidden"><table className="w-full text-left"><thead className="bg-gray-50/50 border-b border-gray-100 text-[10px] font-black text-gray-400 uppercase tracking-widest"><tr><th className="p-6">Folio</th><th className="p-6">Cliente</th><th className="p-6">Estado</th><th className="p-6 text-right">Total</th><th className="p-6"></th></tr></thead><tbody className="divide-y divide-gray-50">{filteredQuotes.map((q) => (<tr key={q.id} onClick={() => setSelectedQuote(q)} className="group hover:bg-gray-50 transition-colors cursor-pointer"><td className="p-6 font-black text-sm text-[#004D4D]">#{q.folio}</td><td className="p-6"><p className="text-sm font-bold text-gray-900">{q.customer.name}</p><p className="text-[10px] text-gray-400 uppercase font-bold">{q.customer.company}</p></td><td className="p-6"><StatusBadge status={q.status} /></td><td className="p-6 text-right font-black text-sm text-gray-900">$ {q.total.toLocaleString()}</td><td className="p-6 text-right"><ChevronRight size={20} className="text-gray-300 ml-auto"/></td></tr>))}</tbody></table></div></div>
+      <div className="px-4"><div className="bg-white border border-gray-100 rounded-[2rem] shadow-sm overflow-hidden"><table className="w-full text-left"><thead className="bg-gray-50/50 border-b border-gray-100 text-[10px] font-black text-gray-400 uppercase tracking-widest"><tr><th className="p-6">Folio</th><th className="p-6">Cliente</th><th className="p-6">Estado</th><th className="p-6 text-right">Total</th><th className="p-6"></th></tr></thead><tbody className="divide-y divide-gray-50">{filteredQuotes.map((q) => (<tr key={q.id} onClick={() => setSelectedQuote(q)} className="group hover:bg-gray-50 transition-colors cursor-pointer"><td className="p-6 font-black text-sm text-[#004D4D]">#{q.folio}</td><td className="p-6"><p className="text-sm font-bold text-gray-900">{q.customer.name}</p><p className="text-[10px] text-gray-400 uppercase font-bold">{q.customer.company}</p></td><td className="p-6"><StatusBadge status={q.status} /></td><td className="p-6 text-right font-black text-sm text-gray-900">$ {q.total.toLocaleString('es-CO')}</td><td className="p-6 text-right"><ChevronRight size={20} className="text-gray-300 ml-auto"/></td></tr>))}</tbody></table></div></div>
 
       <AnimatePresence>
         {selectedQuote && (
@@ -431,7 +431,7 @@ export default function CotizacionesPage() {
                     <button onClick={() => handleDeleteQuote(selectedQuote.id)} className="flex flex-col items-center justify-center p-4 rounded-2xl border border-slate-200 transition-all gap-2 group hover:bg-rose-50 hover:border-rose-400"><div className="text-slate-400 group-hover:text-rose-600"><Trash2 size={20}/></div><span className="text-[9px] font-black uppercase tracking-wider text-slate-500 group-hover:text-rose-700">Eliminar</span></button>
                 </div>
                 <div className="grid grid-cols-2 gap-8"><section className="space-y-4"><h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><User size={14}/> Cliente</h3><div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm"><p className="text-sm font-bold text-slate-900">{selectedQuote.customer.name}</p><p className="text-[10px] text-[#004D4D] font-black mt-1 uppercase">{selectedQuote.customer.company}</p></div></section><section className="space-y-4"><h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Clock size={14}/> Validez</h3><div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm"><p className="text-sm font-bold text-rose-600 italic">Vence: {new Date(selectedQuote.expiryDate).toLocaleDateString()}</p></div></section></div>
-                <section className="bg-slate-900 rounded-[2.5rem] p-8 text-white flex items-center justify-between shadow-xl"><div><p className="text-[10px] text-slate-400 uppercase font-black">Monto Total</p><p className="text-4xl font-black mt-1 italic">$ {selectedQuote.total.toLocaleString()}</p></div><div className="h-16 w-16 rounded-3xl bg-white/10 flex items-center justify-center text-[#00F2FF] border border-white/10"><DollarSign size={32}/></div></section>
+                <section className="bg-slate-900 rounded-[2.5rem] p-8 text-white flex items-center justify-between shadow-xl"><div><p className="text-[10px] text-slate-400 uppercase font-black">Monto Total</p><p className="text-4xl font-black mt-1 italic">$ {selectedQuote.total.toLocaleString('es-CO')}</p></div><div className="h-16 w-16 rounded-3xl bg-white/10 flex items-center justify-center text-[#00F2FF] border border-white/10"><DollarSign size={32}/></div></section>
               </div>
               <div className="p-6 border-t border-slate-200 bg-white flex gap-4"><button disabled={selectedQuote.status === 'accepted'} onClick={() => handleAcceptQuote(selectedQuote)} className={`flex-1 py-4 rounded-xl font-black text-[10px] uppercase transition-all flex items-center justify-center gap-2 ${selectedQuote.status === 'accepted' ? 'bg-emerald-50 text-emerald-600' : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-xl'}`}><CheckCircle2 size={16}/> {selectedQuote.status === 'accepted' ? 'Aceptada' : 'Aprobar y Convertir a Venta'}</button></div>
             </motion.div>

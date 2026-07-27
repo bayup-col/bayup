@@ -9,6 +9,7 @@ import {
   DollarSign, ArrowDownRight, Box, Hash, Warehouse, RefreshCcw, History,
   AlertTriangle, Minus, Tag, MoreHorizontal, FileSpreadsheet, ChevronDown
 } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuth } from "@/context/auth-context";
@@ -136,6 +137,8 @@ export default function ProductsPage() {
   const [searchTerm,  setSearchTerm]  = useState('');
   const [activeTab,   setActiveTab]   = useState<'all'|'active'|'draft'|'categories'|'inventory'>('all');
   const [selectedMetric, setSelectedMetric] = useState<any>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   const [isLimitModalOpen,     setIsLimitModalOpen]     = useState(false);
   const [isImportModalOpen,    setIsImportModalOpen]    = useState(false);
@@ -665,25 +668,6 @@ export default function ProductsPage() {
           </button>
         </div>
       </div>
-
-      {/* ── PLAN BANNER (solo desktop) ── */}
-      {isBasicPlan && (
-        <div className="hidden sm:flex bg-white rounded-2xl border border-gray-100 shadow-sm p-4 items-center gap-4">
-          <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${products.length >= 25 ? 'bg-amber-50 text-amber-500' : 'bg-[#004d4d]/10 text-[#004d4d]'}`}>
-            <Package size={14}/>
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-1.5">
-              <p className="text-[10px] font-bold text-gray-700">Plan Básico — {products.length}/30 productos</p>
-              <button onClick={() => router.push('/planes')} className="text-[9px] font-black text-[#004d4d] hover:underline tracking-widest uppercase">Subir de nivel →</button>
-            </div>
-            <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-              <motion.div initial={{ width: 0 }} animate={{ width: `${(products.length / 30) * 100}%` }}
-                className={`h-full rounded-full ${products.length >= 25 ? 'bg-amber-400' : 'bg-gradient-to-r from-[#004d4d] to-[#00b2bd]'}`}/>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── ALERTAS LÍMITE ── */}
       {isBasicPlan && !loading && limitBannerDismissed !== 'critical' && products.length > 25 && (
@@ -1221,7 +1205,8 @@ export default function ProductsPage() {
 
       <MetricDetailModal isOpen={!!selectedMetric} onClose={() => setSelectedMetric(null)} metric={selectedMetric}/>
 
-      {/* ── MODAL LÍMITE PLAN ── */}
+      {/* ── MODAL LÍMITE PLAN (portal) ── */}
+      {mounted && createPortal(
       <AnimatePresence>
         {isLimitModalOpen && (
           <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
@@ -1269,9 +1254,12 @@ export default function ProductsPage() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
 
-      {/* ── MODAL DETALLE CATEGORÍA ── */}
+      {/* ── MODAL DETALLE CATEGORÍA (portal) ── */}
+      {mounted && createPortal(
       <AnimatePresence>
         {selectedCategory && (
           <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4 md:p-6">
@@ -1426,9 +1414,12 @@ export default function ProductsPage() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
 
-      {/* ── GUÍA OPERATIVA ── */}
+      {/* ── GUÍA OPERATIVA (portal) ── */}
+      {mounted && createPortal(
       <AnimatePresence>
         {isGuideOpen && (
           <>
@@ -1456,13 +1447,6 @@ export default function ProductsPage() {
                         <span className="text-[10px] font-semibold truncate">{item.title}</span>
                       </button>
                     ))}
-                  </div>
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <div className="bg-[#004d4d] rounded-2xl p-4 text-white relative overflow-hidden">
-                      <div className="absolute -right-2 -bottom-2 opacity-10"><Bot size={50}/></div>
-                      <p className="text-[9px] font-bold tracking-widest text-[#00f2ff] mb-1">BAYT AI</p>
-                      <p className="text-[10px] leading-relaxed text-white/70">Registra productos por voz con Bayt AI.</p>
-                    </div>
                   </div>
                 </div>
                 {/* Contenido */}
@@ -1509,9 +1493,12 @@ export default function ProductsPage() {
             </div>
           </>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
 
-      {/* ── MODAL EDITAR CATEGORÍA ── */}
+      {/* ── MODAL EDITAR CATEGORÍA (portal) ── */}
+      {mounted && createPortal(
       <AnimatePresence>
         {editingCategory && (
           <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
@@ -1558,9 +1545,12 @@ export default function ProductsPage() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
 
-      {/* ── MODAL NUEVA CATEGORÍA ── */}
+      {/* ── MODAL NUEVA CATEGORÍA (portal) ── */}
+      {mounted && createPortal(
       <AnimatePresence>
         {isNewCategoryModalOpen && (
           <>
@@ -1617,33 +1607,40 @@ export default function ProductsPage() {
             </div>
           </>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
 
-      {/* ── MODAL CONFIRMAR ELIMINACIÓN ── */}
-      <AnimatePresence>
-        {productToDelete && (
-          <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setProductToDelete(null)} className="absolute inset-0 bg-[#001a1a]/70 backdrop-blur-md"/>
-            <motion.div initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
-              className="relative bg-white w-full max-w-sm rounded-[2rem] shadow-2xl p-6 text-center">
-              <div className="h-14 w-14 rounded-2xl bg-rose-50 flex items-center justify-center mx-auto mb-4"><Trash2 size={22} className="text-rose-500"/></div>
-              <h3 className="text-lg font-black text-gray-900">¿Eliminar producto?</h3>
-              <p className="text-sm text-gray-500 mt-2 leading-relaxed">
-                Se eliminará permanentemente <strong>"{productToDelete.name}"</strong> de tu catálogo.
-              </p>
-              <div className="flex gap-2 mt-6">
-                <button onClick={() => setProductToDelete(null)} className="flex-1 h-10 rounded-2xl bg-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-widest">Cancelar</button>
-                <button onClick={handleDeleteProduct} disabled={isDeletingProduct}
-                  className="flex-1 h-10 rounded-2xl bg-rose-500 text-white text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 disabled:opacity-60">
-                  {isDeletingProduct ? <><Loader2 size={11} className="animate-spin"/>Eliminando</> : 'Sí, eliminar'}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* ── MODAL CONFIRMAR ELIMINACIÓN (portal — evita que contenedores padre con
+          overflow-hidden le recorten la altura al fondo fixed/absolute) ── */}
+      {mounted && createPortal(
+        <AnimatePresence>
+          {productToDelete && (
+            <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setProductToDelete(null)} className="absolute inset-0 bg-[#001a1a]/70 backdrop-blur-md"/>
+              <motion.div initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
+                className="relative bg-white w-full max-w-sm rounded-[2rem] shadow-2xl p-6 text-center">
+                <div className="h-14 w-14 rounded-2xl bg-rose-50 flex items-center justify-center mx-auto mb-4"><Trash2 size={22} className="text-rose-500"/></div>
+                <h3 className="text-lg font-black text-gray-900">¿Eliminar producto?</h3>
+                <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+                  Se eliminará permanentemente <strong>"{productToDelete.name}"</strong> de tu catálogo.
+                </p>
+                <div className="flex gap-2 mt-6">
+                  <button onClick={() => setProductToDelete(null)} className="flex-1 h-10 rounded-2xl bg-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-widest">Cancelar</button>
+                  <button onClick={handleDeleteProduct} disabled={isDeletingProduct}
+                    className="flex-1 h-10 rounded-2xl bg-rose-500 text-white text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 disabled:opacity-60">
+                    {isDeletingProduct ? <><Loader2 size={11} className="animate-spin"/>Eliminando</> : 'Sí, eliminar'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
-      {/* ── MODAL IMPORTAR EXCEL ── */}
+      {/* ── MODAL IMPORTAR EXCEL (portal) ── */}
+      {mounted && createPortal(
       <AnimatePresence>
         {isImportModalOpen && (
           <>
@@ -1708,9 +1705,12 @@ export default function ProductsPage() {
             </div>
           </>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
 
-      {/* ── DRAWER DETALLE PRODUCTO ── */}
+      {/* ── DRAWER DETALLE PRODUCTO (portal) ── */}
+      {mounted && createPortal(
       <AnimatePresence>
         {selectedProduct && (
           <>
@@ -1805,7 +1805,9 @@ export default function ProductsPage() {
             </div>
           </>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }

@@ -183,6 +183,19 @@ class OrderItem(Base):
     order = relationship("Order", back_populates="items")
     product_variant = relationship("ProductVariant")
 
+    @property
+    def product_name(self) -> str:
+        """Nombre para mostrar en UI/reportes. Requiere que product_variant
+        (y su .product) vengan precargados con selectinload — si no, dispara
+        una query perezosa por item al serializar."""
+        variant = self.product_variant
+        if not variant:
+            return "Producto"
+        base = variant.product.name if variant.product else "Producto"
+        if variant.name and variant.name.strip().lower() != "base":
+            return f"{base} — {variant.name}"
+        return base
+
 class ProductType(Base):
     __tablename__ = "product_types"
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
@@ -408,9 +421,60 @@ class ChannelConnection(Base):
     user_id = Column(GUID(), ForeignKey("users.id"))
     channel_type = Column(String)
     status = Column(String, default="linked")
-    account_id = Column(String, nullable=True) 
-    access_token = Column(String, nullable=True) 
+    account_id = Column(String, nullable=True)
+    access_token = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+# --- Analítica del storefront (tráfico / audiencia) ---
+
+class AnalyticsVisitor(Base):
+    """Un visitor_id (localStorage, persistente) visto por primera vez para
+    un tenant — permite saber si una sesión es de alguien nuevo o recurrente
+    sin escanear la tabla de sesiones completa."""
+    __tablename__ = "analytics_visitors"
+    tenant_id = Column(GUID(), ForeignKey("users.id"), primary_key=True)
+    visitor_id = Column(GUID(), primary_key=True)
+    first_seen_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class AnalyticsSession(Base):
+    """Una sesión de navegación (sessionStorage — dura mientras la pestaña
+    esté abierta). id = session_id generado por el cliente."""
+    __tablename__ = "analytics_sessions"
+    id = Column(GUID(), primary_key=True)
+    tenant_id = Column(GUID(), ForeignKey("users.id"), index=True)
+    visitor_id = Column(GUID(), index=True)
+    is_new_visitor = Column(Boolean, default=True)
+    source = Column(String, default="direct")          # direct | search | social | whatsapp | referral
+    referrer_domain = Column(String, nullable=True)
+    device_type = Column(String, default="desktop")    # mobile | tablet | desktop
+    entry_path = Column(String, nullable=True)
+    pageview_count = Column(Integer, default=0)
+    duration_seconds = Column(Integer, nullable=True)  # llega vía sendBeacon al salir
+    started_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+
+class AnalyticsPageview(Base):
+    """Cada vista de página dentro de una sesión — base para 'páginas más vistas'."""
+    __tablename__ = "analytics_pageviews"
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(GUID(), ForeignKey("users.id"), index=True)
+    session_id = Column(GUID(), ForeignKey("analytics_sessions.id"), index=True)
+    path = Column(String)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
+
+
+class AnalyticsSearch(Base):
+    """Un término buscado en el buscador del storefront — base para 'top búsquedas'."""
+    __tablename__ = "analytics_searches"
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(GUID(), ForeignKey("users.id"), index=True)
+    session_id = Column(GUID(), ForeignKey("analytics_sessions.id"), nullable=True)
+    term = Column(String)
+    results_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
 
 class WebTemplate(Base):
     __tablename__ = "web_templates"

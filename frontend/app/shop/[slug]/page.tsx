@@ -14,6 +14,8 @@ import {
     ArrowRight,
     Star,
     ShieldCheck,
+    Lock,
+    ArrowLeft,
     Zap,
     Image as ImageIcon,
     ChevronRight,
@@ -36,6 +38,7 @@ import { StudioProvider } from '../../dashboard/pages/studio/context';
 import { Canvas } from '../../dashboard/pages/studio/internal-studio-parts/Canvas';
 import { useCart } from '@/context/cart-context';
 import { generateTemplateSchema } from '@/lib/templates-config';
+import { trackPageview, trackSearch } from '@/lib/track';
 
 const PREVIEW_DATA = {
     store_name: "Silicon Pro",
@@ -353,6 +356,16 @@ function ShopContent() {
         if (slug) fetchShop();
     }, [slug, view]);
 
+    // Registra la vista una vez que se confirma que la tienda existe —
+    // evita ensuciar la analítica con slugs inválidos.
+    useEffect(() => {
+        if (!loading && shopData && typeof slug === 'string') {
+            const path = `/shop/${slug}${view !== 'home' ? `?view=${view}` : ''}${productId ? `&id=${productId}` : ''}`;
+            trackPageview(slug, path);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [slug, view, productId, loading, !!shopData]);
+
     const filteredProducts = useMemo(() => {
         if (!shopData) return [];
         return (shopData.products || []).filter((p: any) => {
@@ -361,6 +374,14 @@ function ShopContent() {
             return matchesSearch && matchesCategory;
         });
     }, [shopData, searchTerm, selectedCategory]);
+
+    // Registra el término buscado (debounced dentro de trackSearch) para
+    // "Top búsquedas en tienda" en Estadísticas.
+    useEffect(() => {
+        if (typeof slug === 'string' && searchTerm.trim().length >= 2) {
+            trackSearch(slug, searchTerm, filteredProducts.length);
+        }
+    }, [slug, searchTerm, filteredProducts.length]);
 
     const { scrollY } = useScroll();
     const navBg = useTransform(scrollY, [0, 100], ["rgba(255,255,255,0)", "rgba(255,255,255,0.95)"]);
@@ -490,7 +511,7 @@ function ShopContent() {
                                                 </div>
                                                 <div className="px-2 space-y-2">
                                                     <h4 className="text-xl font-black text-gray-900 uppercase tracking-tighter leading-tight line-clamp-1">{product.name}</h4>
-                                                    <p className="text-2xl font-black text-[#004d4d] tracking-tighter">${Number(product.price).toLocaleString()}</p>
+                                                    <p className="text-2xl font-black text-[#004d4d] tracking-tighter">${Number(product.price).toLocaleString('es-CO')}</p>
                                                 </div>
                                             </div>
                                         ))}
@@ -540,7 +561,7 @@ function ShopContent() {
                                             <h4 className="text-xl font-black text-gray-900 uppercase tracking-tighter leading-tight line-clamp-1">{product.name}</h4>
                                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{shopData.categories?.find((c:any) => c.id === product.collection_id)?.title || 'Colección'}</p>
                                             <div className="flex items-center justify-between pt-4">
-                                                <p className="text-2xl font-black text-[#004d4d] tracking-tighter">${Number(product.price).toLocaleString()}</p>
+                                                <p className="text-2xl font-black text-[#004d4d] tracking-tighter">${Number(product.price).toLocaleString('es-CO')}</p>
                                                 <button onClick={(e) => { e.stopPropagation(); addToCart(product); }} className="h-14 w-14 rounded-2xl bg-gray-900 text-[#00f2ff] flex items-center justify-center hover:scale-110 active:scale-90 transition-all shadow-xl"><Plus size={24}/></button>
                                             </div>
                                         </div>
@@ -577,7 +598,7 @@ function ShopContent() {
                                             <h1 className="text-4xl font-black uppercase tracking-tighter leading-tight">{product.name}</h1>
                                             {product.description && <p className="text-gray-500 mt-4 leading-relaxed">{product.description}</p>}
                                         </div>
-                                        <p className="text-5xl font-black text-[#004d4d] tracking-tighter">${Number(product.price).toLocaleString()}</p>
+                                        <p className="text-5xl font-black text-[#004d4d] tracking-tighter">${Number(product.price).toLocaleString('es-CO')}</p>
                                         <button
                                             onClick={() => { addToCart(product); setIsCartOpen(true); }}
                                             className="w-full h-16 rounded-3xl bg-gray-900 text-[#00f2ff] font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-black active:scale-95 transition-all shadow-2xl"
@@ -634,7 +655,7 @@ function ShopContent() {
                                         <div className="h-20 w-20 rounded-2xl overflow-hidden bg-gray-100 shrink-0 flex items-center justify-center">{item.image ? <img src={item.image} className="h-full w-full object-cover" alt={item.title}/> : <ShoppingBag size={24} className="text-gray-300"/>}</div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-black text-gray-900 line-clamp-1">{item.title}</p>
-                                            <p className="text-xs font-bold text-[#004d4d] mt-1">${item.price.toLocaleString()}</p>
+                                            <p className="text-xs font-bold text-[#004d4d] mt-1">${item.price.toLocaleString('es-CO')}</p>
                                             <p className="text-[10px] font-black text-gray-400 uppercase mt-2">Cantidad: {item.quantity}</p>
                                         </div>
                                         <button onClick={() => removeItem(item.id)} className="text-gray-300 hover:text-rose-500 self-center"><Trash2 size={18}/></button>
@@ -643,7 +664,7 @@ function ShopContent() {
                             </div>
                             {cart.length > 0 && (
                                 <div className="p-8 border-t bg-gray-50/50 space-y-6">
-                                    <div className="flex justify-between items-end"><p className="text-[10px] font-black text-gray-400 uppercase">Total Estimado</p><p className="text-3xl font-black text-gray-900 tracking-tighter">${cartTotal.toLocaleString()}</p></div>
+                                    <div className="flex justify-between items-end"><p className="text-[10px] font-black text-gray-400 uppercase">Total Estimado</p><p className="text-3xl font-black text-gray-900 tracking-tighter">${cartTotal.toLocaleString('es-CO')}</p></div>
                                     <button onClick={() => { setIsCartOpen(false); setIsCheckoutOpen(true); }} className="w-full py-6 bg-gray-900 text-[#00f2ff] rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl hover:bg-black transition-all">Finalizar Compra</button>
                                 </div>
                             )}
@@ -652,29 +673,118 @@ function ShopContent() {
                 )}
             </AnimatePresence>
 
-            {/* MODAL CHECKOUT */}
+            {/* CHECKOUT — página completa estilo retail (no modal flotante) */}
             <AnimatePresence>
                 {isCheckoutOpen && (
-                    <div className="fixed inset-0 z-[4000] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCheckoutOpen(false)} className="absolute inset-0 bg-[#001A1A]/90 backdrop-blur-xl" />
-                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 40 }} animate={{ scale: 1, opacity: 1, y: 0 }} className="relative bg-white w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-[2rem] sm:rounded-[4rem] shadow-3xl p-6 sm:p-12 border border-white/20">
-                            <h3 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter text-[#001A1A] mb-8">Información de <span className="text-[#004d4d]">Envío</span></h3>
-                            <form onSubmit={handlePlaceOrder} className="space-y-4 sm:space-y-6">
-                                <input required placeholder="Nombre Completo" value={customerData.name} onChange={e => setCustomerData({...customerData, name: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <input required placeholder="WhatsApp" maxLength={10} value={customerData.phone} onChange={e => setCustomerData({...customerData, phone: e.target.value.replace(/\D/g,'')})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
-                                    <input required type="email" placeholder="Email" value={customerData.email} onChange={e => setCustomerData({...customerData, email: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <input required placeholder="Dirección" value={customerData.address} onChange={e => setCustomerData({...customerData, address: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
-                                    <input required placeholder="Ciudad" value={customerData.city} onChange={e => setCustomerData({...customerData, city: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
-                                </div>
-                                <button type="submit" disabled={isPlacingOrder} className="w-full py-6 bg-[#004d4d] text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-4">
-                                    {placingOrderStep === 'confirming' ? "Confirmando pago…" : isPlacingOrder ? "Procesando…" : <>Pagar ahora <ArrowRight size={18}/></>}
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[4000] bg-gray-50 overflow-y-auto">
+
+                        {/* Barra superior */}
+                        <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
+                            <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
+                                <button onClick={() => setIsCheckoutOpen(false)}
+                                    className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-[#004d4d] transition-colors">
+                                    <ArrowLeft size={16}/> <span className="hidden sm:inline">Volver a la tienda</span>
                                 </button>
-                            </form>
-                        </motion.div>
-                    </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="h-7 w-7 bg-[#004d4d] rounded-lg flex items-center justify-center text-[#00f2ff] font-black text-xs shrink-0">{shopData.full_name?.charAt(0) || 'B'}</div>
+                                    <span className="text-sm font-black uppercase tracking-tight text-gray-800 hidden sm:inline">{shopData.full_name}</span>
+                                </div>
+                                <p className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                    <Lock size={11}/> <span className="hidden sm:inline">Compra segura</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="max-w-6xl mx-auto grid lg:grid-cols-[1fr_380px] gap-10 px-5 sm:px-8 py-8 sm:py-12">
+
+                            {/* Formulario */}
+                            <div className="order-2 lg:order-1">
+                                <h1 className="text-2xl font-black tracking-tight text-gray-900 mb-1">Información de envío</h1>
+                                <p className="text-sm text-gray-400 mb-8">Completa tus datos para coordinar la entrega y el pago.</p>
+
+                                <form onSubmit={handlePlaceOrder} className="space-y-5">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-600 mb-1.5">Nombre completo</label>
+                                        <input required placeholder="Ej. María Torres" value={customerData.name}
+                                            onChange={e => setCustomerData({...customerData, name: e.target.value})}
+                                            className="w-full h-12 px-4 bg-white rounded-xl border border-gray-200 focus:border-[#004d4d] focus:ring-2 focus:ring-[#004d4d]/10 outline-none text-sm font-medium text-gray-800 transition-all" />
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-600 mb-1.5">WhatsApp</label>
+                                            <input required placeholder="300 000 0000" maxLength={10} value={customerData.phone}
+                                                onChange={e => setCustomerData({...customerData, phone: e.target.value.replace(/\D/g,'')})}
+                                                className="w-full h-12 px-4 bg-white rounded-xl border border-gray-200 focus:border-[#004d4d] focus:ring-2 focus:ring-[#004d4d]/10 outline-none text-sm font-medium text-gray-800 transition-all" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-600 mb-1.5">Correo electrónico</label>
+                                            <input required type="email" placeholder="tu@correo.com" value={customerData.email}
+                                                onChange={e => setCustomerData({...customerData, email: e.target.value})}
+                                                className="w-full h-12 px-4 bg-white rounded-xl border border-gray-200 focus:border-[#004d4d] focus:ring-2 focus:ring-[#004d4d]/10 outline-none text-sm font-medium text-gray-800 transition-all" />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-600 mb-1.5">Dirección</label>
+                                            <input required placeholder="Calle, número, barrio" value={customerData.address}
+                                                onChange={e => setCustomerData({...customerData, address: e.target.value})}
+                                                className="w-full h-12 px-4 bg-white rounded-xl border border-gray-200 focus:border-[#004d4d] focus:ring-2 focus:ring-[#004d4d]/10 outline-none text-sm font-medium text-gray-800 transition-all" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-600 mb-1.5">Ciudad</label>
+                                            <input required placeholder="Ej. Pereira" value={customerData.city}
+                                                onChange={e => setCustomerData({...customerData, city: e.target.value})}
+                                                className="w-full h-12 px-4 bg-white rounded-xl border border-gray-200 focus:border-[#004d4d] focus:ring-2 focus:ring-[#004d4d]/10 outline-none text-sm font-medium text-gray-800 transition-all" />
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" disabled={isPlacingOrder}
+                                        className="w-full h-14 bg-[#004d4d] text-white rounded-xl font-bold text-sm hover:bg-[#003838] disabled:opacity-60 transition-all flex items-center justify-center gap-2 shadow-sm">
+                                        {placingOrderStep === 'confirming' ? 'Confirmando pago…' : isPlacingOrder ? 'Procesando…' : <>Pagar ahora <ArrowRight size={16}/></>}
+                                    </button>
+                                    <p className="flex items-center justify-center gap-1.5 text-[11px] text-gray-400">
+                                        <ShieldCheck size={13}/> Pago procesado de forma segura por Wompi
+                                    </p>
+                                </form>
+                            </div>
+
+                            {/* Resumen del pedido */}
+                            <div className="order-1 lg:order-2">
+                                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 lg:sticky lg:top-24">
+                                    <h2 className="text-sm font-black uppercase tracking-widest text-gray-800 mb-5">Resumen del pedido</h2>
+                                    <div className="space-y-4 max-h-72 overflow-y-auto custom-scrollbar pr-1">
+                                        {cart.map(item => (
+                                            <div key={item.id} className="flex gap-3">
+                                                <div className="relative h-16 w-16 rounded-lg overflow-hidden bg-gray-50 border border-gray-100 shrink-0 flex items-center justify-center">
+                                                    {item.image ? <img src={item.image} className="h-full w-full object-cover" alt={item.title}/> : <ShoppingBag size={18} className="text-gray-300"/>}
+                                                    <span className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-gray-800 text-white text-[10px] font-bold flex items-center justify-center">{item.quantity}</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                                    <p className="text-xs font-bold text-gray-800 line-clamp-2 leading-snug">{item.title}</p>
+                                                </div>
+                                                <p className="text-xs font-bold text-gray-600 shrink-0 self-center">${(item.price * item.quantity).toLocaleString('es-CO')}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="border-t border-gray-100 mt-5 pt-5 space-y-2.5">
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-gray-500">Subtotal</span>
+                                            <span className="font-bold text-gray-700">${cartTotal.toLocaleString('es-CO')}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-gray-500">Envío</span>
+                                            <span className="font-bold text-gray-400">Se coordina con la tienda</span>
+                                        </div>
+                                        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                                            <span className="text-sm font-black text-gray-900">Total</span>
+                                            <span className="text-xl font-black text-[#004d4d]">${cartTotal.toLocaleString('es-CO')}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
                 )}
             </AnimatePresence>
 

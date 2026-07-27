@@ -228,11 +228,11 @@ export default function DashboardPage() {
 
     const productMap: Record<string, { name: string; total: number; units: number }> = {};
     orders.forEach(o => {
-        (o.items || o.order_items || []).forEach((item: any) => {
-            const key = item.product_id || item.product_name || 'Unknown';
-            const name = item.product_name || item.name || 'Producto';
+        (o.items || []).forEach((item: any) => {
+            const key = item.product_variant_id || item.product_name || 'Unknown';
+            const name = item.product_name || 'Producto';
             if (!productMap[key]) productMap[key] = { name, total: 0, units: 0 };
-            productMap[key].total += (item.total_price || (item.unit_price * (item.quantity || 1)) || 0);
+            productMap[key].total += (item.price_at_purchase || 0) * (item.quantity || 1);
             productMap[key].units += (item.quantity || 1);
         });
     });
@@ -394,8 +394,8 @@ export default function DashboardPage() {
     { 
         label: 'Ventas de hoy', value: realStats.revenue, icon: <Activity size={24}/>, color: "text-emerald-500", bg: "bg-emerald-500/10", trend: "En vivo", isCurrency: true,
         details: [
-            { l: 'EFECTIVO', v: `$ ${realStats.cash.toLocaleString()}`, icon: <DollarSign size={10}/> },
-            { l: 'TRANSF.', v: `$ ${realStats.transfer.toLocaleString()}`, icon: <CreditCard size={10}/> },
+            { l: 'EFECTIVO', v: `$ ${realStats.cash.toLocaleString('es-CO')}`, icon: <DollarSign size={10}/> },
+            { l: 'TRANSF.', v: `$ ${realStats.transfer.toLocaleString('es-CO')}`, icon: <CreditCard size={10}/> },
             { l: 'ÓRDENES', v: `${realStats.orders_count}`, icon: <ShoppingBag size={10}/> }
         ],
         advice: realStats.revenue > 0 
@@ -414,9 +414,9 @@ export default function DashboardPage() {
     { 
         label: 'Mi Saldo Bayup', value: realStats.total_balance, icon: <Wallet size={24}/>, color: "text-purple-500", bg: "bg-purple-500/10", trend: "Recaudado", isCurrency: true,
         details: [
-            { l: 'DISPONIBLE', v: `$ ${realStats.total_balance.toLocaleString()}`, icon: <ShieldCheck size={10}/> },
+            { l: 'DISPONIBLE', v: `$ ${realStats.total_balance.toLocaleString('es-CO')}`, icon: <ShieldCheck size={10}/> },
             { l: 'PENDIENTE', v: '$ 0', icon: <Clock size={10}/> },
-            { l: 'ESTIMADO', v: `$ ${(realStats.total_balance * 0.965).toLocaleString()}`, icon: <TrendingUp size={10}/> }
+            { l: 'ESTIMADO', v: `$ ${(realStats.total_balance * 0.965).toLocaleString('es-CO')}`, icon: <TrendingUp size={10}/> }
         ],
         advice: 'Tu saldo acumulado refleja el éxito de tu operación. Bayup recomienda reinvertir el 10% en publicidad digital.'
     },
@@ -1424,11 +1424,11 @@ export default function DashboardPage() {
               insightData.monthOrders
                 .filter(o => sources.includes(o.source || 'pos'))
                 .forEach((o: any) => {
-                  (o.items || o.order_items || []).forEach((item: any) => {
-                    const key = item.product_id || item.product_name || 'Unknown';
-                    const name = item.product_name || item.name || 'Producto';
+                  (o.items || []).forEach((item: any) => {
+                    const key = item.product_variant_id || item.product_name || 'Unknown';
+                    const name = item.product_name || 'Producto';
                     if (!map[key]) map[key] = { name, total: 0, units: 0 };
-                    map[key].total += item.total_price || (item.unit_price * (item.quantity || 1)) || 0;
+                    map[key].total += (item.price_at_purchase || 0) * (item.quantity || 1);
                     map[key].units += item.quantity || 1;
                   });
                 });

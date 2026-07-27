@@ -37,7 +37,7 @@ function SimulatedCartDrawer() {
                   <div className="h-20 w-20 rounded-2xl overflow-hidden bg-white shrink-0"><img src={item.image} className="h-full w-full object-cover" /></div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-black text-gray-900 line-clamp-1">{item.title}</p>
-                    <p className="text-xs font-bold text-[#004d4d] mt-1">${item.price.toLocaleString()}</p>
+                    <p className="text-xs font-bold text-[#004d4d] mt-1">${item.price.toLocaleString('es-CO')}</p>
                     <p className="text-[10px] font-black text-gray-400 uppercase mt-2">Cantidad: {item.quantity}</p>
                   </div>
                   <button onClick={() => removeItem(item.id)} className="text-gray-300 hover:text-rose-500 self-center"><Trash2 size={18} /></button>
@@ -46,7 +46,7 @@ function SimulatedCartDrawer() {
             </div>
             {items.length > 0 && (
               <div className="p-8 border-t bg-gray-50/50 space-y-6">
-                <div className="flex justify-between items-end"><p className="text-[10px] font-black text-gray-400 uppercase">Total Estimado</p><p className="text-3xl font-black text-gray-900 tracking-tighter">${total.toLocaleString()}</p></div>
+                <div className="flex justify-between items-end"><p className="text-[10px] font-black text-gray-400 uppercase">Total Estimado</p><p className="text-3xl font-black text-gray-900 tracking-tighter">${total.toLocaleString('es-CO')}</p></div>
                 <button onClick={() => showToast('El pago se procesará de verdad cuando publiques tu tienda', 'info')} className="w-full py-6 bg-gray-900 text-[#00f2ff] rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl hover:bg-black transition-all">Finalizar Compra</button>
               </div>
             )}

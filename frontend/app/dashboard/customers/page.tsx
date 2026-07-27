@@ -239,7 +239,7 @@ function CustomerModal({ customer, onSave, onClose }: { customer?: Customer | nu
 }
 
 // ── DRAWER DETALLE CLIENTE ─────────────────────────────────────────────────
-function CustomerDrawer({ customer, onClose, onEdit }: { customer: Customer; onClose: () => void; onEdit: () => void }) {
+function CustomerDrawer({ customer, onClose, onEdit, onDelete }: { customer: Customer; onClose: () => void; onEdit: () => void; onDelete: (customer: Customer) => void }) {
   const ch = CHANNELS[customer.acquisition_channel] || CHANNELS.web;
   const st = STATUS_MAP[customer.status] || STATUS_MAP.active;
 
@@ -360,6 +360,10 @@ function CustomerDrawer({ customer, onClose, onEdit }: { customer: Customer; onC
                 <Phone size={13}/> Sin tel.
               </button>
             )}
+            <button onClick={() => onDelete(customer)}
+              className="col-span-2 h-10 flex items-center justify-center gap-2 rounded-2xl bg-rose-50 border border-rose-100 text-[10px] font-bold text-rose-600 hover:bg-rose-100 transition-colors">
+              <Trash2 size={13}/> Eliminar cliente
+            </button>
           </div>
         </motion.div>
       </div>
@@ -402,6 +406,25 @@ export default function CustomersPage() {
     } catch {}
     finally { setLoading(false); }
   }, [token]);
+
+  // ── ELIMINAR ──
+  const handleDeleteCustomer = useCallback(async (customer: Customer) => {
+    if (!token) return;
+    if (!window.confirm(`¿Eliminar a ${customer.full_name}? Esta acción no se puede deshacer.`)) return;
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
+      const res = await fetch(`${apiBase}/admin/users/${customer.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error();
+      showToast('Cliente eliminado', 'success');
+      setDrawerCustomer(null);
+      fetchCustomers();
+    } catch {
+      showToast('Error al eliminar el cliente', 'error');
+    }
+  }, [token, fetchCustomers, showToast]);
 
   useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
 
@@ -948,6 +971,7 @@ export default function CustomersPage() {
             customer={drawerCustomer}
             onClose={() => setDrawerCustomer(null)}
             onEdit={() => { setEditCustomer(drawerCustomer); setDrawerCustomer(null); setIsModalOpen(true); }}
+            onDelete={handleDeleteCustomer}
           />
         )}
       </AnimatePresence>

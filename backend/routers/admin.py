@@ -34,7 +34,7 @@ def _require_admin_role(user) -> None:
         raise HTTPException(status_code=403, detail="Se requiere rol administrador")
 
 
-def _serialize_customer(c) -> dict:
+def _serialize_customer(c, orders_count: int = 0) -> dict:
     return {
         "id": str(c.id),
         "email": c.email,
@@ -48,6 +48,9 @@ def _serialize_customer(c) -> dict:
         "customer_type": getattr(c, "customer_type", None) or "final",
         "acquisition_channel": getattr(c, "acquisition_channel", None) or "web",
         "created_at": c.created_at.isoformat() if getattr(c, "created_at", None) else None,
+        "total_spent": float(getattr(c, "total_spent", 0) or 0),
+        "orders_count": orders_count,
+        "last_purchase": c.last_purchase_date.isoformat() if getattr(c, "last_purchase_date", None) else None,
     }
 
 
@@ -121,7 +124,15 @@ async def get_customers(
             (models.User.phone.like(term))
         )
     rows = query.offset(skip).limit(min(limit, 500)).all()
-    return [_serialize_customer(c) for c in rows]
+
+    from sqlalchemy import func
+    counts = dict(
+        db.query(func.lower(models.Order.customer_email), func.count(models.Order.id))
+        .filter(models.Order.tenant_id == tid, models.Order.customer_email.isnot(None))
+        .group_by(func.lower(models.Order.customer_email))
+        .all()
+    )
+    return [_serialize_customer(c, counts.get((c.email or "").lower(), 0)) for c in rows]
 
 
 @router.delete("/users/{user_id}")
@@ -449,6 +460,12 @@ async def upload_image(request: Request, file: UploadFile = File(...), db: Sessi
         _IMG_MAGIC = [b'\xff\xd8\xff', b'\x89PNG\r\n\x1a\n', b'GIF87a', b'GIF89a', b'RIFF', b'WEBP']
         if not any(contents[:8].startswith(sig) for sig in _IMG_MAGIC):
             raise HTTPException(status_code=400, detail="El archivo no es una imagen válida")
+    else:
+        is_mp4_or_mov = contents[4:8] == b'ftyp'
+        is_webm_mkv = contents[:4] == b'\x1a\x45\xdf\xa3'
+        is_avi = contents[:4] == b'RIFF' and contents[8:12] == b'AVI '
+        if not (is_mp4_or_mov or is_webm_mkv or is_avi):
+            raise HTTPException(status_code=400, detail="El archivo no es un video válido")
     url = s3_service.upload_file_and_get_public_url(contents, file.content_type, file.filename or "file")
     if not url:
         raise HTTPException(status_code=503, detail="Error al guardar el archivo")

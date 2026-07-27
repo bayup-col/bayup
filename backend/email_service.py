@@ -478,6 +478,77 @@ def send_order_status_update(
     subject = f"{headline} — {shop_name}"
     return _send_raw(email, subject, html, from_name=shop_name)
 
+
+_SHIPMENT_STATUS_STEP = {"guia_generada": 1, "en_transito": 2, "en_reparto": 2, "incidencia": 1, "devuelto": 1}
+
+_SHIPMENT_STATUS_LABELS = {
+    "guia_generada": ("📮 Ya generamos la guía de tu pedido", "Tu pedido está listo para salir, en breve estará en camino."),
+    "en_transito":   ("🚚 Tu pedido está en camino",          "Tu pedido salió de nuestras instalaciones y va en camino a tu dirección."),
+    "en_reparto":    ("🛵 Tu pedido sale a reparto hoy",       "El transportador saldrá a repartir tu pedido hoy. Mantente atento a tu teléfono."),
+    "incidencia":    ("⚠️ Hay una novedad con tu envío",      "Se presentó una novedad con el envío de tu pedido. Te contactaremos pronto para resolverlo."),
+    "devuelto":      ("↩️ Tu pedido está siendo devuelto",    "Tu pedido no pudo entregarse y está en proceso de devolución al remitente."),
+}
+
+
+def send_shipment_status_update(
+    email: str,
+    name: str,
+    order_id: str,
+    new_status: str,
+    shop_name: str = "Bayup",
+    shop_logo: str | None = None,
+    tracking_number: str | None = None,
+    carrier: str | None = None,
+) -> bool:
+    """Notifica al cliente cuando cambia el estado del ENVÍO (guía generada,
+    en tránsito, en reparto, novedad, devuelto) — distinto del estado del
+    PEDIDO (send_order_status_update), que solo cubre pendiente/proceso/completado
+    y no tenía forma de reflejar la guía ni las etapas de tránsito ya capturadas
+    en el módulo de Envíos."""
+    short_id   = str(order_id)[:8].upper()
+    first_name = name.split()[0] if name else name
+    step       = _SHIPMENT_STATUS_STEP.get(new_status, 1)
+    headline, subline = _SHIPMENT_STATUS_LABELS.get(new_status, ("Actualización de tu envío", "El estado de tu envío ha cambiado."))
+
+    tracking_html = ""
+    if tracking_number:
+        carrier_html = f"Transportadora: <strong>{carrier}</strong> &middot; " if carrier else ""
+        tracking_html = (
+            f'<div style="margin-top:10px;font-size:12px;color:#4b5563">'
+            f'{carrier_html}Guía: <span style="font-family:\'Courier New\',monospace;font-weight:700;color:#007878">{tracking_number}</span>'
+            f'</div>'
+        )
+
+    is_alert = new_status in ("incidencia", "devuelto")
+    bg_color = "#fff8ec" if is_alert else "#f0fefe"
+    border   = "#fde3b0" if is_alert else "#b3ecec"
+
+    cta = (
+        f'<div style="text-align:center;margin-top:24px">'
+        f'<a href="{_SITE}/pedido/{order_id}" style="display:inline-block;background:#0f0f0f;color:#00f2ff;text-decoration:none;font-size:11px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;padding:14px 36px;border-radius:6px">Ver estado de mi pedido &#8594;</a>'
+        f'</div>'
+    )
+
+    html = (
+        f'<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
+        f'<body style="margin:0;padding:24px 16px;background:#f0f0f0;font-family:Arial,Helvetica,sans-serif">'
+        f'<div style="max-width:580px;margin:0 auto;background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">'
+        f'{_order_header(shop_name, shop_logo)}'
+        f'<div style="padding:28px 32px">'
+        f'<div style="font-size:18px;font-weight:800;color:#111827;letter-spacing:-0.3px;margin-bottom:6px">{headline}</div>'
+        f'<div style="font-size:13px;color:#4b5563;margin-bottom:24px">Hola {first_name}, {subline}</div>'
+        f'{_status_bar(step)}'
+        f'<div style="font-size:9.5px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Pedido &nbsp;<span style="font-family:\'Courier New\',monospace;font-size:10px;background:#f0fefe;border:1px solid #b3ecec;padding:2px 8px;border-radius:4px;color:#007878">#{short_id}</span></div>'
+        f'<div style="background:{bg_color};border:1px solid {border};border-radius:8px;padding:14px 18px;font-size:13px;color:#4b5563;line-height:1.6">{subline}{tracking_html}</div>'
+        f'{cta}'
+        f'</div>'
+        f'<div style="border-top:1px solid #f3f4f6;padding:16px 32px;text-align:center;font-size:11px;color:#9ca3af;line-height:1.7">Este correo fue enviado por <strong>{shop_name}</strong>.<br>Powered by Bayup</div>'
+        f'</div></body></html>'
+    )
+    subject = f"{headline} — {shop_name}"
+    return _send_raw(email, subject, html, from_name=shop_name)
+
+
 def send_staff_invitation(email: str, name: str, inviter: str) -> bool:
     html = _simple_email_html(
         icon="&#128101;",

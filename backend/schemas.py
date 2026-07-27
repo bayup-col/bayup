@@ -85,7 +85,7 @@ class ProductVariantBase(BaseModel):
     attributes: Optional[Dict[str, Any]] = None
 
 class ProductVariantCreate(ProductVariantBase):
-    pass
+    id: Optional[uuid.UUID] = None  # presente al editar una variante existente
 
 class ProductVariant(ProductVariantBase):
     id: uuid.UUID
@@ -150,6 +150,7 @@ class OrderItemBase(BaseModel):
 
 class OrderItem(OrderItemBase):
     id: uuid.UUID
+    product_name: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 class OrderBase(BaseModel):

@@ -122,7 +122,7 @@ def create_product(db: Session, product: schemas.ProductCreate, owner_id: uuid.U
     db.add(db_product)
     db.flush()
     for v in product.variants:
-        db_variant = models.ProductVariant(**v.dict(), product_id=db_product.id)
+        db_variant = models.ProductVariant(**v.dict(exclude={"id"}), product_id=db_product.id)
         db.add(db_variant)
     db.commit()
     db.refresh(db_product)
@@ -139,24 +139,32 @@ def update_product(db: Session, db_product: models.Product, product: schemas.Pro
         setattr(db_product, key, value)
     
     # 2. Gestión Inteligente de Variantes (UPSERT)
-    # Obtenemos los SKUs actuales para decidir qué actualizar y qué crear
-    existing_variants = {v.sku: v for v in db_product.variants if v.sku}
-    
-    # Procesar las variantes enviadas desde el frontend
-    new_variant_list = []
+    # Preferimos emparejar por id (variante ya existente que el frontend
+    # devuelve tal cual) — el SKU es solo un fallback para flujos que no lo
+    # envían (ej. importación masiva). Si una variante no tiene SKU (caso
+    # común: "Base" en productos sin variantes reales) y tampoco se empareja
+    # por id, el fallback por SKU nunca la encuentra y quedaba creando una
+    # variante duplicada en cada guardado.
+    existing_by_id = {str(v.id): v for v in db_product.variants}
+    existing_by_sku = {v.sku: v for v in db_product.variants if v.sku}
+
     for v_schema in product.variants:
-        if v_schema.sku in existing_variants:
-            # Actualizar variante existente
-            db_v = existing_variants[v_schema.sku]
+        db_v = None
+        if v_schema.id and str(v_schema.id) in existing_by_id:
+            db_v = existing_by_id[str(v_schema.id)]
+        elif v_schema.sku and v_schema.sku in existing_by_sku:
+            db_v = existing_by_sku[v_schema.sku]
+
+        if db_v:
             db_v.name = v_schema.name
             db_v.stock = v_schema.stock
             db_v.price = v_schema.price
             db_v.image_url = v_schema.image_url
             db_v.attributes = v_schema.attributes
         else:
-            # Crear nueva variante si el SKU no existe
+            # Variante nueva de verdad
             db_v = models.ProductVariant(
-                **v_schema.dict(), 
+                **v_schema.dict(exclude={"id"}),
                 product_id=db_product.id,
                 id=uuid.uuid4()
             )
@@ -378,8 +386,11 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
 def get_orders_by_tenant(db: Session, tenant_id: uuid.UUID, skip: int = 0, limit: int = 200) -> list[models.Order]:
     # selectinload evita el N+1: sin esto, schemas.Order.items dispara una query
     # adicional por cada orden al serializar (confirmado: 200 órdenes -> 201 queries).
+    # La cadena hasta product_variant.product es para OrderItem.product_name
+    # (usado por Estadísticas/Reportes) — sin precargarla, cada item dispara
+    # su propia query perezosa al leer la propiedad.
     return db.query(models.Order).options(
-        selectinload(models.Order.items)
+        selectinload(models.Order.items).selectinload(models.OrderItem.product_variant).selectinload(models.ProductVariant.product)
     ).filter(models.Order.tenant_id == tenant_id).order_by(models.Order.created_at.desc()).offset(skip).limit(limit).all()
 
 def get_activity_logs(db: Session, limit: int = 10) -> list[models.ActivityLog]:

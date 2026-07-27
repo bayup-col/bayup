@@ -108,11 +108,3 @@ async def get_current_user(
         raise HTTPException(status_code=403, detail="Cuenta suspendida")
     return user
 
-def get_super_admin_user(current_user: models.User = Depends(get_current_user)) -> models.User:
-    if current_user.role != "super_admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Operation not permitted for this user role",
-        )
-    return current_user
-

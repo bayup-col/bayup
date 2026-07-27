@@ -114,7 +114,7 @@ export default function MetricDetailModal({ isOpen, onClose, metric }: MetricDet
                     <div className="flex items-end justify-between gap-10">
                     <div className="space-y-1">
                         <span className="text-5xl font-black text-gray-900 tracking-tighter italic">
-                            {metric.isCurrency && "$ "}{metric.value.toLocaleString()}
+                            {metric.isCurrency && "$ "}{metric.value.toLocaleString('es-CO')}
                             {metric.isPercentage && "%"}
                         </span>
                         <div className="flex items-center gap-2 text-emerald-600 text-[10px] font-black tracking-widest uppercase">

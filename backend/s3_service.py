@@ -1,8 +1,17 @@
 import boto3
 import os
+import re
 import uuid
 from botocore.client import Config
 from botocore.exceptions import ClientError
+
+
+def _safe_extension(raw: str) -> str:
+    """Reduce la extensión a solo alfanuméricos (máx. 8 chars) antes de usarla
+    en una ruta de archivo. Sin esto, un filename como "a.b/../../etc" podría
+    colar separadores de path en el nombre final guardado en disco/S3."""
+    cleaned = re.sub(r"[^a-zA-Z0-9]", "", raw)[:8]
+    return cleaned or "bin"
 
 def get_s3_client():
     # Apunta al endpoint S3-compatible de Supabase Storage (Project Settings > Storage > S3 Connection)
@@ -40,7 +49,8 @@ def upload_file_and_get_public_url(file_bytes: bytes, content_type: str, filenam
     bucket_name = os.getenv("S3_BUCKET_NAME")
     endpoint = os.getenv("SUPABASE_S3_ENDPOINT")
 
-    extension = filename.rsplit(".", 1)[-1] if "." in filename else content_type.split("/")[-1]
+    raw_extension = filename.rsplit(".", 1)[-1] if "." in filename else content_type.split("/")[-1]
+    extension = _safe_extension(raw_extension)
     object_name = f"{uuid.uuid4()}.{extension}"
 
     # Fallback local cuando S3 no está configurado
