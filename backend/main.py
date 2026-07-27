@@ -109,6 +109,40 @@ def _sync_postgres_schema() -> None:
                 updated_at  TIMESTAMP    DEFAULT NOW()
             )""",
             "CREATE INDEX IF NOT EXISTS ix_email_jobs_status ON email_jobs (status)",
+            # analítica del storefront (tráfico / audiencia) — ver alembic 0011
+            """CREATE TABLE IF NOT EXISTS analytics_visitors (
+                tenant_id     UUID NOT NULL,
+                visitor_id    UUID NOT NULL,
+                first_seen_at TIMESTAMP DEFAULT NOW(),
+                PRIMARY KEY (tenant_id, visitor_id)
+            )""",
+            """CREATE TABLE IF NOT EXISTS analytics_sessions (
+                id                UUID PRIMARY KEY,
+                tenant_id         UUID NOT NULL,
+                visitor_id        UUID,
+                is_new_visitor    BOOLEAN DEFAULT TRUE,
+                source            VARCHAR DEFAULT 'direct',
+                referrer_domain   VARCHAR,
+                device_type       VARCHAR DEFAULT 'desktop',
+                entry_path        VARCHAR,
+                pageview_count    INTEGER DEFAULT 0,
+                duration_seconds  INTEGER,
+                started_at        TIMESTAMP DEFAULT NOW(),
+                updated_at        TIMESTAMP DEFAULT NOW()
+            )""",
+            """CREATE TABLE IF NOT EXISTS analytics_pageviews (
+                id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                tenant_id   UUID NOT NULL,
+                session_id  UUID NOT NULL,
+                path        VARCHAR,
+                created_at  TIMESTAMP DEFAULT NOW()
+            )""",
+            "CREATE INDEX IF NOT EXISTS ix_analytics_sessions_tenant_id ON analytics_sessions (tenant_id)",
+            "CREATE INDEX IF NOT EXISTS ix_analytics_sessions_visitor_id ON analytics_sessions (visitor_id)",
+            "CREATE INDEX IF NOT EXISTS ix_analytics_sessions_started_at ON analytics_sessions (started_at)",
+            "CREATE INDEX IF NOT EXISTS ix_analytics_pageviews_tenant_id ON analytics_pageviews (tenant_id)",
+            "CREATE INDEX IF NOT EXISTS ix_analytics_pageviews_session_id ON analytics_pageviews (session_id)",
+            "CREATE INDEX IF NOT EXISTS ix_analytics_pageviews_created_at ON analytics_pageviews (created_at)",
         ]
         with engine.begin() as conn:
             for stmt in stmts:
@@ -263,6 +297,7 @@ from routers import auth as _r_auth
 from routers import public as _r_public
 from routers import payments as _r_payments
 from routers import liquidations as _r_liq
+from routers import analytics as _r_analytics
 app.include_router(_r_notif.router)
 app.include_router(_r_col.router)
 app.include_router(_r_ship.router)
@@ -281,6 +316,7 @@ app.include_router(_r_auth.router)
 app.include_router(_r_public.router)
 app.include_router(_r_payments.router)
 app.include_router(_r_liq.router)
+app.include_router(_r_analytics.router)
 
 # Compatibilidad: el frontend llama a /onboarding/complete (sin prefijo /admin)
 from fastapi import Depends as _Depends

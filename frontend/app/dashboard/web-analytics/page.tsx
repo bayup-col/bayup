@@ -181,6 +181,19 @@ export default function WebAnalyticsPage() {
     }).catch(() => setLoading(false));
   }, [token]);
 
+  // Tráfico/audiencia — pageviews reales del storefront (lib/track.ts)
+  const [analytics, setAnalytics] = useState<any>(null);
+  useEffect(() => {
+    if (!token) return;
+    apiRequest<any>(`/web-analytics/summary?period=${period}`, { token })
+      .then(d => setAnalytics(d))
+      .catch(() => setAnalytics(null));
+  }, [token, period]);
+
+  const SOURCE_LABELS: Record<string, string> = { direct: 'Directo', search: 'Buscadores', social: 'Redes sociales', whatsapp: 'WhatsApp', referral: 'Otros sitios' };
+  const DEVICE_LABELS: Record<string, string> = { mobile: 'Móvil', desktop: 'Escritorio', tablet: 'Tablet' };
+  const fmtDuration = (secs: number) => secs >= 60 ? `${Math.floor(secs / 60)} min ${secs % 60}s` : `${secs}s`;
+
   const realData = useMemo(() => buildRealData(orders), [orders]);
 
   // KPIs — solo datos reales de pedidos
@@ -1188,11 +1201,43 @@ export default function WebAnalyticsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-6">
               <SectionTitle sub="¿De dónde viene tu tráfico?">Fuentes de tráfico</SectionTitle>
-              <EmptyState icon={<Globe/>} title="Integración pendiente" sub="Conecta Google Analytics o activa el píxel de Bayup para ver el origen de tus visitas"/>
+              {analytics && analytics.sources.length > 0 ? (
+                <div className="space-y-3">
+                  {analytics.sources.map((s: any) => (
+                    <div key={s.source}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[11px] font-semibold text-gray-600">{SOURCE_LABELS[s.source] || s.source}</span>
+                        <span className="text-[10px] text-gray-400">{fmtN(s.count)} · {s.pct}%</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                        <div className="h-full rounded-full bg-[#004d4d]" style={{ width: `${s.pct}%` }}/>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState icon={<Globe/>} title="Sin visitas registradas" sub="Aparecerán aquí en cuanto tu tienda reciba tráfico"/>
+              )}
             </div>
             <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-6">
               <SectionTitle sub="¿Desde qué dispositivo compran?">Dispositivos</SectionTitle>
-              <EmptyState icon={<Monitor/>} title="Integración pendiente" sub="Los datos de dispositivo estarán disponibles con la integración de analítica web"/>
+              {analytics && analytics.devices.length > 0 ? (
+                <div className="space-y-3">
+                  {analytics.devices.map((d: any) => (
+                    <div key={d.device}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[11px] font-semibold text-gray-600">{DEVICE_LABELS[d.device] || d.device}</span>
+                        <span className="text-[10px] text-gray-400">{fmtN(d.count)} · {d.pct}%</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                        <div className="h-full rounded-full bg-[#00b2bd]" style={{ width: `${d.pct}%` }}/>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState icon={<Monitor/>} title="Sin visitas registradas" sub="Aparecerán aquí en cuanto tu tienda reciba tráfico"/>
+              )}
             </div>
           </div>
 
@@ -1237,12 +1282,40 @@ export default function WebAnalyticsPage() {
             </div>
             <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-6">
               <SectionTitle sub="Métricas de comportamiento">Comportamiento</SectionTitle>
-              <EmptyState icon={<Eye/>} title="Integración pendiente" sub="Tiempo en sitio, páginas vistas y tasa de rebote requieren analítica web"/>
+              {analytics && analytics.total_sessions > 0 ? (
+                <div className="space-y-3">
+                  {[
+                    { label: 'Tiempo en sitio', value: fmtDuration(analytics.avg_duration_seconds) },
+                    { label: 'Páginas por sesión', value: analytics.avg_pages_per_session },
+                    { label: 'Tasa de rebote', value: `${analytics.bounce_rate_pct}%` },
+                  ].map(r => (
+                    <div key={r.label} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
+                      <span className="text-[11px] text-gray-500">{r.label}</span>
+                      <span className="text-[12px] font-bold text-gray-900">{r.value}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState icon={<Eye/>} title="Sin visitas registradas" sub="Tiempo en sitio, páginas vistas y tasa de rebote aparecerán aquí"/>
+              )}
             </div>
           </div>
           <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-6">
-            <SectionTitle sub="Comparativa mensual nuevos vs recurrentes">Nuevos vs Clientes recurrentes</SectionTitle>
-            <EmptyState icon={<Heart/>} title="Integración pendiente" sub="Disponible con Google Analytics o píxel de Bayup"/>
+            <SectionTitle sub={`Sesiones de los ${periodLabel.toLowerCase()}`}>Nuevos vs Visitantes recurrentes</SectionTitle>
+            {analytics && analytics.total_sessions > 0 ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-[#004d4d]/5 rounded-2xl p-4">
+                  <p className="text-2xl font-bold text-[#004d4d]">{analytics.new_visitors_pct}%</p>
+                  <p className="text-[10px] text-gray-500 mt-1">Nuevos ({fmtN(analytics.new_visitors)} sesiones)</p>
+                </div>
+                <div className="bg-purple-50 rounded-2xl p-4">
+                  <p className="text-2xl font-bold text-purple-600">{analytics.returning_visitors_pct}%</p>
+                  <p className="text-[10px] text-gray-500 mt-1">Recurrentes ({fmtN(analytics.returning_visitors)} sesiones)</p>
+                </div>
+              </div>
+            ) : (
+              <EmptyState icon={<Heart/>} title="Sin visitas registradas" sub="Aparecerán aquí en cuanto tu tienda reciba tráfico"/>
+            )}
           </div>
         </div>
       )}
