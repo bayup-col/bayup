@@ -1205,7 +1205,8 @@ export default function ProductsPage() {
 
       <MetricDetailModal isOpen={!!selectedMetric} onClose={() => setSelectedMetric(null)} metric={selectedMetric}/>
 
-      {/* ── MODAL LÍMITE PLAN ── */}
+      {/* ── MODAL LÍMITE PLAN (portal) ── */}
+      {mounted && createPortal(
       <AnimatePresence>
         {isLimitModalOpen && (
           <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
@@ -1253,9 +1254,12 @@ export default function ProductsPage() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
 
-      {/* ── MODAL DETALLE CATEGORÍA ── */}
+      {/* ── MODAL DETALLE CATEGORÍA (portal) ── */}
+      {mounted && createPortal(
       <AnimatePresence>
         {selectedCategory && (
           <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4 md:p-6">
@@ -1410,9 +1414,12 @@ export default function ProductsPage() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
 
-      {/* ── GUÍA OPERATIVA ── */}
+      {/* ── GUÍA OPERATIVA (portal) ── */}
+      {mounted && createPortal(
       <AnimatePresence>
         {isGuideOpen && (
           <>
@@ -1486,9 +1493,12 @@ export default function ProductsPage() {
             </div>
           </>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
 
-      {/* ── MODAL EDITAR CATEGORÍA ── */}
+      {/* ── MODAL EDITAR CATEGORÍA (portal) ── */}
+      {mounted && createPortal(
       <AnimatePresence>
         {editingCategory && (
           <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
@@ -1535,9 +1545,12 @@ export default function ProductsPage() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
 
-      {/* ── MODAL NUEVA CATEGORÍA ── */}
+      {/* ── MODAL NUEVA CATEGORÍA (portal) ── */}
+      {mounted && createPortal(
       <AnimatePresence>
         {isNewCategoryModalOpen && (
           <>
@@ -1594,7 +1607,9 @@ export default function ProductsPage() {
             </div>
           </>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
 
       {/* ── MODAL CONFIRMAR ELIMINACIÓN (portal — evita que contenedores padre con
           overflow-hidden le recorten la altura al fondo fixed/absolute) ── */}
@@ -1624,7 +1639,8 @@ export default function ProductsPage() {
         document.body
       )}
 
-      {/* ── MODAL IMPORTAR EXCEL ── */}
+      {/* ── MODAL IMPORTAR EXCEL (portal) ── */}
+      {mounted && createPortal(
       <AnimatePresence>
         {isImportModalOpen && (
           <>
@@ -1689,9 +1705,12 @@ export default function ProductsPage() {
             </div>
           </>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
 
-      {/* ── DRAWER DETALLE PRODUCTO ── */}
+      {/* ── DRAWER DETALLE PRODUCTO (portal) ── */}
+      {mounted && createPortal(
       <AnimatePresence>
         {selectedProduct && (
           <>
@@ -1786,7 +1805,9 @@ export default function ProductsPage() {
             </div>
           </>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
