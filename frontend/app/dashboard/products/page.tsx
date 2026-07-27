@@ -9,6 +9,7 @@ import {
   DollarSign, ArrowDownRight, Box, Hash, Warehouse, RefreshCcw, History,
   AlertTriangle, Minus, Tag, MoreHorizontal, FileSpreadsheet, ChevronDown
 } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuth } from "@/context/auth-context";
@@ -136,6 +137,8 @@ export default function ProductsPage() {
   const [searchTerm,  setSearchTerm]  = useState('');
   const [activeTab,   setActiveTab]   = useState<'all'|'active'|'draft'|'categories'|'inventory'>('all');
   const [selectedMetric, setSelectedMetric] = useState<any>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   const [isLimitModalOpen,     setIsLimitModalOpen]     = useState(false);
   const [isImportModalOpen,    setIsImportModalOpen]    = useState(false);
@@ -1593,29 +1596,33 @@ export default function ProductsPage() {
         )}
       </AnimatePresence>
 
-      {/* ── MODAL CONFIRMAR ELIMINACIÓN ── */}
-      <AnimatePresence>
-        {productToDelete && (
-          <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setProductToDelete(null)} className="absolute inset-0 bg-[#001a1a]/70 backdrop-blur-md"/>
-            <motion.div initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
-              className="relative bg-white w-full max-w-sm rounded-[2rem] shadow-2xl p-6 text-center">
-              <div className="h-14 w-14 rounded-2xl bg-rose-50 flex items-center justify-center mx-auto mb-4"><Trash2 size={22} className="text-rose-500"/></div>
-              <h3 className="text-lg font-black text-gray-900">¿Eliminar producto?</h3>
-              <p className="text-sm text-gray-500 mt-2 leading-relaxed">
-                Se eliminará permanentemente <strong>"{productToDelete.name}"</strong> de tu catálogo.
-              </p>
-              <div className="flex gap-2 mt-6">
-                <button onClick={() => setProductToDelete(null)} className="flex-1 h-10 rounded-2xl bg-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-widest">Cancelar</button>
-                <button onClick={handleDeleteProduct} disabled={isDeletingProduct}
-                  className="flex-1 h-10 rounded-2xl bg-rose-500 text-white text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 disabled:opacity-60">
-                  {isDeletingProduct ? <><Loader2 size={11} className="animate-spin"/>Eliminando</> : 'Sí, eliminar'}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* ── MODAL CONFIRMAR ELIMINACIÓN (portal — evita que contenedores padre con
+          overflow-hidden le recorten la altura al fondo fixed/absolute) ── */}
+      {mounted && createPortal(
+        <AnimatePresence>
+          {productToDelete && (
+            <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setProductToDelete(null)} className="absolute inset-0 bg-[#001a1a]/70 backdrop-blur-md"/>
+              <motion.div initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
+                className="relative bg-white w-full max-w-sm rounded-[2rem] shadow-2xl p-6 text-center">
+                <div className="h-14 w-14 rounded-2xl bg-rose-50 flex items-center justify-center mx-auto mb-4"><Trash2 size={22} className="text-rose-500"/></div>
+                <h3 className="text-lg font-black text-gray-900">¿Eliminar producto?</h3>
+                <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+                  Se eliminará permanentemente <strong>"{productToDelete.name}"</strong> de tu catálogo.
+                </p>
+                <div className="flex gap-2 mt-6">
+                  <button onClick={() => setProductToDelete(null)} className="flex-1 h-10 rounded-2xl bg-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-widest">Cancelar</button>
+                  <button onClick={handleDeleteProduct} disabled={isDeletingProduct}
+                    className="flex-1 h-10 rounded-2xl bg-rose-500 text-white text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 disabled:opacity-60">
+                    {isDeletingProduct ? <><Loader2 size={11} className="animate-spin"/>Eliminando</> : 'Sí, eliminar'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* ── MODAL IMPORTAR EXCEL ── */}
       <AnimatePresence>
