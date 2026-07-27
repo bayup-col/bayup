@@ -386,8 +386,11 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
 def get_orders_by_tenant(db: Session, tenant_id: uuid.UUID, skip: int = 0, limit: int = 200) -> list[models.Order]:
     # selectinload evita el N+1: sin esto, schemas.Order.items dispara una query
     # adicional por cada orden al serializar (confirmado: 200 órdenes -> 201 queries).
+    # La cadena hasta product_variant.product es para OrderItem.product_name
+    # (usado por Estadísticas/Reportes) — sin precargarla, cada item dispara
+    # su propia query perezosa al leer la propiedad.
     return db.query(models.Order).options(
-        selectinload(models.Order.items)
+        selectinload(models.Order.items).selectinload(models.OrderItem.product_variant).selectinload(models.ProductVariant.product)
     ).filter(models.Order.tenant_id == tenant_id).order_by(models.Order.created_at.desc()).offset(skip).limit(limit).all()
 
 def get_activity_logs(db: Session, limit: int = 10) -> list[models.ActivityLog]:

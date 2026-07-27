@@ -150,6 +150,7 @@ class OrderItemBase(BaseModel):
 
 class OrderItem(OrderItemBase):
     id: uuid.UUID
+    product_name: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 class OrderBase(BaseModel):

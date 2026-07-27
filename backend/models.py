@@ -183,6 +183,19 @@ class OrderItem(Base):
     order = relationship("Order", back_populates="items")
     product_variant = relationship("ProductVariant")
 
+    @property
+    def product_name(self) -> str:
+        """Nombre para mostrar en UI/reportes. Requiere que product_variant
+        (y su .product) vengan precargados con selectinload — si no, dispara
+        una query perezosa por item al serializar."""
+        variant = self.product_variant
+        if not variant:
+            return "Producto"
+        base = variant.product.name if variant.product else "Producto"
+        if variant.name and variant.name.strip().lower() != "base":
+            return f"{base} — {variant.name}"
+        return base
+
 class ProductType(Base):
     __tablename__ = "product_types"
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)

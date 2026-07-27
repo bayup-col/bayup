@@ -131,11 +131,11 @@ function buildRealData(orders: any[]) {
   // Top productos desde artículos de pedidos reales
   const productMap: Record<string, { name: string; units: number; revenue: number }> = {};
   orders.forEach(o => {
-    (o.items || o.order_items || []).forEach((item: any) => {
-      const k = item.product_name || item.name || 'Producto';
+    (o.items || []).forEach((item: any) => {
+      const k = item.product_name || 'Producto';
       if (!productMap[k]) productMap[k] = { name: k, units: 0, revenue: 0 };
       productMap[k].units += item.quantity || 1;
-      productMap[k].revenue += item.total_price || (item.unit_price * (item.quantity || 1)) || 0;
+      productMap[k].revenue += (item.price_at_purchase || 0) * (item.quantity || 1);
     });
   });
   const topProducts = Object.values(productMap).sort((a, b) => b.revenue - a.revenue).slice(0, 8);

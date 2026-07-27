@@ -228,11 +228,11 @@ export default function DashboardPage() {
 
     const productMap: Record<string, { name: string; total: number; units: number }> = {};
     orders.forEach(o => {
-        (o.items || o.order_items || []).forEach((item: any) => {
-            const key = item.product_id || item.product_name || 'Unknown';
-            const name = item.product_name || item.name || 'Producto';
+        (o.items || []).forEach((item: any) => {
+            const key = item.product_variant_id || item.product_name || 'Unknown';
+            const name = item.product_name || 'Producto';
             if (!productMap[key]) productMap[key] = { name, total: 0, units: 0 };
-            productMap[key].total += (item.total_price || (item.unit_price * (item.quantity || 1)) || 0);
+            productMap[key].total += (item.price_at_purchase || 0) * (item.quantity || 1);
             productMap[key].units += (item.quantity || 1);
         });
     });
@@ -1424,11 +1424,11 @@ export default function DashboardPage() {
               insightData.monthOrders
                 .filter(o => sources.includes(o.source || 'pos'))
                 .forEach((o: any) => {
-                  (o.items || o.order_items || []).forEach((item: any) => {
-                    const key = item.product_id || item.product_name || 'Unknown';
-                    const name = item.product_name || item.name || 'Producto';
+                  (o.items || []).forEach((item: any) => {
+                    const key = item.product_variant_id || item.product_name || 'Unknown';
+                    const name = item.product_name || 'Producto';
                     if (!map[key]) map[key] = { name, total: 0, units: 0 };
-                    map[key].total += item.total_price || (item.unit_price * (item.quantity || 1)) || 0;
+                    map[key].total += (item.price_at_purchase || 0) * (item.quantity || 1);
                     map[key].units += item.quantity || 1;
                   });
                 });
