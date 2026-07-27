@@ -181,3 +181,48 @@ def test_summary_no_mezcla_datos_de_otro_tenant(client, db_session, tenant_token
 
     r = client.get("/web-analytics/summary", headers={"Authorization": f"Bearer {tenant_token}"})
     assert r.json()["total_sessions"] == 0
+
+
+# ── POST /public/track/search ───────────────────────────────────────────────
+
+def test_track_search_registra_termino(client, db_session, tenant_user):
+    r = client.post("/public/track/search", json={
+        "slug": tenant_user.shop_slug, "session_id": str(uuid.uuid4()),
+        "term": "Camiseta", "results_count": 3,
+    })
+    assert r.status_code == 200
+    assert r.json()["ok"] is True
+
+    search = db_session.query(models.AnalyticsSearch).filter(
+        models.AnalyticsSearch.tenant_id == tenant_user.id
+    ).first()
+    assert search is not None
+    assert search.term == "camiseta"  # normalizado a minúsculas
+    assert search.results_count == 3
+
+
+def test_track_search_termino_corto_se_ignora(client, tenant_user):
+    r = client.post("/public/track/search", json={
+        "slug": tenant_user.shop_slug, "term": "a", "results_count": 0,
+    })
+    assert r.status_code == 200
+    assert r.json()["ok"] is False
+
+
+def test_track_search_slug_inexistente_no_falla(client):
+    r = client.post("/public/track/search", json={
+        "slug": "no-existe", "term": "buscar",
+    })
+    assert r.status_code == 200
+    assert r.json()["ok"] is False
+
+
+def test_summary_incluye_top_searches(client, db_session, tenant_user, tenant_token):
+    client.post("/public/track/search", json={"slug": tenant_user.shop_slug, "term": "camiseta"})
+    client.post("/public/track/search", json={"slug": tenant_user.shop_slug, "term": "camiseta"})
+    client.post("/public/track/search", json={"slug": tenant_user.shop_slug, "term": "gorra"})
+
+    r = client.get("/web-analytics/summary", headers={"Authorization": f"Bearer {tenant_token}"})
+    data = r.json()
+    assert data["top_searches"][0] == {"term": "camiseta", "count": 2}
+    assert {"term": "gorra", "count": 1} in data["top_searches"]

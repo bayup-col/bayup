@@ -38,7 +38,7 @@ import { StudioProvider } from '../../dashboard/pages/studio/context';
 import { Canvas } from '../../dashboard/pages/studio/internal-studio-parts/Canvas';
 import { useCart } from '@/context/cart-context';
 import { generateTemplateSchema } from '@/lib/templates-config';
-import { trackPageview } from '@/lib/track';
+import { trackPageview, trackSearch } from '@/lib/track';
 
 const PREVIEW_DATA = {
     store_name: "Silicon Pro",
@@ -374,6 +374,14 @@ function ShopContent() {
             return matchesSearch && matchesCategory;
         });
     }, [shopData, searchTerm, selectedCategory]);
+
+    // Registra el término buscado (debounced dentro de trackSearch) para
+    // "Top búsquedas en tienda" en Estadísticas.
+    useEffect(() => {
+        if (typeof slug === 'string' && searchTerm.trim().length >= 2) {
+            trackSearch(slug, searchTerm, filteredProducts.length);
+        }
+    }, [slug, searchTerm, filteredProducts.length]);
 
     const { scrollY } = useScroll();
     const navBg = useTransform(scrollY, [0, 100], ["rgba(255,255,255,0)", "rgba(255,255,255,0.95)"]);

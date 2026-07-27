@@ -1351,10 +1351,24 @@ export default function WebAnalyticsPage() {
               )}
             </div>
 
-            {/* Búsquedas — no disponible aún */}
+            {/* Búsquedas reales del buscador de la tienda */}
             <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-6">
               <SectionTitle sub="Lo que buscan tus clientes en la tienda">Top búsquedas en tienda</SectionTitle>
-              <EmptyState icon={<Search/>} title="Buscador no integrado" sub="Activa el buscador en tu tienda para ver los términos que consultan tus clientes"/>
+              {analytics && analytics.top_searches.length > 0 ? (
+                <div className="space-y-2.5">
+                  {analytics.top_searches.map((s: any, i: number) => (
+                    <div key={s.term} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-[10px] font-bold text-gray-300 w-4 shrink-0">#{i + 1}</span>
+                        <span className="text-[12px] font-semibold text-gray-700 truncate">{s.term}</span>
+                      </div>
+                      <span className="text-[10px] text-gray-400 shrink-0">{fmtN(s.count)} búsqueda{s.count !== 1 ? 's' : ''}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState icon={<Search/>} title="Sin búsquedas registradas" sub="Aparecerán aquí en cuanto tus clientes usen el buscador de la tienda"/>
+              )}
             </div>
           </div>
 

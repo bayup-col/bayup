@@ -96,3 +96,27 @@ export function trackPageview(slug: string, path: string) {
     }).catch(() => {});
   } catch { /* el tracking nunca debe afectar la experiencia de compra */ }
 }
+
+let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Registra un término buscado en la tienda. Debounced (800ms) para no
+ * disparar una request por cada tecla — solo cuando el usuario hace pausa. */
+export function trackSearch(slug: string, term: string, resultsCount: number) {
+  if (typeof window === 'undefined' || !slug) return;
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+  const trimmed = term.trim();
+  if (trimmed.length < 2) return;
+
+  searchDebounceTimer = setTimeout(() => {
+    try {
+      let sessionId: string | null = null;
+      try { sessionId = sessionStorage.getItem(SESSION_KEY); } catch {}
+      fetch(`${API}/public/track/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, session_id: sessionId, term: trimmed, results_count: resultsCount }),
+        keepalive: true,
+      }).catch(() => {});
+    } catch { /* el tracking nunca debe afectar la experiencia de compra */ }
+  }, 800);
+}

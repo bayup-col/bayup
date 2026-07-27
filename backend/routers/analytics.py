@@ -73,6 +73,13 @@ class SessionEndPayload(BaseModel):
     duration_seconds: int
 
 
+class SearchPayload(BaseModel):
+    slug: str
+    session_id: str | None = None
+    term: str
+    results_count: int = 0
+
+
 # ── Endpoints públicos (sin auth, nunca deben fallar visiblemente) ────────
 
 @router.post("/public/track/pageview")
@@ -147,6 +154,37 @@ async def track_session_end(payload: SessionEndPayload, request: Request, db: Se
     return {"ok": True}
 
 
+@router.post("/public/track/search")
+@limiter.limit("30/minute")
+async def track_search(payload: SearchPayload, request: Request, db: Session = Depends(get_db)):
+    term = (payload.term or "").strip().lower()
+    if not term or len(term) < 2:
+        return {"ok": False}
+
+    tenant = db.query(models.User).filter(
+        models.User.shop_slug == payload.slug, models.User.status == "Activo",
+    ).first()
+    if not tenant:
+        return {"ok": False}
+
+    session_uuid = None
+    if payload.session_id:
+        try:
+            session_uuid = _uuid.UUID(payload.session_id)
+        except ValueError:
+            session_uuid = None
+
+    try:
+        db.add(models.AnalyticsSearch(
+            tenant_id=tenant.id, session_id=session_uuid,
+            term=term[:120], results_count=max(0, payload.results_count),
+        ))
+        db.commit()
+    except Exception:
+        db.rollback()
+    return {"ok": True}
+
+
 # ── Endpoint autenticado (dashboard) ──────────────────────────────────────
 
 _PERIOD_DAYS = {"7d": 7, "30d": 30, "90d": 90}
@@ -202,6 +240,19 @@ async def get_analytics_summary(
         key=lambda x: x["views"], reverse=True,
     )[:10]
 
+    searches = db.query(models.AnalyticsSearch).filter(
+        models.AnalyticsSearch.tenant_id == tenant_id,
+        models.AnalyticsSearch.created_at >= since,
+    ).all()
+    search_counts: dict[str, int] = {}
+    for sr in searches:
+        if sr.term:
+            search_counts[sr.term] = search_counts.get(sr.term, 0) + 1
+    top_searches = sorted(
+        [{"term": t, "count": c} for t, c in search_counts.items()],
+        key=lambda x: x["count"], reverse=True,
+    )[:10]
+
     def _pct(n: int) -> float:
         return round((n / total_sessions) * 100, 1) if total_sessions else 0.0
 
@@ -221,4 +272,5 @@ async def get_analytics_summary(
         "devices": [{"device": k, "count": v, "pct": _pct(v)} for k, v in sorted(devices.items(), key=lambda x: -x[1])],
         "sessions_by_day": [{"date": k, "sessions": v} for k, v in sorted(by_day.items())],
         "top_pages": top_pages,
+        "top_searches": top_searches,
     }

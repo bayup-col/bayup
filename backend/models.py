@@ -465,6 +465,17 @@ class AnalyticsPageview(Base):
     path = Column(String)
     created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
 
+
+class AnalyticsSearch(Base):
+    """Un término buscado en el buscador del storefront — base para 'top búsquedas'."""
+    __tablename__ = "analytics_searches"
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(GUID(), ForeignKey("users.id"), index=True)
+    session_id = Column(GUID(), ForeignKey("analytics_sessions.id"), nullable=True)
+    term = Column(String)
+    results_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
+
 class WebTemplate(Base):
     __tablename__ = "web_templates"
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)

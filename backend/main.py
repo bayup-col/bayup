@@ -143,6 +143,17 @@ def _sync_postgres_schema() -> None:
             "CREATE INDEX IF NOT EXISTS ix_analytics_pageviews_tenant_id ON analytics_pageviews (tenant_id)",
             "CREATE INDEX IF NOT EXISTS ix_analytics_pageviews_session_id ON analytics_pageviews (session_id)",
             "CREATE INDEX IF NOT EXISTS ix_analytics_pageviews_created_at ON analytics_pageviews (created_at)",
+            # búsquedas en el storefront — ver alembic 0012
+            """CREATE TABLE IF NOT EXISTS analytics_searches (
+                id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                tenant_id      UUID NOT NULL,
+                session_id     UUID,
+                term           VARCHAR,
+                results_count  INTEGER DEFAULT 0,
+                created_at     TIMESTAMP DEFAULT NOW()
+            )""",
+            "CREATE INDEX IF NOT EXISTS ix_analytics_searches_tenant_id ON analytics_searches (tenant_id)",
+            "CREATE INDEX IF NOT EXISTS ix_analytics_searches_created_at ON analytics_searches (created_at)",
         ]
         with engine.begin() as conn:
             for stmt in stmts:
