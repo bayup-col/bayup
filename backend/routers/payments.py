@@ -228,10 +228,19 @@ async def payment_webhook(request: Request, db: Session = Depends(get_db)):
     if not reference or not wompi_status:
         return {"received": True}
 
-    payment = db.query(models.Payment).filter(
-        models.Payment.gateway_payment_id == reference,
-        models.Payment.gateway == "wompi",
-    ).first()
+    # with_for_update(): bloquea la fila hasta el commit de este request. Sin
+    # esto, dos entregas concurrentes del mismo evento (reintento de Wompi)
+    # podrían leer ambas status=="pending" antes de que la primera confirme,
+    # y las dos crear una orden — doble cobro/pedido duplicado.
+    payment = (
+        db.query(models.Payment)
+        .filter(
+            models.Payment.gateway_payment_id == reference,
+            models.Payment.gateway == "wompi",
+        )
+        .with_for_update()
+        .first()
+    )
     if not payment:
         logger.warning("Wompi webhook: referencia %s no corresponde a ningún pago", reference)
         return {"received": True}
@@ -241,6 +250,12 @@ async def payment_webhook(request: Request, db: Session = Depends(get_db)):
         return {"received": True}
 
     payment.gateway_response = event
+    # OJO: gateway_payment_id se sobreescribe con el id de transacción de Wompi
+    # (antes tenía la `reference` original). Reintentos posteriores del MISMO
+    # evento ya no encontrarán el pago por `reference` en la query de arriba
+    # (devuelven early en el "if not payment") — sigue siendo idempotente,
+    # pero por un camino distinto al guard de estado. No se cambia este
+    # comportamiento para no alterar qué valor queda guardado en gateway_payment_id.
     payment.gateway_payment_id = str(wompi_id) if wompi_id else reference
 
     if wompi_status in _WOMPI_APPROVED_STATUSES:
