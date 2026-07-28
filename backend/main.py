@@ -154,6 +154,11 @@ def _sync_postgres_schema() -> None:
             )""",
             "CREATE INDEX IF NOT EXISTS ix_analytics_searches_tenant_id ON analytics_searches (tenant_id)",
             "CREATE INDEX IF NOT EXISTS ix_analytics_searches_created_at ON analytics_searches (created_at)",
+            # índices en FKs usadas por el selectinload de pedidos — ver alembic 0013
+            "CREATE INDEX IF NOT EXISTS ix_order_items_order_id ON order_items (order_id)",
+            "CREATE INDEX IF NOT EXISTS ix_order_items_product_variant_id ON order_items (product_variant_id)",
+            "CREATE INDEX IF NOT EXISTS ix_orders_customer_id ON orders (customer_id)",
+            "CREATE INDEX IF NOT EXISTS ix_product_variants_product_id ON product_variants (product_id)",
         ]
         with engine.begin() as conn:
             for stmt in stmts:

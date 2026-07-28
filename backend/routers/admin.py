@@ -473,9 +473,22 @@ async def upload_image(request: Request, file: UploadFile = File(...), db: Sessi
 
 
 @router.get("/payments")
-async def get_payments(request: Request, db: Session = Depends(get_db), user=Depends(current_user)):
+async def get_payments(
+    request: Request,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=200, ge=1),
+    db: Session = Depends(get_db),
+    user=Depends(current_user),
+):
     tid = tenant_id_from(user)
-    payments = db.query(models.Payment).filter(models.Payment.tenant_id == tid).order_by(models.Payment.created_at.desc()).all()
+    payments = (
+        db.query(models.Payment)
+        .filter(models.Payment.tenant_id == tid)
+        .order_by(models.Payment.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
     return [_ser_payment(p) for p in payments]
 
 

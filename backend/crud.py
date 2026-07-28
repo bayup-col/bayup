@@ -1,9 +1,12 @@
 # backend/crud.py
+import logging
 from sqlalchemy.orm import Session, joinedload, selectinload
 import uuid
 from typing import Optional, List
 import models, schemas, security
 from fastapi import HTTPException, status
+
+logger = logging.getLogger("bayup.crud")
 
 # --- Plan CRUD ---
 def get_default_plan(db: Session) -> models.Plan | None:
@@ -39,7 +42,7 @@ def get_user_by_email(db: Session, email: str) -> models.User | None:
         # Es crítico hacer rollback antes de cualquier query siguiente en la
         # misma sesión, o PostgreSQL rechazará todo con InFailedSqlTransaction.
         db.rollback()
-        print(f"⚠️ ORM fallback en get_user_by_email ({email}): {e}")
+        logger.warning("ORM fallback en get_user_by_email (%s): %s", email, e)
 
     # Fallback con SQL mínimo tras el rollback
     try:
@@ -63,7 +66,7 @@ def get_user_by_email(db: Session, email: str) -> models.User | None:
             is_global_staff=getattr(result, 'is_global_staff', False),
         )
     except Exception as e2:
-        print(f"⚠️ Fallback SQL también falló ({email}): {e2}")
+        logger.error("Fallback SQL también falló (%s): %s", email, e2)
         return None
 
 def get_user_by_slug(db: Session, slug: str) -> models.User | None:
@@ -196,7 +199,7 @@ def delete_product(db: Session, product_id: uuid.UUID, owner_id: uuid.UUID) -> b
         db.commit()
         return True
     except Exception as e:
-        print(f"ERROR AL BORRAR PRODUCTO: {e}")
+        logger.error("Error al borrar producto %s: %s", product_id, e)
         db.rollback()
         # Si tiene órdenes vinculadas, preferimos desactivarlo en lugar de borrarlo
         try:
@@ -392,13 +395,6 @@ def get_orders_by_tenant(db: Session, tenant_id: uuid.UUID, skip: int = 0, limit
     return db.query(models.Order).options(
         selectinload(models.Order.items).selectinload(models.OrderItem.product_variant).selectinload(models.ProductVariant.product)
     ).filter(models.Order.tenant_id == tenant_id).order_by(models.Order.created_at.desc()).offset(skip).limit(limit).all()
-
-def get_activity_logs(db: Session, limit: int = 10) -> list[models.ActivityLog]:
-    return db.query(models.ActivityLog).order_by(models.ActivityLog.created_at.desc()).limit(limit).all()
-
-def get_orders_by_customer(db: Session, customer_id: uuid.UUID) -> list[models.Order]:
-    return db.query(models.Order).filter(models.Order.customer_id == customer_id).order_by(models.Order.created_at.desc()).all()
-
 
 # --- Finance CRUD ---
 def create_income(db: Session, income: schemas.IncomeCreate, tenant_id: uuid.UUID) -> models.Income:

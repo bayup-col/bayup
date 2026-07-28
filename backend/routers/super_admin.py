@@ -363,7 +363,18 @@ async def approve_registration(user_id: str, request: Request, db: Session = Dep
 async def get_treasury(request: Request, db: Session = Depends(get_db), user=Depends(current_user)):
     require_super_admin(user)
     cutoff = datetime.now(timezone.utc) - timedelta(days=365)
-    orders = db.query(models.Order).filter(models.Order.created_at >= cutoff).order_by(models.Order.created_at.desc()).all()
+    # Solo se traen las columnas usadas en las agregaciones de abajo — evita
+    # hidratar el ORM completo (con relaciones) de hasta 365 dias de pedidos
+    # de todos los tenants.
+    orders = (
+        db.query(
+            models.Order.id, models.Order.created_at, models.Order.total_price,
+            models.Order.commission_amount, models.Order.tenant_id,
+        )
+        .filter(models.Order.created_at >= cutoff)
+        .order_by(models.Order.created_at.desc())
+        .all()
+    )
     tenants = {t.id: t for t in db.query(models.User).filter(models.User.role == "admin_tienda", models.User.owner_id.is_(None)).all()}
 
     months = _last_n_months(12)
@@ -423,8 +434,14 @@ async def get_reports(request: Request, period: str = "mes", db: Session = Depen
     start = now - timedelta(days=span_days)
     prev_start = now - timedelta(days=span_days * 2)
 
-    orders = db.query(models.Order).filter(models.Order.created_at >= start).all()
-    prev_orders = db.query(models.Order).filter(models.Order.created_at >= prev_start, models.Order.created_at < start).all()
+    # Igual que en /treasury: solo se traen las columnas que realmente se
+    # usan en las agregaciones de este endpoint, no el ORM completo.
+    order_cols = (
+        models.Order.id, models.Order.created_at, models.Order.total_price,
+        models.Order.commission_amount, models.Order.tenant_id, models.Order.customer_email,
+    )
+    orders = db.query(*order_cols).filter(models.Order.created_at >= start).all()
+    prev_orders = db.query(models.Order.total_price).filter(models.Order.created_at >= prev_start, models.Order.created_at < start).all()
     tenants = {t.id: t for t in db.query(models.User).filter(models.User.role == "admin_tienda", models.User.owner_id.is_(None)).all()}
 
     rev = sum(o.total_price or 0.0 for o in orders)

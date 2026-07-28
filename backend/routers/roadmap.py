@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from deps import current_user, require_super_admin
+from rate_limit import limiter
 
 router = APIRouter(tags=["roadmap"])
 
@@ -118,6 +119,7 @@ async def get_roadmap_voters(item_id: str, request: Request, db: Session = Depen
 
 
 @router.post("/public/roadmap/{item_id}/vote")
+@limiter.limit("5/minute")
 async def vote_roadmap_item(item_id: str, request: Request, body: RoadmapVoteIn, db: Session = Depends(get_db)):
     user_id = None
     try:
