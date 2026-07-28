@@ -1,8 +1,9 @@
 "use client";
 
 import React from 'react';
-import { 
-  ShoppingBag, User, Search, Terminal, Grid, ArrowRight, PlayCircle, 
+import Image from 'next/image';
+import {
+  ShoppingBag, User, Search, Terminal, Grid, ArrowRight, PlayCircle,
   ChevronLeft, ChevronRight, ChevronDown, ShoppingCart, Verified, Truck, Headset,
   Facebook, Instagram, Twitter, Languages, Mail, Share2, ShieldCheck,
   LayoutGrid, Heart, Camera, Send, Ruler, MapPin, Globe, CheckCheck, Loader2, X, Plus, Minus
@@ -437,13 +438,13 @@ export const SmartNavbar = ({ props }: { props: any }) => {
         <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between gap-8" style={navHeightStyle}>
           <div className="flex items-center gap-3 shrink-0">
             {props.logoUrl ? (
-              <img
+              <Image
                 src={props.logoUrl}
                 alt={props.logoText || 'Logo'}
+                width={Math.round(40 * ((props.logoSize ?? 100) / 100))}
+                height={Math.round(40 * ((props.logoSize ?? 100) / 100))}
                 className="rounded-xl object-cover shrink-0"
                 style={{
-                  height: `${40 * ((props.logoSize ?? 100) / 100)}px`,
-                  width: `${40 * ((props.logoSize ?? 100) / 100)}px`,
                   transform: (props.logoOffsetX || props.logoOffsetY) ? `translate(${props.logoOffsetX || 0}px, ${-(props.logoOffsetY || 0)}px)` : undefined,
                 }}
               />
@@ -570,7 +571,16 @@ export const SmartHero = ({ props }: { props: any }) => {
         isCentered ? "justify-center" : "justify-start",
         variant === "tech" ? "bg-slate-950" : variant === "streetwear" ? "bg-black" : "bg-slate-900"
       )}>
-        <img className={cn("absolute inset-0 w-full h-full object-cover", variant === "streetwear" || variant === "tech" ? "opacity-50" : "opacity-60")} src={props.imageUrl} alt="Hero" />
+        {props.imageUrl && (
+          <Image
+            src={props.imageUrl}
+            alt="Hero"
+            fill
+            priority
+            sizes="100vw"
+            className={cn("object-cover", variant === "streetwear" || variant === "tech" ? "opacity-50" : "opacity-60")}
+          />
+        )}
         <div className={cn(
           "absolute inset-0",
           variant === "tech" ? "bg-gradient-to-r from-slate-950 via-slate-950/40 to-transparent" :
@@ -734,7 +744,15 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
                 )}
                 style={cardRadiusPx ? { borderRadius: cardRadiusPx } : undefined}
               >
-                <img className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2000ms]" src={p.image} />
+                {p.image && (
+                  <Image
+                    src={p.image}
+                    alt={p.name || ''}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-cover group-hover:scale-110 transition-transform duration-[2000ms]"
+                  />
+                )}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
 
                 {/* BOTÓN RÁPIDO DE COMPRA */}
@@ -816,7 +834,15 @@ export const SmartCategoriesGrid = ({ props }: { props: any }) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {(props.items || []).map((item: any, i: number) => (
             <div key={i} className={cn("group relative aspect-[3/4] overflow-hidden shadow-xl", isAngular ? "rounded-md" : "rounded-xl", variant === "tech" ? "bg-slate-900" : "bg-slate-900")}>
-              <img className="w-full h-full object-cover opacity-60 group-hover:opacity-40 group-hover:scale-110 transition-all duration-[3000ms]" src={item.image} />
+              {item.image && (
+                <Image
+                  src={item.image}
+                  alt={item.label || ''}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  className="object-cover opacity-60 group-hover:opacity-40 group-hover:scale-110 transition-all duration-[3000ms]"
+                />
+              )}
               <div className="absolute inset-0 flex flex-col items-center justify-center p-10 text-center space-y-6">
                 <h5 className={cn(
                   "text-white text-3xl tracking-tight",
@@ -1194,14 +1220,23 @@ export const SmartProductDetail = ({ product, relatedProducts = [], variant: var
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           {/* Galería */}
           <div className="space-y-4">
-            <div className={cn("aspect-square overflow-hidden", s.radiusLg, isDark ? "bg-slate-900" : "bg-gray-50")}>
-              {images[activeImg] && <img src={images[activeImg]} className="w-full h-full object-cover" alt={product.name} />}
+            <div className={cn("aspect-square overflow-hidden relative", s.radiusLg, isDark ? "bg-slate-900" : "bg-gray-50")}>
+              {images[activeImg] && (
+                <Image
+                  src={images[activeImg]}
+                  alt={product.name}
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover"
+                />
+              )}
             </div>
             {images.length > 1 && (
               <div className="flex gap-3">
                 {images.map((img, i) => (
                   <button key={i} onClick={() => setActiveImg(i)} className={cn("h-20 w-20 overflow-hidden border-2 transition-colors shrink-0", s.radiusMd, activeImg === i ? s.accentBorder : "border-transparent")}>
-                    <img src={img} className="w-full h-full object-cover" alt="" />
+                    <Image src={img} alt="" width={80} height={80} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -1287,8 +1322,19 @@ export const SmartProductDetail = ({ product, relatedProducts = [], variant: var
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {relatedProducts.slice(0, 4).map((p: any) => (
                 <div key={p.id} onClick={() => goToProduct(p.id)} className="space-y-3 cursor-pointer group">
-                  <div className={cn("aspect-square overflow-hidden", s.radiusMd, isDark ? "bg-slate-900" : "bg-gray-50")}>
-                    <img src={Array.isArray(p.image_url) ? p.image_url[0] : p.image_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={p.name} />
+                  <div className={cn("aspect-square overflow-hidden relative", s.radiusMd, isDark ? "bg-slate-900" : "bg-gray-50")}>
+                    {(() => {
+                      const relSrc = Array.isArray(p.image_url) ? p.image_url[0] : p.image_url;
+                      return relSrc ? (
+                        <Image
+                          src={relSrc}
+                          alt={p.name}
+                          fill
+                          sizes="(max-width: 768px) 50vw, 25vw"
+                          className="object-cover group-hover:scale-105 transition-transform duration-700"
+                        />
+                      ) : null;
+                    })()}
                   </div>
                   <p className={cn("text-xs font-bold truncate", isDark ? "text-white" : "text-gray-900")}>{p.name}</p>
                   <p className={cn("text-sm font-black", s.accentText)}>$ {Number(p.price || 0).toLocaleString('es-CO')}</p>
@@ -1401,6 +1447,14 @@ export const SmartCustomMedia = ({ props, onDragHandlePointerDown, onRemove }: {
             style={{ borderRadius: mediaRadius }}
           />
         ) : (
+          // Se queda como <img> plano a propósito: este elemento tiene tamaño
+          // libre (ancho fijo en px, alto automático según la proporción
+          // intrínseca de la imagen que suba el comerciante) — next/image
+          // necesita `fill` o un `height` conocido de antemano, y forzar
+          // cualquiera de los dos aquí distorsionaría imágenes con una
+          // relación de aspecto distinta a la asumida. No es un candidato de
+          // LCP real (elemento decorativo, posicionado libremente encima del
+          // resto de la página).
           <img src={props.mediaUrl} alt="" className="w-full h-auto shadow-md object-cover" style={{ borderRadius: mediaRadius }} />
         )
       ) : (
@@ -1482,7 +1536,15 @@ export const SmartBentoGrid = ({ props }: { props?: any } = {}) => {
                 i !== 0 && "col-span-1 row-span-1"
               )}
             >
-              <img className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src={item.image} alt={item.label || ''} />
+              {item.image && (
+                <Image
+                  src={item.image}
+                  alt={item.label || ''}
+                  fill
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                  className="object-cover group-hover:scale-110 transition-transform duration-700"
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-transparent" />
               {item.label && (
                 <p className="absolute bottom-4 left-4 text-white text-sm font-bold uppercase tracking-wide">{item.label}</p>
