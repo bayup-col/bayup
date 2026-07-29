@@ -72,6 +72,10 @@ interface VariantStyle {
   radiusSm: string;
   // fondo de superficies oscuras (newsletter, footer si aplica)
   darkSurface: string;
+  // fondo de secciones normales (hero aparte, ya cubierto por su propia imagen).
+  // Por defecto blanco; algunas marcas (ej. family) usan un tono calido en vez
+  // de blanco puro para que toda la pagina se sienta cohesiva.
+  bgLight: string;
 }
 
 const VARIANT_STYLES: Record<StoreVariant, VariantStyle> = {
@@ -91,6 +95,7 @@ const VARIANT_STYLES: Record<StoreVariant, VariantStyle> = {
     radiusMd: "rounded-2xl",
     radiusSm: "rounded-full",
     darkSurface: "bg-slate-900",
+    bgLight: "bg-white",
   },
   intimate: {
     display: "font-display-luxury italic",
@@ -108,6 +113,7 @@ const VARIANT_STYLES: Record<StoreVariant, VariantStyle> = {
     radiusMd: "rounded-[1.75rem]",
     radiusSm: "rounded-full",
     darkSurface: "bg-violet-950",
+    bgLight: "bg-white",
   },
   streetwear: {
     display: "font-display-impact uppercase",
@@ -125,6 +131,7 @@ const VARIANT_STYLES: Record<StoreVariant, VariantStyle> = {
     radiusMd: "rounded-sm",
     radiusSm: "rounded-none",
     darkSurface: "bg-black",
+    bgLight: "bg-white",
   },
   flash: {
     display: "font-display-impact uppercase",
@@ -142,6 +149,7 @@ const VARIANT_STYLES: Record<StoreVariant, VariantStyle> = {
     radiusMd: "rounded-2xl",
     radiusSm: "rounded-full",
     darkSurface: "bg-red-950",
+    bgLight: "bg-white",
   },
   tech: {
     display: "font-display-tech",
@@ -159,6 +167,7 @@ const VARIANT_STYLES: Record<StoreVariant, VariantStyle> = {
     radiusMd: "rounded-lg",
     radiusSm: "rounded-md",
     darkSurface: "bg-slate-950",
+    bgLight: "bg-slate-950", // no se usa en la practica: las secciones chequean variant==="tech" antes de leer bgLight
   },
   playful: {
     display: "font-display-playful",
@@ -176,6 +185,7 @@ const VARIANT_STYLES: Record<StoreVariant, VariantStyle> = {
     radiusMd: "rounded-[2rem]",
     radiusSm: "rounded-full",
     darkSurface: "bg-indigo-950",
+    bgLight: "bg-white",
   },
   editorial: {
     display: "font-display-editorial",
@@ -193,6 +203,7 @@ const VARIANT_STYLES: Record<StoreVariant, VariantStyle> = {
     radiusMd: "rounded-xl",
     radiusSm: "rounded-md",
     darkSurface: "bg-stone-900",
+    bgLight: "bg-white",
   },
   glow: {
     display: "font-display-playful",
@@ -210,23 +221,25 @@ const VARIANT_STYLES: Record<StoreVariant, VariantStyle> = {
     radiusMd: "rounded-[1.75rem]",
     radiusSm: "rounded-full",
     darkSurface: "bg-rose-950",
+    bgLight: "bg-white",
   },
   family: {
     display: "font-sans",
     displayWeight: "font-black tracking-tight",
     body: "font-sans font-medium",
-    accentText: "text-orange-700",
-    accentTextHover: "hover:text-orange-700",
+    accentText: "text-orange-800",
+    accentTextHover: "hover:text-orange-800",
     accentBorder: "border-orange-300",
-    accentBg: "bg-orange-700",
+    accentBg: "bg-orange-800",
     accentBgSoft: "bg-orange-100",
-    btnPrimary: "bg-orange-700 text-white rounded-xl hover:bg-orange-800 shadow-lg shadow-orange-700/20 font-sans font-bold",
-    btnSecondary: "border border-orange-300 text-orange-800 rounded-xl hover:bg-orange-700 hover:text-white font-sans font-bold",
-    badge: "rounded-full bg-orange-100 text-orange-800",
+    btnPrimary: "bg-orange-800 text-white rounded-full hover:bg-orange-900 shadow-lg shadow-orange-800/20 font-sans font-bold",
+    btnSecondary: "border border-orange-800/30 text-orange-900 rounded-full hover:bg-orange-800 hover:text-white font-sans font-bold",
+    badge: "rounded-full bg-white/70 text-orange-800",
     radiusLg: "rounded-[2rem]",
     radiusMd: "rounded-2xl",
-    radiusSm: "rounded-xl",
-    darkSurface: "bg-stone-900",
+    radiusSm: "rounded-full",
+    darkSurface: "bg-orange-900",
+    bgLight: "bg-[#FBEBDA]",
   },
 };
 
@@ -629,7 +642,7 @@ export const SmartHeritageBlock = ({ props }: { props: any }) => {
   const isAngular = variant === "streetwear" || variant === "flash" || variant === "tech";
 
   return (
-    <section id="bayup-about" className={cn("py-32 text-center px-6", variant === "tech" ? "bg-slate-950" : "bg-white")}>
+    <section id="bayup-about" className={cn("py-32 text-center px-6", variant === "tech" ? "bg-slate-950" : s.bgLight)}>
       <div className="max-w-4xl mx-auto space-y-10">
         <div className="space-y-3">
           <h4 className={cn("font-bold uppercase tracking-[0.4em] text-[10px]", s.accentText)}>{props.title || 'NUESTRA HERENCIA'}</h4>
@@ -702,7 +715,7 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
   const showCategory = props.showCategory !== false;
 
   return (
-    <section id="bayup-products" className={cn("py-32", variant === "tech" ? "bg-slate-950" : "bg-white")}>
+    <section id="bayup-products" className={cn("py-32", variant === "tech" ? "bg-slate-950" : s.bgLight)}>
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-6">
           <div>
@@ -820,7 +833,7 @@ export const SmartCategoriesGrid = ({ props }: { props: any }) => {
   const isLuxuryLike = variant === "luxury" || variant === "intimate";
 
   return (
-    <section id="bayup-categories" className={cn("py-32", variant === "tech" ? "bg-slate-950" : "bg-white")}>
+    <section id="bayup-categories" className={cn("py-32", variant === "tech" ? "bg-slate-950" : s.bgLight)}>
       <div className="max-w-7xl mx-auto px-6">
         <h3 className={cn("text-center text-[10px] font-bold uppercase tracking-[0.5em] mb-4", s.accentText)}>Descubra</h3>
         <h2 className={cn(
@@ -998,7 +1011,7 @@ export const SmartFooter = ({ props }: { props: any }) => {
   return (
     <footer id="bayup-footer" className={cn(
       "py-32 px-10 border-t",
-      isDarkFooter ? cn(s.darkSurface, "text-white border-white/10") : "bg-white text-slate-900 border-slate-100"
+      isDarkFooter ? cn(s.darkSurface, "text-white border-white/10") : cn(s.bgLight, "text-slate-900 border-slate-100")
     )}>
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-20">
         <div className="space-y-8">
@@ -1108,7 +1121,7 @@ export const SmartContactForm = ({ props, tenantId }: { props: any, tenantId?: s
   );
 
   return (
-    <section id="bayup-contact" className={cn("py-32 px-6", variant === "tech" ? "bg-slate-950" : "bg-white")}>
+    <section id="bayup-contact" className={cn("py-32 px-6", variant === "tech" ? "bg-slate-950" : s.bgLight)}>
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-20 space-y-4">
           <h3 className={cn("text-[10px] font-bold uppercase tracking-[0.5em]", s.accentText)}>{props.badge || 'CONTACTO'}</h3>
@@ -1131,7 +1144,7 @@ export const SmartContactForm = ({ props, tenantId }: { props: any, tenantId?: s
             <button onClick={() => setSent(false)} className="text-xs font-black uppercase tracking-widest text-emerald-600 hover:underline">Enviar otro mensaje</button>
           </motion.div>
         ) : (
-          <form onSubmit={handleSubmit} className={cn("grid grid-cols-1 md:grid-cols-2 gap-8 p-12 border shadow-sm", s.radiusLg, variant === "tech" ? "bg-slate-900 border-slate-800" : "bg-slate-50 border-slate-100")}>
+          <form onSubmit={handleSubmit} className={cn("grid grid-cols-1 md:grid-cols-2 gap-8 p-12 border shadow-sm", s.radiusLg, variant === "tech" ? "bg-slate-900 border-slate-800" : variant === "family" ? cn(s.accentBgSoft, s.accentBorder) : "bg-slate-50 border-slate-100")}>
             <div className="space-y-2">
               <label className={cn("text-[9px] font-black uppercase tracking-widest ml-2", variant === "tech" ? "text-slate-500" : "text-slate-400")}>Nombre completo</label>
               <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className={inputClass} placeholder="Ej: Julian Garcia" />
@@ -1196,7 +1209,7 @@ export const SmartProductDetail = ({ product, relatedProducts = [], variant: var
 
   if (!product) {
     return (
-      <section className="py-32 text-center font-sans bg-white">
+      <section className={cn("py-32 text-center font-sans", s.bgLight)}>
         <p className="text-gray-400 text-[11px] font-bold uppercase tracking-widest">Esta ficha mostrará tus productos reales una vez tengas inventario cargado.</p>
       </section>
     );
@@ -1206,7 +1219,7 @@ export const SmartProductDetail = ({ product, relatedProducts = [], variant: var
   const colors: string[] | undefined = product.colors;
 
   return (
-    <section className={cn("py-16", isDark ? "bg-slate-950" : "bg-white")}>
+    <section className={cn("py-16", isDark ? "bg-slate-950" : s.bgLight)}>
       <div className="max-w-6xl mx-auto px-6">
         {/* BREADCRUMB */}
         <div className={cn("flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest mb-10", isDark ? "text-slate-500" : "text-gray-400")}>
@@ -1484,7 +1497,7 @@ export const SmartTrustBanner = ({ props }: { props?: any } = {}) => {
   ];
 
   return (
-    <section className={cn("py-16 border-y", variant === "tech" ? "bg-slate-900 border-cyan-400/10" : "bg-slate-50 border-slate-100")}>
+    <section className={cn("py-16 border-y", variant === "tech" ? "bg-slate-900 border-cyan-400/10" : variant === "family" ? cn(s.accentBgSoft, s.accentBorder) : "bg-slate-50 border-slate-100")}>
       <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-10">
         {items.map((item: any, i: number) => {
           const Icon = item.icon || ShieldCheck;
@@ -1515,7 +1528,7 @@ export const SmartBentoGrid = ({ props }: { props?: any } = {}) => {
   if (items.length === 0) return null;
 
   return (
-    <section className={cn("py-32 px-6", variant === "tech" ? "bg-slate-950" : "bg-white")}>
+    <section className={cn("py-32 px-6", variant === "tech" ? "bg-slate-950" : s.bgLight)}>
       <div className="max-w-7xl mx-auto">
         <h2 className={cn(
           "text-center text-4xl mb-16",
@@ -1573,7 +1586,7 @@ export const SmartServices = ({ props }: { props?: any } = {}) => {
   ];
 
   return (
-    <section className={cn("py-28 px-6", variant === "tech" ? "bg-slate-900" : "bg-slate-50")}>
+    <section className={cn("py-28 px-6", variant === "tech" ? "bg-slate-900" : variant === "family" ? s.accentBgSoft : "bg-slate-50")}>
       <div className="max-w-6xl mx-auto">
         <h2 className={cn(
           "text-center text-3xl md:text-4xl mb-16",
@@ -1588,7 +1601,7 @@ export const SmartServices = ({ props }: { props?: any } = {}) => {
           {services.map((item: any, i: number) => {
             const Icon = item.icon || Ruler;
             return (
-              <div key={i} className={cn("p-8 text-center space-y-4", s.radiusLg, variant === "tech" ? "bg-slate-950" : "bg-white", "shadow-sm")}>
+              <div key={i} className={cn("p-8 text-center space-y-4", s.radiusLg, variant === "tech" ? "bg-slate-950" : s.bgLight, "shadow-sm")}>
                 <div className={cn("h-16 w-16 flex items-center justify-center mx-auto", isAngular ? "rounded-md" : "rounded-full", s.accentBgSoft, s.accentText)}>
                   <Icon size={28} />
                 </div>
