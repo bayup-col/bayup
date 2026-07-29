@@ -560,7 +560,6 @@ export const SmartHero = ({ props }: { props: any }) => {
     ...(fontFamily ? { fontFamily } : {}),
     ...(props.fontSize ? { fontSize: scaledRem(HERO_TITLE_BASE_REM, props.fontSize) } : {}),
   };
-  const subtitleStyle = { ...(colors?.text ? { color: colors.text } : {}), ...(fontFamily ? { fontFamily } : {}) };
   const badgeStyle = colors?.secondary ? { backgroundColor: `${colors.secondary}1a`, borderColor: `${colors.secondary}66`, color: colors.secondary } : undefined;
   const btnStyle = colors?.button ? { backgroundColor: colors.button, color: getReadableTextColor(colors.button) } : undefined;
 
@@ -606,7 +605,12 @@ export const SmartHero = ({ props }: { props: any }) => {
             </h2>
           )}
           {props.subtitle && (
-            <p className={cn("text-lg md:text-xl mb-12 leading-relaxed", !colors?.text && "text-slate-200", isCentered ? "max-w-2xl mx-auto" : "max-w-xl", s.body)} style={subtitleStyle}>
+            // El subtitulo se mantiene claro SIEMPRE: este bloque va sobre la
+            // imagen oscurecida (opacidad 50-60% + degradado negro encima), asi
+            // que aplicarle el color de texto elegido para el cuerpo de la
+            // pagina — pensado para secciones de fondo claro — lo dejaria
+            // ilegible. Solo hereda la tipografia.
+            <p className={cn("text-lg md:text-xl mb-12 leading-relaxed text-slate-200", isCentered ? "max-w-2xl mx-auto" : "max-w-xl", s.body)} style={fontFamilyStyle}>
               {props.subtitle}
             </p>
           )}
@@ -1031,12 +1035,19 @@ export const SmartFooter = ({ props }: { props: any }) => {
 
   const colors = props.colors as { primary?: string; secondary?: string; button?: string; text?: string } | undefined;
   const fontFamily: string | undefined = props.fontFamily;
+  // Los colores elegidos por el comerciante estan pensados para secciones de
+  // fondo claro. En las variantes cuyo pie es oscuro (tech/streetwear) se
+  // ignoran y se conservan los tonos claros por defecto, o el texto quedaria
+  // oscuro sobre oscuro. La tipografia si se hereda en ambos casos.
+  const useCustomColor = !isDarkFooter;
+  const logoColor = useCustomColor ? colors?.primary : undefined;
+  const descriptionColor = useCustomColor ? colors?.text : undefined;
   const logoStyle = {
-    ...(colors?.primary ? { color: colors.primary } : {}),
+    ...(logoColor ? { color: logoColor } : {}),
     ...(fontFamily ? { fontFamily } : {}),
     ...(props.fontSize ? { fontSize: scaledRem(SECTION_TITLE_BASE_REM, props.fontSize) } : {}),
   };
-  const descriptionStyle = { ...(colors?.text ? { color: colors.text } : {}), ...(fontFamily ? { fontFamily } : {}) };
+  const descriptionStyle = { ...(descriptionColor ? { color: descriptionColor } : {}), ...(fontFamily ? { fontFamily } : {}) };
 
   return (
     <footer id="bayup-footer" className={cn(
@@ -1048,12 +1059,12 @@ export const SmartFooter = ({ props }: { props: any }) => {
           <h4 className={cn(
             "text-2xl tracking-tighter",
             s.display, s.displayWeight,
-            !colors?.primary && (isAngular ? "uppercase" : "font-extrabold"),
-            !colors?.primary && isLuxuryLike && "italic uppercase"
+            !logoColor && (isAngular ? "uppercase" : "font-extrabold"),
+            !logoColor && isLuxuryLike && "italic uppercase"
           )} style={logoStyle}>
             {props.logoText || 'Tu Tienda'}
           </h4>
-          <p className={cn("text-sm leading-relaxed font-medium", s.body, !colors?.text && (isDarkFooter ? "text-white/60" : "text-slate-500"))} style={descriptionStyle}>
+          <p className={cn("text-sm leading-relaxed font-medium", s.body, !descriptionColor && (isDarkFooter ? "text-white/60" : "text-slate-500"))} style={descriptionStyle}>
             {props.description || 'Gracias por visitarnos. Contáctanos para conocer más sobre nuestros productos.'}
           </p>
           <div className={cn("flex gap-6", isDarkFooter ? "text-white/40" : "text-slate-400")}>
