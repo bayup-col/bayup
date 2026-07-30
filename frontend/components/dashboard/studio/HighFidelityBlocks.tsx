@@ -1,8 +1,9 @@
 "use client";
 
 import React from 'react';
-import { 
-  ShoppingBag, User, Search, Terminal, Grid, ArrowRight, PlayCircle, 
+import Image from 'next/image';
+import {
+  ShoppingBag, User, Search, Terminal, Grid, ArrowRight, PlayCircle,
   ChevronLeft, ChevronRight, ChevronDown, ShoppingCart, Verified, Truck, Headset,
   Facebook, Instagram, Twitter, Languages, Mail, Share2, ShieldCheck,
   LayoutGrid, Heart, Camera, Send, Ruler, MapPin, Globe, CheckCheck, Loader2, X, Plus, Minus
@@ -437,13 +438,13 @@ export const SmartNavbar = ({ props }: { props: any }) => {
         <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between gap-8" style={navHeightStyle}>
           <div className="flex items-center gap-3 shrink-0">
             {props.logoUrl ? (
-              <img
+              <Image
                 src={props.logoUrl}
                 alt={props.logoText || 'Logo'}
+                width={Math.round(40 * ((props.logoSize ?? 100) / 100))}
+                height={Math.round(40 * ((props.logoSize ?? 100) / 100))}
                 className="rounded-xl object-cover shrink-0"
                 style={{
-                  height: `${40 * ((props.logoSize ?? 100) / 100)}px`,
-                  width: `${40 * ((props.logoSize ?? 100) / 100)}px`,
                   transform: (props.logoOffsetX || props.logoOffsetY) ? `translate(${props.logoOffsetX || 0}px, ${-(props.logoOffsetY || 0)}px)` : undefined,
                 }}
               />
@@ -559,7 +560,6 @@ export const SmartHero = ({ props }: { props: any }) => {
     ...(fontFamily ? { fontFamily } : {}),
     ...(props.fontSize ? { fontSize: scaledRem(HERO_TITLE_BASE_REM, props.fontSize) } : {}),
   };
-  const subtitleStyle = { ...(colors?.text ? { color: colors.text } : {}), ...(fontFamily ? { fontFamily } : {}) };
   const badgeStyle = colors?.secondary ? { backgroundColor: `${colors.secondary}1a`, borderColor: `${colors.secondary}66`, color: colors.secondary } : undefined;
   const btnStyle = colors?.button ? { backgroundColor: colors.button, color: getReadableTextColor(colors.button) } : undefined;
 
@@ -570,7 +570,16 @@ export const SmartHero = ({ props }: { props: any }) => {
         isCentered ? "justify-center" : "justify-start",
         variant === "tech" ? "bg-slate-950" : variant === "streetwear" ? "bg-black" : "bg-slate-900"
       )}>
-        <img className={cn("absolute inset-0 w-full h-full object-cover", variant === "streetwear" || variant === "tech" ? "opacity-50" : "opacity-60")} src={props.imageUrl} alt="Hero" />
+        {props.imageUrl && (
+          <Image
+            src={props.imageUrl}
+            alt="Hero"
+            fill
+            priority
+            sizes="100vw"
+            className={cn("object-cover", variant === "streetwear" || variant === "tech" ? "opacity-50" : "opacity-60")}
+          />
+        )}
         <div className={cn(
           "absolute inset-0",
           variant === "tech" ? "bg-gradient-to-r from-slate-950 via-slate-950/40 to-transparent" :
@@ -596,7 +605,12 @@ export const SmartHero = ({ props }: { props: any }) => {
             </h2>
           )}
           {props.subtitle && (
-            <p className={cn("text-lg md:text-xl mb-12 leading-relaxed", !colors?.text && "text-slate-200", isCentered ? "max-w-2xl mx-auto" : "max-w-xl", s.body)} style={subtitleStyle}>
+            // El subtitulo se mantiene claro SIEMPRE: este bloque va sobre la
+            // imagen oscurecida (opacidad 50-60% + degradado negro encima), asi
+            // que aplicarle el color de texto elegido para el cuerpo de la
+            // pagina — pensado para secciones de fondo claro — lo dejaria
+            // ilegible. Solo hereda la tipografia.
+            <p className={cn("text-lg md:text-xl mb-12 leading-relaxed text-slate-200", isCentered ? "max-w-2xl mx-auto" : "max-w-xl", s.body)} style={fontFamilyStyle}>
               {props.subtitle}
             </p>
           )}
@@ -618,24 +632,39 @@ export const SmartHeritageBlock = ({ props }: { props: any }) => {
   const s = getVariantStyle(variant);
   const isAngular = variant === "streetwear" || variant === "flash" || variant === "tech";
 
+  const colors = props.colors as { primary?: string; secondary?: string; button?: string; text?: string } | undefined;
+  const fontFamily: string | undefined = props.fontFamily;
+  const titleStyle = {
+    ...(colors?.primary ? { color: colors.primary } : {}),
+    ...(fontFamily ? { fontFamily } : {}),
+    ...(props.fontSize ? { fontSize: scaledRem(SECTION_TITLE_BASE_REM, props.fontSize) } : {}),
+  };
+  const eyebrowStyle = { ...(colors?.primary ? { color: colors.primary } : {}), ...(fontFamily ? { fontFamily } : {}) };
+  const contentStyle = { ...(colors?.text ? { color: colors.text } : {}), ...(fontFamily ? { fontFamily } : {}) };
+
   return (
     <section id="bayup-about" className={cn("py-32 text-center px-6", variant === "tech" ? "bg-slate-950" : "bg-white")}>
       <div className="max-w-4xl mx-auto space-y-10">
         <div className="space-y-3">
-          <h4 className={cn("font-bold uppercase tracking-[0.4em] text-[10px]", s.accentText)}>{props.title || 'NUESTRA HERENCIA'}</h4>
+          <h4 className={cn("font-bold uppercase tracking-[0.4em] text-[10px]", !colors?.primary && s.accentText)} style={eyebrowStyle}>
+            {props.title || 'NUESTRA HERENCIA'}
+          </h4>
           <h3 className={cn(
             "text-4xl md:text-5xl",
             s.display, s.displayWeight,
-            variant === "tech" ? "text-white" : "text-slate-900",
+            !colors?.primary && (variant === "tech" ? "text-white" : "text-slate-900"),
             isAngular && "uppercase"
-          )}>
+          )} style={titleStyle}>
             {props.subtitle || 'Maestros artesanos desde 1924'}
           </h3>
         </div>
-        <p className={cn("text-lg leading-relaxed max-w-3xl mx-auto", variant === "tech" ? "text-slate-400" : "text-slate-500", s.body)}>
+        <p className={cn("text-lg leading-relaxed max-w-3xl mx-auto", !colors?.text && (variant === "tech" ? "text-slate-400" : "text-slate-500"), s.body)} style={contentStyle}>
           {props.content}
         </p>
-        <div className={cn("w-24 mx-auto mt-12 border-t", s.accentBorder)}></div>
+        <div
+          className={cn("w-24 mx-auto mt-12 border-t", !colors?.primary && s.accentBorder)}
+          style={colors?.primary ? { borderColor: colors.primary } : undefined}
+        ></div>
       </div>
     </section>
   );
@@ -734,7 +763,15 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
                 )}
                 style={cardRadiusPx ? { borderRadius: cardRadiusPx } : undefined}
               >
-                <img className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2000ms]" src={p.image} />
+                {p.image && (
+                  <Image
+                    src={p.image}
+                    alt={p.name || ''}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-cover group-hover:scale-110 transition-transform duration-[2000ms]"
+                  />
+                )}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
 
                 {/* BOTÓN RÁPIDO DE COMPRA */}
@@ -801,37 +838,62 @@ export const SmartCategoriesGrid = ({ props }: { props: any }) => {
   const isAngular = variant === "streetwear" || variant === "flash" || variant === "tech";
   const isLuxuryLike = variant === "luxury" || variant === "intimate";
 
+  const colors = props.colors as { primary?: string; secondary?: string; button?: string; text?: string } | undefined;
+  const fontFamily: string | undefined = props.fontFamily;
+  const titleStyle = {
+    ...(colors?.primary ? { color: colors.primary } : {}),
+    ...(fontFamily ? { fontFamily } : {}),
+    ...(props.fontSize ? { fontSize: scaledRem(SECTION_TITLE_BASE_REM, props.fontSize) } : {}),
+  };
+  const eyebrowStyle = { ...(colors?.primary ? { color: colors.primary } : {}), ...(fontFamily ? { fontFamily } : {}) };
+  // La etiqueta de cada tarjeta va sobre la imagen oscurecida, asi que
+  // mantiene el texto blanco pase lo que pase — solo hereda la tipografia.
+  const cardLabelStyle = fontFamily ? { fontFamily } : undefined;
+  const cardBtnStyle = colors?.button
+    ? { backgroundColor: colors.button, color: getReadableTextColor(colors.button), borderColor: colors.button }
+    : undefined;
+
   return (
     <section id="bayup-categories" className={cn("py-32", variant === "tech" ? "bg-slate-950" : "bg-white")}>
       <div className="max-w-7xl mx-auto px-6">
-        <h3 className={cn("text-center text-[10px] font-bold uppercase tracking-[0.5em] mb-4", s.accentText)}>Descubra</h3>
+        <h3 className={cn("text-center text-[10px] font-bold uppercase tracking-[0.5em] mb-4", !colors?.primary && s.accentText)} style={eyebrowStyle}>Descubra</h3>
         <h2 className={cn(
           "text-center text-4xl mb-20",
           s.display, s.displayWeight,
           isAngular && "uppercase",
-          variant === "tech" ? "text-white" : "text-slate-900"
-        )}>
+          !colors?.primary && (variant === "tech" ? "text-white" : "text-slate-900")
+        )} style={titleStyle}>
           {props.title || 'Nuestras Colecciones'}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {(props.items || []).map((item: any, i: number) => (
             <div key={i} className={cn("group relative aspect-[3/4] overflow-hidden shadow-xl", isAngular ? "rounded-md" : "rounded-xl", variant === "tech" ? "bg-slate-900" : "bg-slate-900")}>
-              <img className="w-full h-full object-cover opacity-60 group-hover:opacity-40 group-hover:scale-110 transition-all duration-[3000ms]" src={item.image} />
+              {item.image && (
+                <Image
+                  src={item.image}
+                  alt={item.label || ''}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  className="object-cover opacity-60 group-hover:opacity-40 group-hover:scale-110 transition-all duration-[3000ms]"
+                />
+              )}
               <div className="absolute inset-0 flex flex-col items-center justify-center p-10 text-center space-y-6">
                 <h5 className={cn(
                   "text-white text-3xl tracking-tight",
                   s.display, s.displayWeight,
                   isAngular && "uppercase",
                   isLuxuryLike && "italic"
-                )}>
+                )} style={cardLabelStyle}>
                   {item.label}
                 </h5>
                 <button
                   onClick={() => goToSimulatedSection(item.label, setActiveFilter)}
                   className={cn(
-                    "px-6 py-3 text-[9px] font-bold uppercase tracking-widest transition-all border border-white/40 text-white hover:bg-white hover:text-black",
+                    "px-6 py-3 text-[9px] font-bold uppercase tracking-widest transition-all border",
+                    !colors?.button && "border-white/40 text-white hover:bg-white hover:text-black",
                     isAngular ? "rounded-none" : "rounded-full"
                   )}
+                  style={cardBtnStyle}
                 >
                   Ver Detalles
                 </button>
@@ -860,13 +922,21 @@ export const SmartNewsletter = ({ props }: { props?: any } = {}) => {
   };
   const c = copy[variant] || { title: "Reciba nuestras novedades", subtitle: "Únase a nuestro círculo exclusivo para recibir invitaciones a eventos y colecciones privadas.", cta: "Suscribirse" };
 
+  // Esta sección vive sobre una superficie oscura de la variante, así que el
+  // texto se mantiene blanco (igual que en el footer oscuro) — solo se
+  // personalizan tipografía y el botón, que es lo que no depende del fondo.
+  const colors = props?.colors as { primary?: string; secondary?: string; button?: string; text?: string } | undefined;
+  const fontFamily: string | undefined = props?.fontFamily;
+  const fontStyle = fontFamily ? { fontFamily } : undefined;
+  const btnStyle = colors?.button ? { backgroundColor: colors.button, color: getReadableTextColor(colors.button) } : undefined;
+
   return (
     <section className={cn("py-32 text-white text-center px-6", s.darkSurface)}>
       <div className="max-w-2xl mx-auto space-y-8">
-        <h3 className={cn("text-3xl tracking-tight", s.display, s.displayWeight, isAngular && "uppercase", isLuxuryLike && "italic")}>
+        <h3 className={cn("text-3xl tracking-tight", s.display, s.displayWeight, isAngular && "uppercase", isLuxuryLike && "italic")} style={fontStyle}>
           {c.title}
         </h3>
-        <p className={cn("text-sm leading-relaxed", s.body, "text-white/60")}>{c.subtitle}</p>
+        <p className={cn("text-sm leading-relaxed", s.body, "text-white/60")} style={fontStyle}>{c.subtitle}</p>
         <div className="flex flex-col md:flex-row gap-4 mt-10">
           <input
             className={cn(
@@ -876,7 +946,10 @@ export const SmartNewsletter = ({ props }: { props?: any } = {}) => {
             )}
             placeholder="Correo electrónico"
           />
-          <button className={cn("px-10 py-4 font-bold text-xs uppercase tracking-widest transition-all", s.btnPrimary)}>
+          <button
+            className={cn("px-10 py-4 font-bold text-xs uppercase tracking-widest transition-all", !colors?.button && s.btnPrimary, colors?.button && "rounded-full")}
+            style={{ ...btnStyle, ...fontStyle }}
+          >
             {c.cta}
           </button>
         </div>
@@ -962,12 +1035,19 @@ export const SmartFooter = ({ props }: { props: any }) => {
 
   const colors = props.colors as { primary?: string; secondary?: string; button?: string; text?: string } | undefined;
   const fontFamily: string | undefined = props.fontFamily;
+  // Los colores elegidos por el comerciante estan pensados para secciones de
+  // fondo claro. En las variantes cuyo pie es oscuro (tech/streetwear) se
+  // ignoran y se conservan los tonos claros por defecto, o el texto quedaria
+  // oscuro sobre oscuro. La tipografia si se hereda en ambos casos.
+  const useCustomColor = !isDarkFooter;
+  const logoColor = useCustomColor ? colors?.primary : undefined;
+  const descriptionColor = useCustomColor ? colors?.text : undefined;
   const logoStyle = {
-    ...(colors?.primary ? { color: colors.primary } : {}),
+    ...(logoColor ? { color: logoColor } : {}),
     ...(fontFamily ? { fontFamily } : {}),
     ...(props.fontSize ? { fontSize: scaledRem(SECTION_TITLE_BASE_REM, props.fontSize) } : {}),
   };
-  const descriptionStyle = { ...(colors?.text ? { color: colors.text } : {}), ...(fontFamily ? { fontFamily } : {}) };
+  const descriptionStyle = { ...(descriptionColor ? { color: descriptionColor } : {}), ...(fontFamily ? { fontFamily } : {}) };
 
   return (
     <footer id="bayup-footer" className={cn(
@@ -979,12 +1059,12 @@ export const SmartFooter = ({ props }: { props: any }) => {
           <h4 className={cn(
             "text-2xl tracking-tighter",
             s.display, s.displayWeight,
-            !colors?.primary && (isAngular ? "uppercase" : "font-extrabold"),
-            !colors?.primary && isLuxuryLike && "italic uppercase"
+            !logoColor && (isAngular ? "uppercase" : "font-extrabold"),
+            !logoColor && isLuxuryLike && "italic uppercase"
           )} style={logoStyle}>
             {props.logoText || 'Tu Tienda'}
           </h4>
-          <p className={cn("text-sm leading-relaxed font-medium", s.body, !colors?.text && (isDarkFooter ? "text-white/60" : "text-slate-500"))} style={descriptionStyle}>
+          <p className={cn("text-sm leading-relaxed font-medium", s.body, !descriptionColor && (isDarkFooter ? "text-white/60" : "text-slate-500"))} style={descriptionStyle}>
             {props.description || 'Gracias por visitarnos. Contáctanos para conocer más sobre nuestros productos.'}
           </p>
           <div className={cn("flex gap-6", isDarkFooter ? "text-white/40" : "text-slate-400")}>
@@ -1075,6 +1155,17 @@ export const SmartContactForm = ({ props, tenantId }: { props: any, tenantId?: s
     }
   };
 
+  const colors = props.colors as { primary?: string; secondary?: string; button?: string; text?: string } | undefined;
+  const fontFamily: string | undefined = props.fontFamily;
+  const fontStyle = fontFamily ? { fontFamily } : undefined;
+  const titleStyle = {
+    ...(colors?.primary ? { color: colors.primary } : {}),
+    ...(fontFamily ? { fontFamily } : {}),
+    ...(props.fontSize ? { fontSize: scaledRem(SECTION_TITLE_BASE_REM, props.fontSize) } : {}),
+  };
+  const eyebrowStyle = { ...(colors?.primary ? { color: colors.primary } : {}), ...(fontFamily ? { fontFamily } : {}) };
+  const btnStyle = colors?.button ? { backgroundColor: colors.button, color: getReadableTextColor(colors.button) } : undefined;
+
   const inputClass = cn(
     "w-full px-6 py-4 bg-white border border-transparent outline-none transition-all text-sm font-medium shadow-inner",
     s.radiusMd,
@@ -1085,14 +1176,14 @@ export const SmartContactForm = ({ props, tenantId }: { props: any, tenantId?: s
     <section id="bayup-contact" className={cn("py-32 px-6", variant === "tech" ? "bg-slate-950" : "bg-white")}>
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-20 space-y-4">
-          <h3 className={cn("text-[10px] font-bold uppercase tracking-[0.5em]", s.accentText)}>{props.badge || 'CONTACTO'}</h3>
+          <h3 className={cn("text-[10px] font-bold uppercase tracking-[0.5em]", !colors?.primary && s.accentText)} style={eyebrowStyle}>{props.badge || 'CONTACTO'}</h3>
           <h2 className={cn(
             "text-4xl md:text-5xl",
             s.display, s.displayWeight,
             isAngular && "uppercase",
             isLuxuryLike && "italic",
-            variant === "tech" ? "text-white" : "text-slate-900"
-          )}>
+            !colors?.primary && (variant === "tech" ? "text-white" : "text-slate-900")
+          )} style={titleStyle}>
             {props.title || 'Hablemos de su próxima joya'}
           </h2>
         </div>
@@ -1122,7 +1213,12 @@ export const SmartContactForm = ({ props, tenantId }: { props: any, tenantId?: s
               <label className={cn("text-[9px] font-black uppercase tracking-widest ml-2", variant === "tech" ? "text-slate-500" : "text-slate-400")}>Su mensaje</label>
               <textarea required rows={5} value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})} className={cn(inputClass, "resize-none")} placeholder="¿En qué podemos ayudarle?" />
             </div>
-            <button disabled={isSending} type="submit" className={cn("md:col-span-2 w-full py-5 font-bold text-xs uppercase tracking-[0.3em] transition-all shadow-xl flex items-center justify-center gap-4", s.btnPrimary)}>
+            <button
+              disabled={isSending}
+              type="submit"
+              className={cn("md:col-span-2 w-full py-5 font-bold text-xs uppercase tracking-[0.3em] transition-all shadow-xl flex items-center justify-center gap-4", !colors?.button && s.btnPrimary, colors?.button && "rounded-full")}
+              style={{ ...btnStyle, ...fontStyle }}
+            >
               {isSending ? <Loader2 className="animate-spin" size={18}/> : <><Send size={18}/> Enviar mensaje</>}
             </button>
           </form>
@@ -1194,14 +1290,23 @@ export const SmartProductDetail = ({ product, relatedProducts = [], variant: var
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           {/* Galería */}
           <div className="space-y-4">
-            <div className={cn("aspect-square overflow-hidden", s.radiusLg, isDark ? "bg-slate-900" : "bg-gray-50")}>
-              {images[activeImg] && <img src={images[activeImg]} className="w-full h-full object-cover" alt={product.name} />}
+            <div className={cn("aspect-square overflow-hidden relative", s.radiusLg, isDark ? "bg-slate-900" : "bg-gray-50")}>
+              {images[activeImg] && (
+                <Image
+                  src={images[activeImg]}
+                  alt={product.name}
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover"
+                />
+              )}
             </div>
             {images.length > 1 && (
               <div className="flex gap-3">
                 {images.map((img, i) => (
                   <button key={i} onClick={() => setActiveImg(i)} className={cn("h-20 w-20 overflow-hidden border-2 transition-colors shrink-0", s.radiusMd, activeImg === i ? s.accentBorder : "border-transparent")}>
-                    <img src={img} className="w-full h-full object-cover" alt="" />
+                    <Image src={img} alt="" width={80} height={80} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -1287,8 +1392,19 @@ export const SmartProductDetail = ({ product, relatedProducts = [], variant: var
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {relatedProducts.slice(0, 4).map((p: any) => (
                 <div key={p.id} onClick={() => goToProduct(p.id)} className="space-y-3 cursor-pointer group">
-                  <div className={cn("aspect-square overflow-hidden", s.radiusMd, isDark ? "bg-slate-900" : "bg-gray-50")}>
-                    <img src={Array.isArray(p.image_url) ? p.image_url[0] : p.image_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={p.name} />
+                  <div className={cn("aspect-square overflow-hidden relative", s.radiusMd, isDark ? "bg-slate-900" : "bg-gray-50")}>
+                    {(() => {
+                      const relSrc = Array.isArray(p.image_url) ? p.image_url[0] : p.image_url;
+                      return relSrc ? (
+                        <Image
+                          src={relSrc}
+                          alt={p.name}
+                          fill
+                          sizes="(max-width: 768px) 50vw, 25vw"
+                          className="object-cover group-hover:scale-105 transition-transform duration-700"
+                        />
+                      ) : null;
+                    })()}
                   </div>
                   <p className={cn("text-xs font-bold truncate", isDark ? "text-white" : "text-gray-900")}>{p.name}</p>
                   <p className={cn("text-sm font-black", s.accentText)}>$ {Number(p.price || 0).toLocaleString('es-CO')}</p>
@@ -1401,6 +1517,14 @@ export const SmartCustomMedia = ({ props, onDragHandlePointerDown, onRemove }: {
             style={{ borderRadius: mediaRadius }}
           />
         ) : (
+          // Se queda como <img> plano a propósito: este elemento tiene tamaño
+          // libre (ancho fijo en px, alto automático según la proporción
+          // intrínseca de la imagen que suba el comerciante) — next/image
+          // necesita `fill` o un `height` conocido de antemano, y forzar
+          // cualquiera de los dos aquí distorsionaría imágenes con una
+          // relación de aspecto distinta a la asumida. No es un candidato de
+          // LCP real (elemento decorativo, posicionado libremente encima del
+          // resto de la página).
           <img src={props.mediaUrl} alt="" className="w-full h-auto shadow-md object-cover" style={{ borderRadius: mediaRadius }} />
         )
       ) : (
@@ -1429,6 +1553,18 @@ export const SmartTrustBanner = ({ props }: { props?: any } = {}) => {
     { icon: Verified, label: "Pago seguro", sub: "Tus datos siempre protegidos" },
   ];
 
+  const colors = props?.colors as { primary?: string; secondary?: string; button?: string; text?: string } | undefined;
+  const fontFamily: string | undefined = props?.fontFamily;
+  const fontStyle = fontFamily ? { fontFamily } : undefined;
+  // El circulo del icono usa el acento suave de la variante; con color propio
+  // se tinta ese mismo circulo (20% de opacidad via sufijo hex) para que el
+  // icono siga legible sobre el.
+  const iconWrapStyle = colors?.secondary
+    ? { backgroundColor: `${colors.secondary}33`, color: colors.secondary }
+    : undefined;
+  const labelStyle = { ...(colors?.primary ? { color: colors.primary } : {}), ...(fontFamily ? { fontFamily } : {}) };
+  const subStyle = { ...(colors?.text ? { color: colors.text } : {}), ...(fontFamily ? { fontFamily } : {}) };
+
   return (
     <section className={cn("py-16 border-y", variant === "tech" ? "bg-slate-900 border-cyan-400/10" : "bg-slate-50 border-slate-100")}>
       <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-10">
@@ -1436,11 +1572,14 @@ export const SmartTrustBanner = ({ props }: { props?: any } = {}) => {
           const Icon = item.icon || ShieldCheck;
           return (
             <div key={i} className="flex flex-col items-center text-center gap-3">
-              <div className={cn("h-14 w-14 flex items-center justify-center", isAngular ? "rounded-md" : "rounded-full", s.accentBgSoft, s.accentText)}>
+              <div
+                className={cn("h-14 w-14 flex items-center justify-center", isAngular ? "rounded-md" : "rounded-full", !colors?.secondary && cn(s.accentBgSoft, s.accentText))}
+                style={iconWrapStyle}
+              >
                 <Icon size={24} />
               </div>
-              <p className={cn("text-xs font-black uppercase tracking-wide", variant === "tech" ? "text-white" : "text-slate-900")}>{item.label}</p>
-              <p className={cn("text-[11px]", variant === "tech" ? "text-slate-500" : "text-slate-400")}>{item.sub}</p>
+              <p className={cn("text-xs font-black uppercase tracking-wide", !colors?.primary && (variant === "tech" ? "text-white" : "text-slate-900"))} style={labelStyle}>{item.label}</p>
+              <p className={cn("text-[11px]", !colors?.text && (variant === "tech" ? "text-slate-500" : "text-slate-400"))} style={subStyle}>{item.sub}</p>
             </div>
           );
         })}
@@ -1460,6 +1599,17 @@ export const SmartBentoGrid = ({ props }: { props?: any } = {}) => {
   const items: any[] = props?.items || [];
   if (items.length === 0) return null;
 
+  const colors = props?.colors as { primary?: string; secondary?: string; button?: string; text?: string } | undefined;
+  const fontFamily: string | undefined = props?.fontFamily;
+  const titleStyle = {
+    ...(colors?.primary ? { color: colors.primary } : {}),
+    ...(fontFamily ? { fontFamily } : {}),
+    ...(props?.fontSize ? { fontSize: scaledRem(SECTION_TITLE_BASE_REM, props.fontSize) } : {}),
+  };
+  // Las etiquetas van sobre el degradado oscuro de cada imagen, asi que se
+  // mantienen blancas — solo heredan la tipografia.
+  const labelStyle = fontFamily ? { fontFamily } : undefined;
+
   return (
     <section className={cn("py-32 px-6", variant === "tech" ? "bg-slate-950" : "bg-white")}>
       <div className="max-w-7xl mx-auto">
@@ -1467,8 +1617,8 @@ export const SmartBentoGrid = ({ props }: { props?: any } = {}) => {
           "text-center text-4xl mb-16",
           s.display, s.displayWeight,
           isAngular && "uppercase",
-          variant === "tech" ? "text-white" : "text-slate-900"
-        )}>
+          !colors?.primary && (variant === "tech" ? "text-white" : "text-slate-900")
+        )} style={titleStyle}>
           {props?.title || 'Inspiración'}
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 grid-rows-2 gap-6 h-[600px]">
@@ -1482,10 +1632,18 @@ export const SmartBentoGrid = ({ props }: { props?: any } = {}) => {
                 i !== 0 && "col-span-1 row-span-1"
               )}
             >
-              <img className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src={item.image} alt={item.label || ''} />
+              {item.image && (
+                <Image
+                  src={item.image}
+                  alt={item.label || ''}
+                  fill
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                  className="object-cover group-hover:scale-110 transition-transform duration-700"
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-transparent" />
               {item.label && (
-                <p className="absolute bottom-4 left-4 text-white text-sm font-bold uppercase tracking-wide">{item.label}</p>
+                <p className="absolute bottom-4 left-4 text-white text-sm font-bold uppercase tracking-wide" style={labelStyle}>{item.label}</p>
               )}
             </div>
           ))}
@@ -1510,6 +1668,19 @@ export const SmartServices = ({ props }: { props?: any } = {}) => {
     { icon: Headset, label: "Atención postventa", sub: "Resolvemos cualquier duda después de tu compra" },
   ];
 
+  const colors = props?.colors as { primary?: string; secondary?: string; button?: string; text?: string } | undefined;
+  const fontFamily: string | undefined = props?.fontFamily;
+  const titleStyle = {
+    ...(colors?.primary ? { color: colors.primary } : {}),
+    ...(fontFamily ? { fontFamily } : {}),
+    ...(props?.fontSize ? { fontSize: scaledRem(SECTION_TITLE_BASE_REM, props.fontSize) } : {}),
+  };
+  const iconWrapStyle = colors?.secondary
+    ? { backgroundColor: `${colors.secondary}33`, color: colors.secondary }
+    : undefined;
+  const labelStyle = { ...(colors?.primary ? { color: colors.primary } : {}), ...(fontFamily ? { fontFamily } : {}) };
+  const subStyle = { ...(colors?.text ? { color: colors.text } : {}), ...(fontFamily ? { fontFamily } : {}) };
+
   return (
     <section className={cn("py-28 px-6", variant === "tech" ? "bg-slate-900" : "bg-slate-50")}>
       <div className="max-w-6xl mx-auto">
@@ -1518,8 +1689,8 @@ export const SmartServices = ({ props }: { props?: any } = {}) => {
           s.display, s.displayWeight,
           isAngular && "uppercase",
           isLuxuryLike && "italic",
-          variant === "tech" ? "text-white" : "text-slate-900"
-        )}>
+          !colors?.primary && (variant === "tech" ? "text-white" : "text-slate-900")
+        )} style={titleStyle}>
           {props?.title || 'Nuestros Servicios'}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
@@ -1527,11 +1698,14 @@ export const SmartServices = ({ props }: { props?: any } = {}) => {
             const Icon = item.icon || Ruler;
             return (
               <div key={i} className={cn("p-8 text-center space-y-4", s.radiusLg, variant === "tech" ? "bg-slate-950" : "bg-white", "shadow-sm")}>
-                <div className={cn("h-16 w-16 flex items-center justify-center mx-auto", isAngular ? "rounded-md" : "rounded-full", s.accentBgSoft, s.accentText)}>
+                <div
+                  className={cn("h-16 w-16 flex items-center justify-center mx-auto", isAngular ? "rounded-md" : "rounded-full", !colors?.secondary && cn(s.accentBgSoft, s.accentText))}
+                  style={iconWrapStyle}
+                >
                   <Icon size={28} />
                 </div>
-                <h4 className={cn("text-sm font-black uppercase tracking-wide", variant === "tech" ? "text-white" : "text-slate-900")}>{item.label}</h4>
-                <p className={cn("text-sm leading-relaxed", variant === "tech" ? "text-slate-400" : "text-slate-500")}>{item.sub}</p>
+                <h4 className={cn("text-sm font-black uppercase tracking-wide", !colors?.primary && (variant === "tech" ? "text-white" : "text-slate-900"))} style={labelStyle}>{item.label}</h4>
+                <p className={cn("text-sm leading-relaxed", !colors?.text && (variant === "tech" ? "text-slate-400" : "text-slate-500"))} style={subStyle}>{item.sub}</p>
               </div>
             );
           })}

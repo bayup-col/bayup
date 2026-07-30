@@ -236,7 +236,8 @@ def create_public_order(request: Request, payload: PublicOrderCreateRequest, db:
 
 
 @router.get("/public/orders/{order_id}")
-async def public_order_tracking(order_id: str, db: Session = Depends(get_db)):
+@limiter.limit("30/minute")
+async def public_order_tracking(order_id: str, request: Request, db: Session = Depends(get_db)):
     """Tracking público de un pedido web, sin autenticación (usado por /pedido/[id])."""
     try:
         oid = _uuid.UUID(order_id)

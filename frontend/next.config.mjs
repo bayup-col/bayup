@@ -7,8 +7,10 @@ const nextConfig = {
     },
     images: {
         remotePatterns: [
-            { protocol: 'https', hostname: '**' },
-            { protocol: 'http', hostname: '**' },
+            { protocol: 'https', hostname: '*.supabase.co' },
+            { protocol: 'https', hostname: 'images.unsplash.com' },
+            { protocol: 'https', hostname: 'bayup.com.co' },
+            { protocol: 'https', hostname: '*.bayup.com.co' },
         ],
     },
     eslint: {

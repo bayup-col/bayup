@@ -1,10 +1,13 @@
 # backend/payment_service.py
 import hashlib
 import hmac
+import logging
 import requests
 import uuid
 import os
 from typing import Dict, Any
+
+logger = logging.getLogger("bayup.payment_service")
 
 # Credenciales de Wompi (sin fallback: si no están configuradas, los pagos quedan deshabilitados)
 WOMPI_PUBLIC_KEY = os.getenv("WOMPI_PUBLIC_KEY")
@@ -17,9 +20,9 @@ IS_PRODUCTION = bool(WOMPI_PUBLIC_KEY) and WOMPI_PUBLIC_KEY.startswith("pub_prod
 WOMPI_API_URL = "https://production.wompi.co/v1" if IS_PRODUCTION else "https://sandbox.wompi.co/v1"
 
 if WOMPI_CONFIGURED:
-    print(f"💳 Wompi Service: {'PRODUCTION' if IS_PRODUCTION else 'SANDBOX'} mode active.")
+    logger.info("Wompi Service: modo %s activo.", "PRODUCTION" if IS_PRODUCTION else "SANDBOX")
 else:
-    print("⚠️ Wompi Service: sin credenciales configuradas, pagos deshabilitados.")
+    logger.warning("Wompi Service: sin credenciales configuradas, pagos deshabilitados.")
 
 def generate_integrity_signature(reference: str, amount_in_cents: int, currency: str) -> str:
     """

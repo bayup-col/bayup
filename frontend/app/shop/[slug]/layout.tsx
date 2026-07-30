@@ -1,24 +1,15 @@
-﻿import { Metadata } from 'next';
+import { Metadata } from 'next';
 import { ReactNode } from 'react';
+import { studioFontVariables } from '@/lib/studio-fonts';
+import { getShopBaseData } from '@/lib/shop-data';
 
 interface Props {
   children: ReactNode;
   params: { slug: string };
 }
 
-async function getShopData(slug: string) {
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
-  try {
-    const res = await fetch(`${apiBase}/public/shop/${slug}`, { next: { revalidate: 3600 } });
-    if (!res.ok) return null;
-    return res.json();
-  } catch (e) {
-    return null;
-  }
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const data = await getShopData(params.slug);
+  const data = await getShopBaseData(params.slug);
 
   if (!data) {
     return {
@@ -53,5 +44,5 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default function ShopLayout({ children }: Props) {
-  return <>{children}</>;
+  return <div className={studioFontVariables}>{children}</div>;
 }

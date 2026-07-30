@@ -19,16 +19,28 @@ export const DraggableCanvasElement = ({
   productId = null,
   realProducts = [],
   realCategories = [],
-  storeVariant = undefined
+  storeVariant = undefined,
+  zoneColors = undefined,
+  zoneFontFamily = undefined
 }: any) => {
   const { viewport } = useStudio();
+
+  // Los colores de la zona (ver Canvas.tsx) son el default; si este bloque
+  // definio alguno propio, ese gana. Se MEZCLAN en vez de reemplazarse porque
+  // un bloque puede haber personalizado solo un slot (p.ej. el boton) y debe
+  // seguir heredando el resto de la zona.
+  const mergedColors = (zoneColors || el.props.colors)
+    ? { ...(zoneColors || {}), ...(el.props.colors || {}) }
+    : undefined;
 
   // El variant del navbar (ver Canvas.tsx) es el default de toda la pagina;
   // si el elemento ya trae su propio `variant` en el architecture.json, ese
   // gana (permite, por ejemplo, una excepcion puntual en un bloque).
   const elProps = {
     ...(storeVariant ? { variant: storeVariant } : {}),
+    ...(zoneFontFamily ? { fontFamily: zoneFontFamily } : {}),
     ...el.props,
+    ...(mergedColors ? { colors: mergedColors } : {}),
     ...(el.props.responsiveOverrides?.[viewport] || {})
   };
 

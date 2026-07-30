@@ -165,6 +165,23 @@ export const Canvas = ({
   // que un Context.Provider en el navbar no alcanzaria a sus hermanos.
   const storeVariant: string | undefined = pageData?.header?.elements?.find((el: any) => el.type === "navbar")?.props?.variant;
 
+  // Colores y tipografia por ZONA, con el mismo criterio que el editor de
+  // onboarding: cada zona (Superior/Centro/Final) guarda su estilo en un
+  // elemento representante — navbar para el header, el banner principal para
+  // el body, el footer para el pie. Aca se lee ese estilo y se propaga al
+  // resto de bloques hermanos de la misma zona, que de otro modo lo ignorarian
+  // (solo leen sus propios props). Un bloque que definio su propio color sigue
+  // ganando: esto es solo el valor por defecto de la zona.
+  const zoneStyleOf = (section: SectionType, repType: string) => {
+    const rep = pageData?.[section]?.elements?.find((el: any) => el.type === repType);
+    return { colors: rep?.props?.colors, fontFamily: rep?.props?.fontFamily };
+  };
+  const zoneStyles: Record<SectionType, { colors?: any; fontFamily?: string }> = {
+    header: zoneStyleOf("header", "navbar"),
+    body: zoneStyleOf("body", "hero-banner"),
+    footer: zoneStyleOf("footer", "footer-premium"),
+  };
+
   if (isLoading && !isPreview) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-gray-100 space-y-6">
@@ -209,6 +226,8 @@ export const Canvas = ({
               tenantId={tenantId}
               productId={productId}
               storeVariant={storeVariant}
+              zoneColors={zoneStyles[section]?.colors}
+              zoneFontFamily={zoneStyles[section]?.fontFamily}
             />
           </React.Fragment>
         ))}

@@ -205,14 +205,14 @@ async def resend_email_confirmation(payload: ResendConfirmationRequest, request:
 @router.post("/auth/forgot-password")
 @limiter.limit("3/minute")
 def forgot_password(request: Request, payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
-    import email_service
+    import email_queue as _eq
     user = db.query(models.User).filter(models.User.email == payload.email).first()
     if user:
         token = _secrets.token_urlsafe(32)
         user.password_reset_token = token
         user.password_reset_expires = datetime.now(timezone.utc) + timedelta(hours=1)
         db.commit()
-        email_service.send_password_reset(user.email, token)
+        _eq.enqueue("send_password_reset", email=user.email, token=token)
     return {"ok": True, "message": "Si el correo existe, recibirás un enlace en los próximos minutos."}
 
 
@@ -269,11 +269,8 @@ async def auth_google(request: Request, payload: GoogleAuthRequest, db: Session 
         user = crud.create_user(db, user=user_in)
         db.commit()
         db.refresh(user)
-        try:
-            import email_service as _es
-            _es.send_welcome_email(user.email, full_name, confirmed=True)
-        except Exception:
-            pass
+        import email_queue as _eq
+        _eq.enqueue("send_welcome_email", email=user.email, name=full_name, confirmed=True)
     if not getattr(user, "email_confirmed", False):
         user.email_confirmed = True
         db.commit()
