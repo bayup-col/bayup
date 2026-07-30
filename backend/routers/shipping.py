@@ -1,6 +1,6 @@
 import uuid as _uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -42,7 +42,10 @@ def _get_option(db: Session, option_id: str, tenant_id):
 
 
 @router.get("")
-async def get_options(request: Request, db: Session = Depends(get_db), user=Depends(current_user)):
+async def get_options(response: Response, request: Request, db: Session = Depends(get_db), user=Depends(current_user)):
+    # Cambia poco (el comerciante lo edita rara vez) — cache corto de navegador
+    # evita repetir la consulta en cada visita a Checkout/Configuración de envíos.
+    response.headers["Cache-Control"] = "private, max-age=60"
     return [_ser(o) for o in db.query(models.ShippingOption).filter(
         models.ShippingOption.owner_id == tenant_id_from(user)
     ).all()]
