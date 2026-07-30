@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { CheckCircle2, Eye, Loader2, Monitor } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -90,10 +91,12 @@ export default function TenantTemplatesGallery() {
                             >
                                 <div className="aspect-video bg-black/30 relative overflow-hidden">
                                     {tpl.preview_url ? (
-                                        <img
+                                        <Image
                                             src={tpl.preview_url}
                                             alt={tpl.name}
-                                            className="w-full h-full object-cover"
+                                            fill
+                                            sizes="(max-width: 768px) 100vw, 33vw"
+                                            className="object-cover"
                                         />
                                     ) : (
                                         <div className="absolute inset-0 flex items-center justify-center text-white/10">

@@ -12,6 +12,7 @@ import {
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
 import { apiRequest } from '@/lib/api';
@@ -65,7 +66,18 @@ const ProductMedia = ({ src, className, alt }: { src: string | null; className?:
   if (!src) return null;
   if (isVideo(src))
     return <video src={src} className={className} autoPlay muted loop playsInline style={{ objectFit: 'cover' }}/>;
-  return <img src={src} className={className} alt={alt || ''} onError={e => { (e.target as any).style.display = 'none'; }}/>;
+  return (
+    <div className="relative w-full h-full">
+      <Image
+        src={src}
+        alt={alt || ''}
+        fill
+        sizes="120px"
+        className={className}
+        onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+      />
+    </div>
+  );
 };
 
 // ── KPI CARD ───────────────────────────────────────────────────────────────
@@ -974,7 +986,7 @@ export default function ProductsPage() {
                       {/* Imagen o degradado */}
                       <div className="relative h-32 w-full overflow-hidden bg-gradient-to-br from-[#004d4d] to-[#00706e]">
                         {cat.image_url ? (
-                          <img src={cat.image_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt={cat.title}/>
+                          <Image src={cat.image_url} fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover group-hover:scale-105 transition-transform duration-300" alt={cat.title}/>
                         ) : (
                           <div className="w-full h-full flex items-center justify-center opacity-20">
                             <Layers size={40} className="text-white"/>
@@ -1270,7 +1282,7 @@ export default function ProductsPage() {
               {/* Header con imagen */}
               <div className="relative h-52 shrink-0 bg-gradient-to-br from-[#004d4d] to-[#006660] overflow-hidden">
                 {selectedCategory.image_url && (
-                  <img src={selectedCategory.image_url} className="absolute inset-0 w-full h-full object-cover opacity-60" alt={selectedCategory.title}/>
+                  <Image src={selectedCategory.image_url} fill sizes="(max-width: 768px) 100vw, 768px" className="object-cover opacity-60" alt={selectedCategory.title}/>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"/>
                 <div className="absolute top-4 right-4 flex gap-2">

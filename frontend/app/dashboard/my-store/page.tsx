@@ -21,6 +21,7 @@ import {
   Bot
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/context/auth-context';
 import { CUSTOM_HTML_TEMPLATES } from '@/lib/custom-templates';
 
@@ -222,7 +223,7 @@ export default function MyStoreHub() {
                             className="group bg-white rounded-[3rem] border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col"
                         >
                             <div className="h-56 overflow-hidden relative bg-gray-50">
-                                <img src={theme.preview_url || theme.thumbnail} alt={theme.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                                <Image src={theme.preview_url || theme.thumbnail} alt={theme.name} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover group-hover:scale-110 transition-transform duration-1000" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-[#004d4d]/80 via-[#004d4d]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
                                     <Link href="/dashboard/my-store/templates" className="w-full">
                                         <button className="w-full py-3 bg-[#00f2ff] text-[#004d4d] rounded-xl font-black text-[10px] uppercase tracking-widest shadow-2xl transform translate-y-4 group-hover:translate-y-0 transition-all duration-500">Instalar ahora</button>
