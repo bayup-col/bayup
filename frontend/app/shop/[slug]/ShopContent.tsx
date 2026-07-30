@@ -269,7 +269,23 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                 e.preventDefault();
                 const pid = target.dataset.productId || (productId as string | undefined);
                 const product = products.find(x => String(x.id) === String(pid));
-                if (product) addToCart(product);
+                if (product) {
+                    // addItem directo (mismo patrón que el sistema de bloques en
+                    // HighFidelityBlocks.tsx) — no addToCart(): esa función valida
+                    // stock contra product.variants, pero el listado público de
+                    // productos nunca incluye variants, así que ese chequeo
+                    // siempre falla y bloquearía el carrito para cualquier producto.
+                    const imgSrc = imgOf(product);
+                    addItem({
+                        id: product.id,
+                        title: product.name,
+                        price: product.price,
+                        image: imgSrc || '',
+                        quantity: 1,
+                        tenant_id: shopData.id,
+                        owner_id: shopData.owner_id,
+                    });
+                }
                 return;
             }
             if (action === 'checkout') {
