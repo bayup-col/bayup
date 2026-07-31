@@ -131,6 +131,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
     const [placingOrderStep, setPlacingOrderStep] = useState<'idle' | 'creating' | 'confirming'>('idle');
     const [legalModalOpen, setLegalModalOpen] = useState<null | keyof typeof LEGAL_LABELS>(null);
+    const customHtmlRef = useRef<HTMLDivElement>(null);
 
     // Carga el script del widget de Wompi al montar
     useEffect(() => {
@@ -158,6 +159,144 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             owner_id: shopData.owner_id
         });
     };
+
+    // Carga el motor de Tailwind (CDN) una sola vez, solo si la tienda usa
+    // alguna plantilla HTML nativa (custom_html) — su propio observer de DOM
+    // recalcula clases en cada navegación siguiente sin recargar el script.
+    useEffect(() => {
+        if (!shopData.custom_html) return;
+        if ((window as any).tailwind) return;
+        const script = document.createElement('script');
+        script.src = 'https://cdn.tailwindcss.com';
+        document.head.appendChild(script);
+    }, [shopData.custom_html]);
+
+    // Adaptador de plantillas HTML nativas (WebTemplate tipo "html"): las
+    // páginas llegan como HTML crudo vía dangerouslySetInnerHTML, así que
+    // el navegador nunca ejecuta sus <script> (comportamiento estándar de
+    // innerHTML). Este efecto: (1) revive esos scripts recreándolos como
+    // nodos reales, (2) rellena los data-bayup="..." con los datos que ya
+    // están en React (sin que la plantilla haga fetch propio) y (3) conecta
+    // data-bayup-action al carrito/checkout/router reales de Bayup — NO al
+    // carrito de localStorage ni al checkout por WhatsApp que trae la
+    // plantilla de fábrica (eso saltaría Wompi, el registro de pedidos y el
+    // descuento de inventario).
+    useEffect(() => {
+        const root = customHtmlRef.current;
+        if (!shopData.custom_html || !root) return;
+
+        Array.from(root.querySelectorAll('script')).forEach((oldScript) => {
+            const newScript = document.createElement('script');
+            Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+            newScript.textContent = oldScript.textContent;
+            oldScript.replaceWith(newScript);
+        });
+
+        const fmt = (n: number) => `$${Math.round(n || 0).toLocaleString('es-CO')}`;
+        const products: any[] = shopData.products || [];
+        const imgOf = (p: any) => Array.isArray(p.image_url) ? p.image_url[0] : p.image_url;
+
+        root.querySelectorAll('[data-bayup="store-name"]').forEach(el => { el.textContent = shopData.full_name || ''; });
+        root.querySelectorAll('[data-bayup="store-phone"]').forEach(el => { el.textContent = shopData.phone || ''; });
+        root.querySelectorAll('[data-bayup="cart-count"]').forEach(el => {
+            el.textContent = cart.length ? String(cart.length) : '';
+            (el as HTMLElement).style.display = cart.length ? '' : 'none';
+        });
+
+        const grid = root.querySelector('[data-bayup="product-grid"]');
+        const cardTpl = root.querySelector('template[data-bayup="product-card-template"]') as HTMLTemplateElement | null;
+        if (grid && cardTpl) {
+            grid.innerHTML = '';
+            products.forEach(p => {
+                const clone = cardTpl.content.cloneNode(true) as DocumentFragment;
+                const src = imgOf(p);
+                clone.querySelectorAll('[data-bayup-card="image"]').forEach((el: any) => { if (src) el.src = src; el.alt = p.name; });
+                clone.querySelectorAll('[data-bayup-card="name"]').forEach(el => { el.textContent = p.name; });
+                clone.querySelectorAll('[data-bayup-card="price"]').forEach(el => { el.textContent = fmt(p.price); });
+                clone.querySelectorAll('[data-bayup-action="add-to-cart"]').forEach(el => { (el as HTMLElement).dataset.productId = String(p.id); });
+                clone.querySelectorAll('[data-bayup-action="nav-product"]').forEach(el => { (el as HTMLElement).dataset.productId = String(p.id); });
+                grid.appendChild(clone);
+            });
+        }
+
+        if (view === 'product' && productId) {
+            const p = products.find(x => String(x.id) === String(productId));
+            if (p) {
+                const src = imgOf(p);
+                root.querySelectorAll('[data-bayup="product-name"]').forEach(el => { el.textContent = p.name; });
+                root.querySelectorAll('[data-bayup="product-price"]').forEach(el => { el.textContent = fmt(p.price); });
+                root.querySelectorAll('[data-bayup="product-description"]').forEach(el => { el.textContent = p.description || ''; });
+                root.querySelectorAll('img[data-bayup="product-image"]').forEach((el: any) => { if (src) el.src = src; el.alt = p.name; });
+                root.querySelectorAll('[data-bayup-action="add-to-cart"]').forEach(el => { (el as HTMLElement).dataset.productId = String(p.id); });
+            }
+        }
+
+        const cartBody = root.querySelector('[data-bayup="cart-items"]');
+        const rowTpl = root.querySelector('template[data-bayup="cart-row-template"]') as HTMLTemplateElement | null;
+        if (cartBody) {
+            cartBody.innerHTML = '';
+            if (rowTpl) {
+                cart.forEach(item => {
+                    const clone = rowTpl.content.cloneNode(true) as DocumentFragment;
+                    clone.querySelectorAll('[data-bayup-row="name"]').forEach(el => { el.textContent = item.title; });
+                    clone.querySelectorAll('[data-bayup-row="price"]').forEach(el => { el.textContent = fmt(item.price); });
+                    clone.querySelectorAll('[data-bayup-row="qty"]').forEach(el => { el.textContent = String(item.quantity); });
+                    clone.querySelectorAll('[data-bayup-row="subtotal"]').forEach(el => { el.textContent = fmt(item.price * item.quantity); });
+                    cartBody.appendChild(clone);
+                });
+            }
+        }
+        root.querySelectorAll('[data-bayup="cart-subtotal"], [data-bayup="cart-total"]').forEach(el => { el.textContent = fmt(cartTotal); });
+
+        const NAV_VIEW: Record<string, string> = { 'nav-home': '', 'nav-catalog': 'catalog', 'nav-contact': 'contact', 'nav-privacy': 'privacy', 'nav-cart': 'cart' };
+        const handleClick = (e: MouseEvent) => {
+            const target = (e.target as HTMLElement)?.closest('[data-bayup-action]') as HTMLElement | null;
+            if (!target || !root.contains(target)) return;
+            const action = target.dataset.bayupAction || '';
+            if (action in NAV_VIEW) {
+                e.preventDefault();
+                const v = NAV_VIEW[action];
+                router.push(v ? `/shop/${slug}?view=${v}` : `/shop/${slug}`);
+                return;
+            }
+            if (action === 'nav-product') {
+                e.preventDefault();
+                const pid = target.dataset.productId;
+                if (pid) router.push(`/shop/${slug}?view=product&id=${pid}`);
+                return;
+            }
+            if (action === 'add-to-cart') {
+                e.preventDefault();
+                const pid = target.dataset.productId || (productId as string | undefined);
+                const product = products.find(x => String(x.id) === String(pid));
+                if (product) {
+                    // addItem directo (mismo patrón que el sistema de bloques en
+                    // HighFidelityBlocks.tsx) — no addToCart(): esa función valida
+                    // stock contra product.variants, pero el listado público de
+                    // productos nunca incluye variants, así que ese chequeo
+                    // siempre falla y bloquearía el carrito para cualquier producto.
+                    const imgSrc = imgOf(product);
+                    addItem({
+                        id: product.id,
+                        title: product.name,
+                        price: product.price,
+                        image: imgSrc || '',
+                        quantity: 1,
+                        tenant_id: shopData.id,
+                        owner_id: shopData.owner_id,
+                    });
+                }
+                return;
+            }
+            if (action === 'checkout') {
+                e.preventDefault();
+                if (cart.length === 0) return;
+                setIsCheckoutOpen(true);
+            }
+        };
+        root.addEventListener('click', handleClick);
+        return () => root.removeEventListener('click', handleClick);
+    }, [shopData.custom_html, shopData.products, shopData.full_name, shopData.phone, cart, cartTotal, view, productId, slug, router]);
 
     const extractErrorMessage = async (res: Response, fallback: string) => {
         try {
@@ -420,6 +559,10 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
         <div className="min-h-screen bg-[#FAFAFA] text-slate-900 font-sans selection:bg-[#00f2ff] selection:text-black relative">
 
             {/* --- NAVEGACIÓN UNIVERSAL --- */}
+            {/* Oculta en páginas de plantilla HTML nativa (custom_html): ese
+                HTML trae su propio header/nav — mostrar ambos duplicaría la
+                barra superior. */}
+            {!shopData.custom_html && (<>
             <m.nav style={{ backgroundColor: navBg }} className="fixed top-0 w-full z-[1000] border-b border-white/10 backdrop-blur-md h-20 lg:h-24 flex items-center px-4 lg:px-6">
                 <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
                     <div className="flex items-center gap-4 lg:gap-10 min-w-0">
@@ -470,6 +613,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                     </m.div>
                 )}
             </AnimatePresence>
+            </>)}
 
             {/* --- PANEL DE FILTROS (GLASSMORPHISM) --- */}
             <AnimatePresence>
@@ -499,12 +643,12 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             </AnimatePresence>
 
             {/* --- MOTOR DE RENDERIZADO (STUDIO VS DEFAULT) --- */}
-            <main className="pt-20 lg:pt-24 min-h-screen">
+            <main className={shopData.custom_html ? '' : 'pt-20 lg:pt-24 min-h-screen'}>
                 {shopData.custom_html ? (
                     // Plantilla tipo HTML curada por el equipo Bayup (no es
                     // contenido subido por el usuario final, por eso el
                     // riesgo de inyección es bajo) — se renderiza tal cual.
-                    <div dangerouslySetInnerHTML={{ __html: shopData.custom_html }} />
+                    <div ref={customHtmlRef} dangerouslySetInnerHTML={{ __html: shopData.custom_html }} />
                 ) : shopData.custom_schema ? (
                     <StudioProvider>
                         <Canvas
@@ -660,7 +804,8 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             </main>
 
             {/* --- FOOTER LEGAL --- */}
-            {(shopData.terms_conditions || shopData.privacy_policy || shopData.return_policy || shopData.shipping_policy) && (
+            {/* La plantilla HTML nativa ya trae su propio footer. */}
+            {!shopData.custom_html && (shopData.terms_conditions || shopData.privacy_policy || shopData.return_policy || shopData.shipping_policy) && (
                 <footer className="border-t border-gray-100 bg-white py-10 px-6">
                     <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
                         <p className="text-[11px] text-gray-400 font-medium">© {new Date().getFullYear()} {shopData.full_name}. Todos los derechos reservados.</p>

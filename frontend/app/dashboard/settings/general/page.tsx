@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Store, Mail, Phone, Globe, MapPin, Clock, Camera, Loader2,
@@ -517,8 +518,8 @@ export default function GeneralSettings() {
           <div className="flex items-start gap-4 relative z-10">
             {/* Avatar */}
             <div className="relative shrink-0">
-              <div className="h-14 w-14 rounded-2xl bg-gray-800 border-2 border-white/10 overflow-hidden flex items-center justify-center text-white text-xl font-black shadow-xl">
-                {identity.logo ? <img src={identity.logo} className="w-full h-full object-cover" alt="logo"/> : identity.name.charAt(0) || '?'}
+              <div className="relative h-14 w-14 rounded-2xl bg-gray-800 border-2 border-white/10 overflow-hidden flex items-center justify-center text-white text-xl font-black shadow-xl">
+                {identity.logo ? <Image src={identity.logo} fill sizes="56px" className="object-cover" alt="logo"/> : identity.name.charAt(0) || '?'}
               </div>
               <label htmlFor="logo-upload-mob" className="absolute -bottom-1 -right-1 h-6 w-6 bg-[#004d4d] rounded-lg flex items-center justify-center cursor-pointer active:bg-[#00b2bd] transition-colors shadow-lg">
                 {isSaving ? <Loader2 size={10} className="animate-spin text-white"/> : <Camera size={10} className="text-white"/>}
@@ -603,8 +604,8 @@ export default function GeneralSettings() {
         <div className="absolute inset-0 bg-gradient-to-r from-[#004d4d]/40 to-transparent pointer-events-none"/>
         {/* Avatar/logo */}
         <div className="relative shrink-0 z-10">
-          <div className="h-20 w-20 rounded-[1.5rem] bg-gray-800 border-2 border-white/10 overflow-hidden flex items-center justify-center text-white text-2xl font-black shadow-xl">
-            {identity.logo ? <img src={identity.logo} className="w-full h-full object-cover" alt="logo"/> : identity.name.charAt(0) || '?'}
+          <div className="relative h-20 w-20 rounded-[1.5rem] bg-gray-800 border-2 border-white/10 overflow-hidden flex items-center justify-center text-white text-2xl font-black shadow-xl">
+            {identity.logo ? <Image src={identity.logo} fill sizes="80px" className="object-cover" alt="logo"/> : identity.name.charAt(0) || '?'}
           </div>
           <label htmlFor="logo-upload" className="absolute -bottom-1.5 -right-1.5 h-7 w-7 bg-[#004d4d] rounded-xl flex items-center justify-center cursor-pointer hover:bg-[#00b2bd] transition-colors shadow-lg">
             {isSaving ? <Loader2 size={12} className="animate-spin text-white"/> : <Camera size={12} className="text-white"/>}
@@ -762,9 +763,9 @@ export default function GeneralSettings() {
                   <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-widest">Así aparece en tu factura</h3>
                 </div>
                 <div className="p-4 rounded-2xl border border-dashed border-gray-200 bg-gray-50 space-y-1">
-                  <div className="h-8 w-8 rounded-lg bg-gray-800 flex items-center justify-center text-white text-xs font-black mb-2">
+                  <div className="relative h-8 w-8 rounded-lg bg-gray-800 flex items-center justify-center text-white text-xs font-black mb-2">
                     {identity.logo
-                      ? <img src={identity.logo} className="w-full h-full object-cover rounded-lg" alt="logo"/>
+                      ? <Image src={identity.logo} fill sizes="32px" className="object-cover rounded-lg" alt="logo"/>
                       : identity.name.charAt(0) || '?'}
                   </div>
                   <p className="text-[11px] font-black text-gray-900">{identity.name || 'Nombre de empresa'}</p>

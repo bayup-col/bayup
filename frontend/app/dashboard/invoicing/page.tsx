@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import Image from 'next/image';
 import { createPortal } from 'react-dom';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
@@ -1100,9 +1101,9 @@ export default function InvoicingPage() {
                             className="absolute top-2 right-2 z-20 h-7 w-7 bg-[#004d4d] text-white rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-md hover:scale-110">
                             <Plus size={13} strokeWidth={3}/>
                           </div>
-                          <div className="aspect-square bg-gray-50 rounded-lg mb-2.5 overflow-hidden">
+                          <div className="relative aspect-square bg-gray-50 rounded-lg mb-2.5 overflow-hidden">
                             {img
-                              ? <img src={img} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"/>
+                              ? <Image src={img} alt={p.name} fill sizes="200px" className="object-cover group-hover:scale-110 transition-transform duration-500"/>
                               : <div className="h-full flex items-center justify-center text-gray-200"><Package size={20}/></div>}
                           </div>
                           <p className="text-[10px] font-black text-gray-900 truncate leading-tight">{p.name}</p>
@@ -1439,7 +1440,7 @@ export default function InvoicingPage() {
                   return (
                     <div className="relative shrink-0 overflow-hidden" style={{ height: '280px', borderRadius: '28px 28px 0 0', background: imgSrc ? '#f3f4f6' : 'linear-gradient(135deg,#e8faf9,#f0fdf4)' }}>
                       {imgSrc ? (
-                        <img src={imgSrc} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={selectedProductForVariant.name}/>
+                        <Image src={imgSrc} fill sizes="400px" style={{ objectFit: 'cover' }} alt={selectedProductForVariant.name}/>
                       ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center gap-3">
                           <div className="w-16 h-16 rounded-2xl bg-[#004d4d]/10 flex items-center justify-center">
