@@ -618,7 +618,19 @@ async def live_preview_template(
         html = html.replace("</head>", preview_sdk + "</head>", 1)
     else:
         html = preview_sdk + html
-    return HTMLResponse(content=html)
+    response = HTMLResponse(content=html)
+    # El middleware global de seguridad solo aplica un CSP por defecto (setdefault) si la
+    # respuesta no trae uno propio — las plantillas HTML nativas cargan Tailwind CDN y
+    # Google Fonts, bloqueados por ese default restringido a 'self'.
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self' https:;"
+    )
+    return response
 
 
 @router.put("/web-templates/{template_id}/toggle")
