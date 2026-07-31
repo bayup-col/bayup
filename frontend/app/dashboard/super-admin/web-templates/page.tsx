@@ -133,9 +133,25 @@ export default function WebTemplatesPage() {
   // para HTML abre el live-preview real del backend en una pestaña nueva.
   const openTemplatePreview = useCallback((t: Template) => {
     if (t.template_type === 'html') {
-      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
-      const url = `${base}/super-admin/web-templates/${t.id}/live-preview/home?token=${encodeURIComponent(token || '')}`;
-      window.open(url, '_blank');
+      // Se abre la pestaña de inmediato (dentro del gesto del click) para
+      // evitar que el navegador bloquee el popup; se navega una vez llega
+      // el preview_token de un solo uso.
+      const win = window.open('', '_blank');
+      (async () => {
+        try {
+          const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
+          const res = await fetch(`${base}/super-admin/web-templates/${t.id}/preview-token`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) throw new Error('preview-token failed');
+          const data = await res.json();
+          const url = `${base}/super-admin/web-templates/${t.id}/live-preview/home?preview_token=${encodeURIComponent(data.preview_token)}`;
+          if (win) win.location.href = url;
+        } catch {
+          win?.close();
+        }
+      })();
       return;
     }
     localStorage.setItem('bayup-studio-preview', JSON.stringify((t as any).schema_data));
@@ -176,11 +192,12 @@ export default function WebTemplatesPage() {
 
   // Al cargar los templates, precarga los previews de todos los HTML
   useEffect(() => {
+    if (!token) return;
     templates
       .filter(t => t.template_type === 'html' && !htmlPreviews[t.id])
       .forEach(t => fetchHtmlPreview(t.id));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templates]);
+  }, [templates, token]);
 
   // Formulario nueva plantilla
   const [newForm, setNewForm] = useState({ name: '', category: '', description: '', tags: '' });
