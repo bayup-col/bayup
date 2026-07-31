@@ -310,6 +310,17 @@ function EditorContent() {
   // sobre la cuenta del super-admin en vez de la del cliente pendiente.
   const targetUserId = searchParams.get('targetUserId');
   const backToOnboardingUrl = `/onboarding${targetUserId ? `?targetUserId=${targetUserId}` : ''}`;
+
+  // Modo "editar página real": llegamos desde /dashboard/paginas (no desde el
+  // wizard de onboarding) con un pageKey en español — a diferencia del modo
+  // onboarding (que arranca de schema_data genérico de una plantilla y solo
+  // guarda un borrador en sessionStorage), acá cargamos y guardamos el
+  // schema_data REAL ya publicado de la tienda del comerciante.
+  const pageKeyParam = searchParams.get('pageKey');
+  const returnTo = searchParams.get('returnTo') || '/dashboard/paginas';
+  const PAGE_KEY_MAP: Record<string, string> = { home: 'home', catalogo: 'catalog', nosotros: 'about', contacto: 'about' };
+  const liveEditPageKey = pageKeyParam ? (PAGE_KEY_MAP[pageKeyParam] || null) : null;
+  const isLiveEdit = !!liveEditPageKey && !templateId;
   const { token, isAuthenticated, isLoading: authLoading } = useAuth();
   const { showToast } = useToast();
   const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
@@ -366,6 +377,23 @@ function EditorContent() {
   // de vista desde el menú, sin esto el contenido nuevo cambia pero la
   // posición de scroll queda igual — da la sensación de que "no pasó nada".
   useEffect(() => { previewScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); }, [previewView]);
+
+  useEffect(() => {
+    if (!token || !isLiveEdit || !liveEditPageKey) return;
+    fetch(`${apiBase}/shop-pages/${liveEditPageKey}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.ok ? res.json() : null)
+      .then((page: any) => {
+        if (!page || !page.schema_data) {
+          showToast('Esta página todavía no tiene contenido publicado para editar', 'error');
+          router.push(returnTo);
+          return;
+        }
+        setTemplateName(`Editando: ${pageKeyParam === 'nosotros' ? 'Nosotros' : pageKeyParam === 'contacto' ? 'Contacto' : pageKeyParam === 'catalogo' ? 'Catálogo' : 'Inicio'}`);
+        setDraft(JSON.parse(JSON.stringify(page.schema_data)));
+      })
+      .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, isLiveEdit, liveEditPageKey, apiBase]);
 
   useEffect(() => {
     if (!token || !templateId) return;
@@ -791,7 +819,28 @@ function EditorContent() {
     window.addEventListener('pointerup', onUp);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (isLiveEdit && liveEditPageKey) {
+      setSaving(true);
+      try {
+        const res = await fetch(`${apiBase}/shop-pages/publish`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ page_key: liveEditPageKey, schema_data: draft }),
+        });
+        if (res.ok) {
+          showToast('Página actualizada', 'success');
+          router.push(returnTo);
+        } else {
+          showToast('No se pudo guardar la página', 'error');
+        }
+      } catch {
+        showToast('Error de conexión al guardar', 'error');
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     setSaving(true);
     sessionStorage.setItem(`bayup_ob_schema_override_${templateId}`, JSON.stringify(draft));
     sessionStorage.setItem('bayup_ob_store_name', storeName);
@@ -833,7 +882,7 @@ function EditorContent() {
             disabled={saving}
             className="flex items-center gap-2 px-6 py-3 bg-cyan text-[#0A1A1A] rounded-full font-medium text-sm tracking-wide shadow-[0_15px_35px_-10px_rgba(0,242,255,0.4)] hover:bg-[#1AF5FF] transition-all disabled:opacity-50"
           >
-            <Check size={16} /> Guardar y volver
+            <Check size={16} /> {isLiveEdit ? 'Guardar cambios' : 'Guardar y volver'}
           </button>
         </div>
       </header>
@@ -1695,7 +1744,7 @@ function EditorContent() {
               <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
             </div>
             <div className="relative" ref={bodyContainerRef}>
-              <EditorPreviewNavProvider value={setPreviewView}>
+              <EditorPreviewNavProvider value={isLiveEdit ? () => {} : setPreviewView}>
                 {navbarEl && (
                   <div style={navPosition ? { transform: `translateY(${-navPosition}px)`, position: 'relative', zIndex: 50 } : undefined}>
                     <SmartNavbar props={previewNavbarProps} />
