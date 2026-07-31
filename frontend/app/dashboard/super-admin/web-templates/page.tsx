@@ -94,6 +94,14 @@ export default function WebTemplatesPage() {
   const [confirmAction, setConfirmAction] = useState<'toggle' | 'delete' | null>(null);
   const [showNew, setShowNew] = useState(false);
 
+  // Editor de HTML crudo para plantillas tipo "html" (no tienen editor visual de bloques)
+  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
+  const [editorPages, setEditorPages] = useState<Record<string, string>>({});
+  const [editorActivePage, setEditorActivePage] = useState<string>('home');
+  const [editorLoading, setEditorLoading] = useState(false);
+  const [editorSaving, setEditorSaving] = useState(false);
+  const [editorDirty, setEditorDirty] = useState<Record<string, boolean>>({});
+
   const closeDrawer = useCallback(() => {
     setSelected(null);
     setConfirmAction(null);
@@ -145,11 +153,11 @@ export default function WebTemplatesPage() {
   const htmlInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   useEffect(() => {
-    if (selected || showNew) {
+    if (selected || showNew || editingTemplate) {
       document.body.classList.add('modal-open');
       return () => { document.body.classList.remove('modal-open'); };
     }
-  }, [selected, showNew]);
+  }, [selected, showNew, editingTemplate]);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -192,6 +200,59 @@ export default function WebTemplatesPage() {
       }
     } catch { showToast('No se pudo actualizar la plantilla', 'error'); }
   };
+
+  const openHtmlEditor = useCallback(async (t: Template) => {
+    if (!token) return;
+    setEditingTemplate(t);
+    setEditorDirty({});
+    setEditorLoading(true);
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
+      const res = await fetch(`${base}/super-admin/web-templates/${t.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) { showToast('No se pudo cargar el HTML de la plantilla', 'error'); setEditingTemplate(null); return; }
+      const data = await res.json();
+      const pages: Record<string, string> = data.html_pages || {};
+      setEditorPages(pages);
+      setEditorActivePage(pages['home'] ? 'home' : (Object.keys(pages)[0] || 'home'));
+    } catch {
+      showToast('Error de conexión al cargar el HTML', 'error');
+      setEditingTemplate(null);
+    } finally {
+      setEditorLoading(false);
+    }
+  }, [token, showToast]);
+
+  const closeHtmlEditor = useCallback(() => {
+    if (Object.values(editorDirty).some(Boolean) && !confirm('Tienes cambios sin guardar. ¿Cerrar de todas formas?')) return;
+    setEditingTemplate(null);
+    setEditorPages({});
+    setEditorDirty({});
+  }, [editorDirty]);
+
+  const saveHtmlPage = useCallback(async () => {
+    if (!editingTemplate || !token) return;
+    setEditorSaving(true);
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
+      const res = await fetch(`${base}/super-admin/web-templates/${editingTemplate.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ html_pages: { [editorActivePage]: editorPages[editorActivePage] ?? '' } }),
+      });
+      if (res.ok) {
+        setEditorDirty(prev => ({ ...prev, [editorActivePage]: false }));
+        showToast(`Página "${editorActivePage}" guardada`, 'success');
+      } else {
+        showToast('No se pudo guardar la página', 'error');
+      }
+    } catch {
+      showToast('Error de conexión al guardar', 'error');
+    } finally {
+      setEditorSaving(false);
+    }
+  }, [editingTemplate, editorActivePage, editorPages, token, showToast]);
 
   const del = async (t: Template) => {
     if (!token) return;
@@ -360,12 +421,19 @@ export default function WebTemplatesPage() {
                 >
                   <Eye size={12} /> Vista previa
                 </button>
-                {t.template_type !== 'html' && (
+                {t.template_type !== 'html' ? (
                   <button
                     onClick={(e) => { e.stopPropagation(); router.push(`/onboarding/editor?templateId=${t.id}`); }}
                     className="flex items-center gap-2 h-9 px-4 rounded-full bg-[#00f2ff] text-[#0a1a1a] text-[10px] font-bold uppercase tracking-wide shadow-xl hover:scale-105 transition-transform"
                   >
                     <Edit3 size={12} /> Editar
+                  </button>
+                ) : (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); openHtmlEditor(t); }}
+                    className="flex items-center gap-2 h-9 px-4 rounded-full bg-[#7c3aed] text-white text-[10px] font-bold uppercase tracking-wide shadow-xl hover:scale-105 transition-transform"
+                  >
+                    <Edit3 size={12} /> Editar HTML
                   </button>
                 )}
               </div>
@@ -470,6 +538,13 @@ export default function WebTemplatesPage() {
               </div>
 
               <div className="px-6 pb-6 pt-4 border-t border-white/5 space-y-2 shrink-0">
+                {selected.template_type === 'html' && (
+                  <button
+                    onClick={() => openHtmlEditor(selected)}
+                    className="w-full h-10 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all bg-[#7c3aed]/15 border border-[#7c3aed]/30 text-[#7c3aed] hover:bg-[#7c3aed]/25">
+                    <Edit3 size={12} /> Editar HTML
+                  </button>
+                )}
                 {selected.template_type !== 'html' && (
                   <button
                     onClick={() => router.push(`/onboarding/editor?templateId=${selected.id}`)}
@@ -706,6 +781,86 @@ export default function WebTemplatesPage() {
                     </>
                   );
                 })()}
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Editor de HTML crudo (plantillas tipo "html") */}
+      <AnimatePresence>
+        {editingTemplate && (
+          <>
+            <div className="fixed inset-0 z-[9998]" onClick={closeHtmlEditor} />
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 16 }}
+                onClick={e => e.stopPropagation()}
+                className="w-full max-w-4xl h-[85vh] bg-[#080c0c] border border-white/8 rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+
+                <div className="flex justify-between items-center px-6 py-4 border-b border-white/5 shrink-0">
+                  <div>
+                    <h2 className="text-base font-black text-white flex items-center gap-2"><Code2 size={16} className="text-[#7c3aed]" /> Editar HTML — {editingTemplate.name}</h2>
+                    <p className="text-[10px] text-white/25 mt-0.5">Los cambios se guardan por página. Recuerda incluir el script de Tailwind y los atributos data-bayup si los quitas por error.</p>
+                  </div>
+                  <button onClick={closeHtmlEditor}
+                    className="h-8 w-8 rounded-xl border border-white/8 bg-white/4 flex items-center justify-center text-white/30 hover:text-white shrink-0">
+                    <X size={14} />
+                  </button>
+                </div>
+
+                <div className="flex gap-1.5 px-6 py-3 border-b border-white/5 shrink-0 overflow-x-auto">
+                  {HTML_PAGE_KEYS.filter(p => editorPages[p.key] !== undefined).map(p => (
+                    <button key={p.key} onClick={() => setEditorActivePage(p.key)}
+                      className={`h-8 px-3 rounded-lg text-[9px] font-bold uppercase tracking-wide transition-all shrink-0 flex items-center gap-1.5 ${editorActivePage === p.key ? 'bg-[#7c3aed]/15 text-[#7c3aed] border border-[#7c3aed]/30' : 'text-white/30 hover:text-white/60 border border-transparent'}`}>
+                      {p.label}
+                      {editorDirty[p.key] && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex-1 overflow-hidden p-4 relative">
+                  {editorLoading ? (
+                    <div className="absolute inset-0 flex items-center justify-center text-white/20 gap-2 text-[11px]">
+                      <RefreshCw size={16} className="animate-spin" /> Cargando HTML…
+                    </div>
+                  ) : (
+                    <textarea
+                      value={editorPages[editorActivePage] ?? ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditorPages(prev => ({ ...prev, [editorActivePage]: val }));
+                        setEditorDirty(prev => ({ ...prev, [editorActivePage]: true }));
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Tab') {
+                          e.preventDefault();
+                          const el = e.currentTarget;
+                          const { selectionStart, selectionEnd, value } = el;
+                          const next = value.slice(0, selectionStart) + '  ' + value.slice(selectionEnd);
+                          setEditorPages(prev => ({ ...prev, [editorActivePage]: next }));
+                          setEditorDirty(prev => ({ ...prev, [editorActivePage]: true }));
+                          requestAnimationFrame(() => { el.selectionStart = el.selectionEnd = selectionStart + 2; });
+                        }
+                      }}
+                      spellCheck={false}
+                      className="w-full h-full resize-none rounded-2xl bg-black/40 border border-white/8 text-white/80 text-[12px] font-mono leading-relaxed p-4 focus:outline-none focus:border-[#7c3aed]/40"
+                    />
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-white/5 shrink-0">
+                  <button onClick={() => openTemplatePreview(editingTemplate)}
+                    className="h-10 px-4 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border border-white/8 text-white/40 hover:text-white/70">
+                    <Eye size={12} /> Vista previa
+                  </button>
+                  <button
+                    onClick={saveHtmlPage}
+                    disabled={editorSaving || editorLoading || !editorDirty[editorActivePage]}
+                    className="h-10 px-5 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all bg-[#7c3aed] text-white hover:bg-[#8b5cf6] disabled:opacity-30 disabled:cursor-not-allowed">
+                    {editorSaving ? <><RefreshCw size={12} className="animate-spin" /> Guardando…</> : <>Guardar página "{editorActivePage}"</>}
+                  </button>
+                </div>
               </motion.div>
             </div>
           </>

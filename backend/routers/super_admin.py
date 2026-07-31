@@ -570,6 +570,43 @@ async def get_web_template(template_id: str, request: Request, db: Session = Dep
     return _serialize_template(template, include_html=True)
 
 
+@router.put("/web-templates/{template_id}")
+async def update_web_template(template_id: str, payload: dict, request: Request, db: Session = Depends(get_db), user=Depends(current_user)):
+    require_super_admin(user)
+    uid = _get_uuid(template_id, "template_id")
+    template = db.query(models.WebTemplate).filter(models.WebTemplate.id == uid).first()
+    if not template:
+        raise HTTPException(status_code=404, detail="Plantilla no encontrada")
+    if "name" in payload:
+        name = (payload.get("name") or "").strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="El nombre es obligatorio")
+        template.name = name
+    if "description" in payload:
+        template.description = payload.get("description") or ""
+    if "category" in payload:
+        template.category = payload.get("category") or "General"
+    if "color" in payload:
+        template.color = payload.get("color") or "#0f1a1a"
+    if "tags" in payload:
+        tags = payload.get("tags")
+        if isinstance(tags, str):
+            tags = [s.strip() for s in tags.split(",") if s.strip()]
+        template.tags = tags or []
+    if "html_pages" in payload:
+        if template.template_type != "html":
+            raise HTTPException(status_code=400, detail="Esta plantilla no es de tipo HTML")
+        incoming = payload.get("html_pages")
+        if not isinstance(incoming, dict) or not all(isinstance(v, str) for v in incoming.values()):
+            raise HTTPException(status_code=400, detail="html_pages debe ser un objeto {page_key: html}")
+        merged = dict(template.html_pages or {})
+        merged.update(incoming)
+        template.html_pages = merged
+    db.commit()
+    _clear_templates_cache()
+    return _serialize_template(template, include_html=True)
+
+
 @router.post("/web-templates/{template_id}/preview-token")
 async def generate_preview_token(template_id: str, request: Request, db: Session = Depends(get_db), user=Depends(current_user)):
     require_super_admin(user)
