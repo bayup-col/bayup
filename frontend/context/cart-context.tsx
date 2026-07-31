@@ -22,6 +22,8 @@ interface CartContextType {
   total: number;
   isCartOpen: boolean;
   setIsCartOpen: (isOpen: boolean) => void;
+  isCheckoutOpen: boolean;
+  setIsCheckoutOpen: (isOpen: boolean) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -29,6 +31,11 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  // Vive acá (no solo como estado local de ShopContent) para que bloques
+  // nativos renderizados dentro de Canvas (ej. la página de carrito nativa)
+  // puedan abrir el checkout real sin necesidad de pasar la función a mano
+  // por cada capa del árbol de componentes.
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const { showToast } = useToast();
 
   // Persistencia básica
@@ -76,7 +83,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const total = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, clearCart, total, isCartOpen, setIsCartOpen }}>
+    <CartContext.Provider value={{ items, addItem, removeItem, clearCart, total, isCartOpen, setIsCartOpen, isCheckoutOpen, setIsCheckoutOpen }}>
       {children}
     </CartContext.Provider>
   );

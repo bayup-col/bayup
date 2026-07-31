@@ -1427,6 +1427,18 @@ function EditorContent() {
                         <span className={`h-4 w-4 rounded-full bg-white block transition-transform ${productGridEl.props.showCategory === false ? '' : 'translate-x-4'}`} />
                       </span>
                     </button>
+                    <button
+                      onClick={() => updateElProps('body', productGridEl.id, { showFilters: productGridEl.props.showFilters !== true })}
+                      className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-50/60 hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                        {productGridEl.props.showFilters === true ? <Eye size={15} className="text-petroleum" /> : <EyeOff size={15} className="text-gray-400" />}
+                        Filtros de categoría y precio
+                      </span>
+                      <span className={`h-5 w-9 rounded-full p-0.5 transition-colors ${productGridEl.props.showFilters === true ? 'bg-cyan' : 'bg-gray-200'}`}>
+                        <span className={`h-4 w-4 rounded-full bg-white block transition-transform ${productGridEl.props.showFilters === true ? 'translate-x-4' : ''}`} />
+                      </span>
+                    </button>
                   </div>
                 </AccordionRow>
 

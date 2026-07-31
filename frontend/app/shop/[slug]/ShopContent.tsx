@@ -108,7 +108,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
     const productId = searchParams.get("id");
 
     const router = useRouter();
-    const { items: cart, addItem, removeItem, clearCart, total: cartTotal, isCartOpen, setIsCartOpen } = useCart();
+    const { items: cart, addItem, removeItem, clearCart, total: cartTotal, isCartOpen, setIsCartOpen, isCheckoutOpen, setIsCheckoutOpen } = useCart();
 
     // La carga inicial (tienda + productos + diseño publicado de la vista con
     // la que se abrió la página) ya llega resuelta desde el servidor
@@ -123,7 +123,6 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
     // --- LÓGICA DE INTERFAZ ---
-    const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [isClientLoginOpen, setIsClientLoginOpen] = useState(false);
     const [customerData, setCustomerData] = useState({
         name: "", phone: "", email: "", address: "", city: "", notes: ""
@@ -474,9 +473,14 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                     // tienda (no uno del otro), asi que se piden en paralelo en vez
                     // de en cascada — reduce a la mitad el tiempo hasta que la
                     // tienda publica se ve completa.
+                    // "cart" no es una página real persistida (su contenido es 100%
+                    // dinámico, viene del carrito en memoria) — reutilizamos el
+                    // header/footer ya publicados de "home" para mantener la misma
+                    // navegación y pie de página en vez de pedir una página inexistente.
+                    const pageKeyToFetch = view === 'cart' ? 'home' : view;
                     const [prodResult, pageResult] = await Promise.allSettled([
                         fetch(`${apiBase}/public/stores/${data.id}/products`),
-                        fetch(`${apiBase}/public/stores/${data.id}/pages/${view}`),
+                        fetch(`${apiBase}/public/stores/${data.id}/pages/${pageKeyToFetch}`),
                     ]);
 
                     if (prodResult.status === 'fulfilled' && prodResult.value.ok) {
@@ -530,6 +534,19 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [slug, view, productId, loading, !!shopData]);
+
+    // "cart" reutiliza el header/footer de home (ver el fetch más arriba) pero
+    // reemplaza el body por la página nativa de carrito — no hay shop_pages
+    // real para "cart" porque su contenido es 100% dinámico (items en memoria).
+    const canvasOverrideData = useMemo(() => {
+        if (!shopData?.custom_schema) return shopData?.custom_schema;
+        if (view !== 'cart') return shopData.custom_schema;
+        return {
+            header: shopData.custom_schema.header,
+            footer: shopData.custom_schema.footer,
+            body: { elements: [{ id: 'cart-page', type: 'cart-page', props: {} }], styles: {} },
+        };
+    }, [shopData?.custom_schema, view]);
 
     const filteredProducts = useMemo(() => {
         if (!shopData) return [];
@@ -652,7 +669,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                 ) : shopData.custom_schema ? (
                     <StudioProvider>
                         <Canvas
-                            overrideData={shopData.custom_schema}
+                            overrideData={canvasOverrideData}
                             isPreview={true}
                             initialProducts={shopData.products}
                             initialCategories={shopData.categories}

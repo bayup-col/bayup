@@ -385,6 +385,18 @@ export const SmartNavbar = ({ props }: { props: any }) => {
   const goTo = useSmartNavigation(setActiveFilter);
   const variant: StoreVariant = props.variant || "luxury";
   const s = getVariantStyle(variant);
+  // Algunas plantillas (ej. las convertidas 1:1 desde un diseño HTML a medida)
+  // quieren que el carrito sea una página completa en vez del drawer estándar
+  // de Bayup — activable por plantilla con esta prop, sin cambiar el
+  // comportamiento por defecto de las demás tiendas nativas.
+  const cartLinksToPage: boolean = props.cartLinksToPage === true;
+  const router = useRouter();
+  const params = useParams();
+  const slug = typeof params?.slug === 'string' ? params.slug : undefined;
+  const openCart = () => {
+    if (cartLinksToPage && slug) { router.push(`/shop/${slug}?view=cart`); return; }
+    setIsOpen(true);
+  };
 
   // Colores y tipografía elegidos a mano por el comerciante (editor de
   // plantilla). Si no los definió, se usan los del preset de variante de
@@ -493,7 +505,7 @@ export const SmartNavbar = ({ props }: { props: any }) => {
                     variant === "tech" ? "bg-cyan-400/10" : variant === "streetwear" ? "bg-black text-white" : "bg-gray-100",
                     s.radiusMd
                   )}
-                  onClick={() => setIsOpen(true)}
+                  onClick={openCart}
                 >
                   <ShoppingBag size={20} />
                   {cart.length > 0 && (
@@ -679,7 +691,7 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
   const variant: StoreVariant = props.variant || inherited;
   const s = getVariantStyle(variant);
 
-  const allProducts: any[] = props.products || [];
+  const allProducts: any[] = React.useMemo(() => props.products || [], [props.products]);
   const filterNorm = activeFilter ? normalizeLabel(activeFilter) : null;
   const isOfertas = filterNorm ? /oferta|descuento|sale|rebaja/.test(filterNorm) : false;
 
@@ -695,6 +707,31 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
       });
       if (matched.length > 0) displayProducts = matched;
     }
+  }
+
+  // Filtros laterales opcionales (categoría + precio), sobre los productos
+  // reales de la tienda — no hay filtro de talla porque Bayup no modela esa
+  // información por producto todavía.
+  const showFilters: boolean = props.showFilters === true;
+  const availableCategories = React.useMemo(
+    () => Array.from(new Set(allProducts.map((p) => p.category).filter(Boolean))) as string[],
+    [allProducts]
+  );
+  const priceCeiling = React.useMemo(
+    () => Math.max(500000, ...allProducts.map((p) => Number(p.price) || 0)),
+    [allProducts]
+  );
+  const [selectedCategories, setSelectedCategories] = React.useState<string[]>([]);
+  const [maxPrice, setMaxPrice] = React.useState(priceCeiling);
+  React.useEffect(() => { setMaxPrice(priceCeiling); }, [priceCeiling]);
+  const toggleCategory = (cat: string) => {
+    setSelectedCategories((prev) => prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]);
+  };
+  if (showFilters) {
+    displayProducts = displayProducts.filter((p) =>
+      (selectedCategories.length === 0 || selectedCategories.includes(p.category)) &&
+      (Number(p.price) || 0) <= maxPrice
+    );
   }
 
   const isAngular = variant === "streetwear" || variant === "flash" || variant === "tech";
@@ -743,7 +780,44 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
             Explorar todo el catálogo
           </span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
+        <div className={cn(showFilters && "flex flex-col md:flex-row gap-10")}>
+        {showFilters && (
+          <aside className="md:w-56 shrink-0 space-y-8">
+            {availableCategories.length > 0 && (
+              <div>
+                <h4 className={cn("text-xs font-black uppercase tracking-widest mb-3", variant === "tech" ? "text-white" : "text-gray-900")}>Categoría</h4>
+                <div className="space-y-2">
+                  {availableCategories.map((cat) => (
+                    <label key={cat} className={cn("flex items-center gap-2 text-sm cursor-pointer", variant === "tech" ? "text-slate-300" : "text-gray-600")}>
+                      <input
+                        type="checkbox"
+                        checked={selectedCategories.includes(cat)}
+                        onChange={() => toggleCategory(cat)}
+                        className="h-4 w-4 rounded"
+                        style={colors?.button ? { accentColor: colors.button } : undefined}
+                      />
+                      {cat}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div>
+              <h4 className={cn("text-xs font-black uppercase tracking-widest mb-3", variant === "tech" ? "text-white" : "text-gray-900")}>Precio</h4>
+              <input
+                type="range" min={0} max={priceCeiling} value={maxPrice}
+                onChange={(e) => setMaxPrice(Number(e.target.value))}
+                className="w-full"
+                style={colors?.button ? { accentColor: colors.button } : undefined}
+              />
+              <div className={cn("flex justify-between text-xs mt-1", variant === "tech" ? "text-slate-500" : "text-gray-400")}>
+                <span>$0</span>
+                <span>${maxPrice.toLocaleString('es-CO')}</span>
+              </div>
+            </div>
+          </aside>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12 flex-1">
           {displayProducts.length === 0 ? (
             <p className={cn("col-span-full text-center font-bold uppercase text-sm tracking-widest py-12", variant === "tech" ? "text-slate-500" : "text-gray-400")}>Próximamente nuevos productos en esta sección</p>
           ) : displayProducts.map((p: any, i: number) => (
@@ -824,6 +898,106 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
             </motion.div>
           ))}
         </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// 4.5 PÁGINA NATIVA DE CARRITO — no es un bloque configurable en el schema
+// (su contenido es 100% dinámico, viene del CartContext); se inyecta como
+// body al navegar a ?view=cart en tiendas con plantilla nativa (ver
+// ShopContent.tsx). El checkout real (Wompi, creación de pedido) sigue
+// siendo el mismo de siempre — esto solo cambia cómo se ve la lista de
+// productos del carrito antes de llegar ahí.
+export const SmartCartPage = ({ props }: { props: any }) => {
+  const { items, removeItem, total, setIsCheckoutOpen } = useCart();
+  const router = useRouter();
+  const params = useParams();
+  const slug = typeof params?.slug === 'string' ? params.slug : undefined;
+  const inherited = useVariant();
+  const variant: StoreVariant = props.variant || inherited;
+  const s = getVariantStyle(variant);
+  const colors = props.colors as { primary?: string; button?: string } | undefined;
+  const goToCatalog = () => { if (slug) router.push(`/shop/${slug}?view=catalog`); };
+
+  return (
+    <section className="py-24 bg-white min-h-[60vh]">
+      <div className="max-w-7xl mx-auto px-6">
+        <h1 className={cn("text-4xl md:text-5xl tracking-tighter mb-3", s.display, s.displayWeight, !colors?.primary && "text-gray-900")} style={colors?.primary ? { color: colors.primary } : undefined}>
+          Tu carrito
+        </h1>
+        <p className="text-gray-400 font-medium mb-12">Revisa tus productos antes de finalizar la compra.</p>
+
+        {items.length === 0 ? (
+          <div className="text-center py-24 space-y-6">
+            <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Tu carrito está vacío</p>
+            <button
+              onClick={goToCatalog}
+              className={cn("inline-flex items-center gap-2 px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest", !colors?.button && [s.accentBg, "text-white"])}
+              style={colors?.button ? { backgroundColor: colors.button, color: getReadableTextColor(colors.button) } : undefined}
+            >
+              Ir al catálogo
+            </button>
+          </div>
+        ) : (
+          <div className="grid lg:grid-cols-3 gap-10">
+            <div className="lg:col-span-2 overflow-x-auto rounded-2xl border border-gray-100">
+              <table className="w-full text-left">
+                <thead className="bg-gray-50 text-[10px] uppercase tracking-widest text-gray-400">
+                  <tr>
+                    <th className="px-5 py-4">Producto</th>
+                    <th className="px-5 py-4">Precio</th>
+                    <th className="px-5 py-4">Cantidad</th>
+                    <th className="px-5 py-4">Subtotal</th>
+                    <th className="px-5 py-4" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {items.map((item) => (
+                    <tr key={item.id + (item.variant || '')}>
+                      <td className="px-5 py-4 font-bold text-gray-900">{item.title}</td>
+                      <td className="px-5 py-4 text-gray-500">$ {item.price.toLocaleString('es-CO')}</td>
+                      <td className="px-5 py-4 text-gray-500">{item.quantity}</td>
+                      <td className="px-5 py-4 font-black" style={colors?.primary ? { color: colors.primary } : undefined}>
+                        $ {(item.price * item.quantity).toLocaleString('es-CO')}
+                      </td>
+                      <td className="px-5 py-4">
+                        <button onClick={() => removeItem(item.id)} className="text-gray-300 hover:text-red-500 transition-colors" aria-label="Quitar del carrito">
+                          <X size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="rounded-2xl border border-gray-100 p-6 h-fit">
+              <h2 className="text-xl font-black tracking-tighter mb-5">Resumen</h2>
+              <div className="flex items-center justify-between text-sm text-gray-500 py-2">
+                <span>Subtotal</span>
+                <span className="font-bold text-gray-900">$ {total.toLocaleString('es-CO')}</span>
+              </div>
+              <div className="flex items-center justify-between py-4 border-t border-gray-100 mt-2">
+                <span className="font-black text-lg">Total</span>
+                <span className="font-black text-2xl" style={colors?.primary ? { color: colors.primary } : undefined}>
+                  $ {total.toLocaleString('es-CO')}
+                </span>
+              </div>
+              <button
+                onClick={() => setIsCheckoutOpen(true)}
+                className={cn("w-full py-4 rounded-full font-black text-xs uppercase tracking-widest", !colors?.button && [s.accentBg, "text-white"])}
+                style={colors?.button ? { backgroundColor: colors.button, color: getReadableTextColor(colors.button) } : undefined}
+              >
+                Finalizar compra
+              </button>
+              <button onClick={goToCatalog} className="mt-4 w-full text-center text-sm font-bold text-gray-500 hover:text-gray-800">
+                ← Seguir comprando
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Trash2, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStudio } from "../context";
-import { SmartNavbar, SmartHero, SmartProductGrid, SmartCategoriesGrid, SmartFooter, SmartTrustBanner, SmartBentoGrid, SmartServices, SmartHeritageBlock, SmartNewsletter, SmartContactForm, SmartProductDetail, SmartCustomButton, SmartCustomMedia } from "@/components/dashboard/studio/HighFidelityBlocks";
+import { SmartNavbar, SmartHero, SmartProductGrid, SmartCategoriesGrid, SmartFooter, SmartTrustBanner, SmartBentoGrid, SmartServices, SmartHeritageBlock, SmartNewsletter, SmartContactForm, SmartProductDetail, SmartCustomButton, SmartCustomMedia, SmartCartPage } from "@/components/dashboard/studio/HighFidelityBlocks";
 
 export const DraggableCanvasElement = ({
   el,
@@ -92,6 +92,7 @@ export const DraggableCanvasElement = ({
         {el.type === "custom-button" && <SmartCustomButton props={elProps} />}
         {el.type === "custom-media" && <SmartCustomMedia props={elProps} />}
         {el.type === "footer-premium" && <SmartFooter props={elProps} />}
+        {el.type === "cart-page" && <SmartCartPage props={elProps} />}
         {el.type === "product-detail" && (() => {
           const activeProduct = realProducts.find((p: any) => p.id === productId) || realProducts[0];
           return (
