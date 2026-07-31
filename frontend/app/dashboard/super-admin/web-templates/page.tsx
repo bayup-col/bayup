@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback, useRef, memo } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/auth-context';
@@ -40,31 +40,6 @@ function inferCategory(doc: Document): string {
   }
   return 'General';
 }
-
-const HtmlPreviewFrame = memo(function HtmlPreviewFrame({ src, h = 160 }: { src: string; h?: number }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0.25);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const ro = new ResizeObserver(([e]) => {
-      const w = e?.contentRect.width ?? 280;
-      setScale(w / 1280);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  return (
-    <div ref={ref} className="absolute inset-0 overflow-hidden">
-      <iframe
-        src={src}
-        title="preview"
-        sandbox="allow-scripts"
-        style={{ width: 1280, height: Math.ceil(h / scale), transform: `scale(${scale})`, transformOrigin: 'top left', border: 'none', pointerEvents: 'none' }}
-      />
-    </div>
-  );
-});
 
 function TemplateMock({ color, name, previewUrl, templateType }: { color: string; name: string; previewUrl?: string | null; templateType?: string }) {
   if (previewUrl) {
@@ -116,10 +91,6 @@ export default function WebTemplatesPage() {
   const [filterType, setFilterType] = useState<'todos' | 'free' | 'premium'>('todos');
   const [filterActive, setFilterActive] = useState<'todas' | 'activas' | 'inactivas'>('todas');
   const [selected, setSelected] = useState<Template | null>(null);
-  const [htmlPreviews, setHtmlPreviews] = useState<Record<string, string>>({});
-  const [drawerPreviewLoading, setDrawerPreviewLoading] = useState(false);
-  // drawerBlobUrl derived from cache
-  const drawerBlobUrl = selected ? (htmlPreviews[selected.id] ?? null) : null;
   const [confirmAction, setConfirmAction] = useState<'toggle' | 'delete' | null>(null);
   const [showNew, setShowNew] = useState(false);
 
@@ -158,46 +129,9 @@ export default function WebTemplatesPage() {
     window.open('/studio-preview', '_blank');
   }, [token]);
 
-  // Carga el preview HTML para un template; lo guarda en el cache htmlPreviews
-  const fetchHtmlPreview = useCallback(async (templateId: string) => {
-    if (!token || htmlPreviews[templateId]) return;
-    setDrawerPreviewLoading(true);
-    try {
-      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
-      const res = await fetch(`${base}/super-admin/web-templates/${templateId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      const pages: Record<string, string> = data.html_pages || {};
-      const html = pages['home'] || pages[Object.keys(pages)[0]] || '';
-      if (!html) return;
-      const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      setHtmlPreviews(prev => ({ ...prev, [templateId]: url }));
-    } finally {
-      setDrawerPreviewLoading(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, htmlPreviews]);
-
-  // Al seleccionar un template HTML, carga su preview si no está en cache
   useEffect(() => {
     setConfirmAction(null);
-    if (selected?.template_type === 'html' && !htmlPreviews[selected.id]) {
-      fetchHtmlPreview(selected.id);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.id]);
-
-  // Al cargar los templates, precarga los previews de todos los HTML
-  useEffect(() => {
-    if (!token) return;
-    templates
-      .filter(t => t.template_type === 'html' && !htmlPreviews[t.id])
-      .forEach(t => fetchHtmlPreview(t.id));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templates, token]);
 
   // Formulario nueva plantilla
   const [newForm, setNewForm] = useState({ name: '', category: '', description: '', tags: '' });
@@ -418,10 +352,7 @@ export default function WebTemplatesPage() {
             className="rounded-2xl border border-white/6 bg-white/[0.02] hover:border-white/10 overflow-hidden group cursor-pointer transition-all"
             onClick={() => setSelected(t)}>
             <div className="relative">
-              {t.template_type === 'html' && htmlPreviews[t.id]
-                ? <div className="relative h-40 overflow-hidden border-b border-white/5"><HtmlPreviewFrame src={htmlPreviews[t.id]} h={160} /></div>
-                : <TemplateMock color={t.color} name={t.name} previewUrl={t.preview_url} templateType={t.template_type} />
-              }
+              <TemplateMock color={t.color} name={t.name} previewUrl={t.preview_url} templateType={t.template_type} />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                 <button
                   onClick={(e) => { e.stopPropagation(); openTemplatePreview(t); }}
@@ -493,19 +424,7 @@ export default function WebTemplatesPage() {
               </div>
 
               <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-                {selected.template_type === 'html' ? (
-                  <div className="relative w-full h-40 rounded-xl overflow-hidden border border-[#7c3aed]/20 bg-black">
-                    {drawerBlobUrl
-                      ? <HtmlPreviewFrame src={drawerBlobUrl} h={160} />
-                      : <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/20">
-                          {drawerPreviewLoading ? <RefreshCw size={16} className="animate-spin" /> : <Code2 size={20} />}
-                          <span className="text-[9px]">{drawerPreviewLoading ? 'Cargando…' : 'Sin preview'}</span>
-                        </div>
-                    }
-                  </div>
-                ) : (
-                  <TemplateMock color={selected.color} name={selected.name} previewUrl={selected.preview_url} templateType={selected.template_type} />
-                )}
+                <TemplateMock color={selected.color} name={selected.name} previewUrl={selected.preview_url} templateType={selected.template_type} />
 
                 <div className="grid grid-cols-3 gap-3">
                   {[
