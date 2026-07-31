@@ -561,11 +561,7 @@ export default function WebTemplatesPage() {
 
                 {selected.template_type === 'html' && (
                   <button
-                    onClick={() => {
-                      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
-                      const url = `${base}/super-admin/web-templates/${selected.id}/live-preview/home?token=${encodeURIComponent(token || '')}`;
-                      window.open(url, '_blank');
-                    }}
+                    onClick={() => openTemplatePreview(selected)}
                     className="w-full h-10 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border border-[#7c3aed]/20 text-[#7c3aed]/60 hover:bg-[#7c3aed]/8 hover:text-[#7c3aed]">
                     <Eye size={12} /> Previsualizar en nueva pestaña
                   </button>
