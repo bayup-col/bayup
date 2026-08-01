@@ -28,9 +28,14 @@ export async function getInitialShopData(slug: string, view: string): Promise<an
   const data = await getShopBaseData(slug);
   if (!data) return null;
 
+  // "cart" no es una pagina real persistida (su contenido es 100% dinamico,
+  // viene del carrito en memoria del navegador) — reutilizamos el header/
+  // footer ya publicados de "home" en vez de pedir una pagina inexistente,
+  // igual que hace el fetch equivalente del lado del cliente en ShopContent.
+  const pageKeyToFetch = view === 'cart' ? 'home' : view;
   const [prodResult, pageResult] = await Promise.allSettled([
     fetch(`${API_BASE}/public/stores/${data.id}/products`, { cache: 'no-store' }),
-    fetch(`${API_BASE}/public/stores/${data.id}/pages/${view}`, { cache: 'no-store' }),
+    fetch(`${API_BASE}/public/stores/${data.id}/pages/${pageKeyToFetch}`, { cache: 'no-store' }),
   ]);
 
   if (prodResult.status === 'fulfilled' && prodResult.value.ok) {
