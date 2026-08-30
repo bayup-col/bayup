@@ -217,7 +217,7 @@ export default function SuperAdminLiquidacionesPage() {
             map.set(b.tenant_id, {
               tenant_id: b.tenant_id, tenant_name: b.tenant_name, tenant_email: b.tenant_email,
               bank_accounts: b.bank_accounts || [],
-              web_gross: b.gross || 0, web_fee: b.bayup_fee || 0, web_net: b.net || 0, web_orders: b.order_count || 0,
+              web_gross: b.gross || 0, web_fee: b.bayup_fee || 0, web_gateway_fee: b.gateway_fee || 0, web_net: b.net || 0, web_orders: b.order_count || 0,
               pos_gross: 0, pos_orders: 0, pos_commission: 0,
             });
           });
@@ -231,7 +231,7 @@ export default function SuperAdminLiquidacionesPage() {
               map.set(b.tenant_id, {
                 tenant_id: b.tenant_id, tenant_name: b.tenant_name, tenant_email: b.tenant_email,
                 bank_accounts: [],
-                web_gross: 0, web_fee: 0, web_net: 0, web_orders: 0,
+                web_gross: 0, web_fee: 0, web_gateway_fee: 0, web_net: 0, web_orders: 0,
                 pos_gross: b.pos_gross || 0, pos_orders: b.pos_count || 0, pos_commission: b.commission || 0,
               });
             }
@@ -281,7 +281,7 @@ export default function SuperAdminLiquidacionesPage() {
                     </div>
 
                     {/* Desglose numérico */}
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-0 divide-x divide-gray-50">
+                    <div className="grid grid-cols-2 md:grid-cols-6 gap-0 divide-x divide-gray-50">
                       <div className="px-5 py-4">
                         <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1">Ventas web</p>
                         <p className="text-[15px] font-black text-gray-800">{fmtCOP(r.web_gross)}</p>
@@ -291,6 +291,11 @@ export default function SuperAdminLiquidacionesPage() {
                         <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1">Fee Bayup (web)</p>
                         <p className="text-[15px] font-black text-rose-500">-{fmtCOP(r.web_fee)}</p>
                         <p className="text-[9px] text-gray-400 mt-0.5">Comisión plataforma</p>
+                      </div>
+                      <div className="px-5 py-4">
+                        <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1">Costo pasarela</p>
+                        <p className="text-[15px] font-black text-orange-500">-{fmtCOP(r.web_gateway_fee || 0)}</p>
+                        <p className="text-[9px] text-gray-400 mt-0.5">Wompi (real)</p>
                       </div>
                       <div className="px-5 py-4">
                         <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1">Ventas POS</p>
@@ -499,7 +504,9 @@ export default function SuperAdminLiquidacionesPage() {
                   <p className={`text-[9px] font-bold uppercase tracking-widest ${isPositive ? 'text-emerald-700' : 'text-amber-700'}`}>{showSettle.tenant_name}</p>
                   <p className={`text-2xl font-black ${isPositive ? 'text-emerald-700' : 'text-amber-700'}`}>{fmtCOP(Math.abs(net))}</p>
                   <p className={`text-[10px] ${isPositive ? 'text-emerald-600' : 'text-amber-600'}`}>
-                    Ventas web netas {fmtCOP(showSettle.web_net || 0)} {(showSettle.pos_commission || 0) > 0 ? `− comisión POS ${fmtCOP(showSettle.pos_commission || 0)}` : ''}
+                    Ventas web netas {fmtCOP(showSettle.web_net || 0)}
+                    {(showSettle.web_gateway_fee || 0) > 0 ? ` (ya descuenta ${fmtCOP(showSettle.web_gateway_fee)} de costo de pasarela)` : ''}
+                    {(showSettle.pos_commission || 0) > 0 ? ` − comisión POS ${fmtCOP(showSettle.pos_commission || 0)}` : ''}
                   </p>
                   <p className={`text-[9px] mt-1 ${isPositive ? 'text-emerald-500' : 'text-amber-500'}`}>
                     {isPositive

@@ -304,3 +304,76 @@ def test_sa_settle_combined_sin_permiso(client, tenant_liq_token, tienda_liq):
         "tenant_id": str(tienda_liq.id),
     }, headers={"Authorization": f"Bearer {tenant_liq_token}"})
     assert r.status_code == 403
+
+
+def test_crear_orden_wompi_calcula_costo_pasarela(client, db_session, tienda_liq):
+    """crud.create_order debe calcular y guardar el costo real de Wompi cuando
+    payment_method == 'wompi' — ejercita el mismo camino que usa un pedido web
+    real confirmado por el webhook (finalize_web_order -> crud.create_order)."""
+    import security, payment_service
+    from tests.test_orders import _create_product
+    product, variant = _create_product(db_session, tienda_liq.id)
+    token = security.create_access_token(data={"sub": tienda_liq.email})
+
+    payload = {
+        "total_price": 100000,
+        "customer_name": "Cliente Wompi",
+        "payment_method": "wompi",
+        "source": "web",
+        "items": [{"product_variant_id": str(variant.id), "quantity": 2, "price_at_purchase": 50000}],
+    }
+    r = client.post("/orders", json=payload, headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code == 200
+    data = r.json()
+    expected_fee = payment_service.wompi_fee(100000)
+    assert expected_fee > 0
+    assert data["gateway_fee_amount"] == pytest.approx(expected_fee, rel=1e-3)
+
+
+def test_crear_orden_pos_no_tiene_costo_pasarela(client, db_session, tienda_liq):
+    """Una venta POS (sin pasarela de por medio) no debe generar costo de Wompi."""
+    import security
+    from tests.test_orders import _create_product
+    product, variant = _create_product(db_session, tienda_liq.id)
+    token = security.create_access_token(data={"sub": tienda_liq.email})
+
+    payload = {
+        "total_price": 50000,
+        "customer_name": "Cliente POS",
+        "payment_method": "cash",
+        "source": "pos",
+        "items": [{"product_variant_id": str(variant.id), "quantity": 1, "price_at_purchase": 50000}],
+    }
+    r = client.post("/orders", json=payload, headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code == 200
+    assert r.json()["gateway_fee_amount"] == 0.0
+
+
+def test_sa_settle_combined_descuenta_costo_wompi(client, admin_token, tienda_liq, db_session):
+    """El endpoint de liquidación combinada debe descontar el gateway_fee_amount
+    ya guardado en cada pedido, por separado de la comisión de Bayup."""
+    web_order = models.Order(
+        tenant_id=tienda_liq.id, customer_name="C4", total_price=200000,
+        status="pending", source="web", payment_method="wompi",
+        gateway_fee_amount=6607.0,  # simula lo que crud.create_order habría calculado
+    )
+    db_session.add(web_order)
+    db_session.commit()
+
+    r = client.post("/super-admin/liquidations/settle", json={
+        "tenant_id": str(tienda_liq.id),
+    }, headers={"Authorization": f"Bearer {admin_token}"})
+    assert r.status_code == 200
+    data = r.json()
+    bayup_fee = round(200000 * 0.025, 2)
+    expected_net = round(200000 - bayup_fee - 6607.0, 2)
+    assert data["gateway_fee_web"] == pytest.approx(6607.0, rel=1e-3)
+    assert data["net_web"] == pytest.approx(expected_net, rel=1e-3)
+
+
+def test_payment_service_wompi_fee():
+    import payment_service
+    # 2.65% + $700 + IVA(19%) sobre $100.000
+    assert payment_service.wompi_fee(100000) == pytest.approx((100000 * 0.0265 + 700) * 1.19, rel=1e-6)
+    assert payment_service.wompi_fee(0) == 0.0
+    assert payment_service.wompi_fee(-500) == 0.0

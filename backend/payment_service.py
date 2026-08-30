@@ -85,6 +85,20 @@ def create_payment_session(amount: float, user: Any, currency: str = "COP", desc
         "commission_applied": f"{commission_rate * 100}%"
     }
 
+def wompi_fee(amount: float) -> float:
+    """Costo real que Wompi le cobra a Bayup por una transacción aprobada —
+    Bayup opera una sola cuenta de Wompi para toda la plataforma, así que
+    este costo lo asume Bayup en cada venta, no cada tenant. Tarifa del
+    Plan Avanzado (la que aplica hoy): 2.65% + $700 COP + IVA (19%) por
+    transacción, igual para tarjeta, PSE, Nequi, Botón Bancolombia y
+    Daviplata (fuente: wompi.com/es/co/planes-tarifas/). Se descuenta del
+    neto que se le liquida al tenant, separado de la comisión de Bayup,
+    para que esta última quede como margen real."""
+    if amount <= 0:
+        return 0.0
+    return round((amount * 0.0265 + 700) * 1.19, 2)
+
+
 def _get_nested(data: Dict[str, Any], dotted_path: str):
     """Navega un dict anidado usando una ruta tipo 'transaction.id'."""
     value = data

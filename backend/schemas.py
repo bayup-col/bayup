@@ -158,6 +158,7 @@ class OrderBase(BaseModel):
     total_price: float
     commission_amount: Optional[float] = 0.0
     commission_rate_snapshot: Optional[float] = 0.0
+    gateway_fee_amount: Optional[float] = 0.0
     customer_type: Optional[str] = "final"
     customer_name: str
     customer_email: Optional[str] = None
