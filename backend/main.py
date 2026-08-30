@@ -75,6 +75,8 @@ def _sync_postgres_schema() -> None:
             # payments
             "ALTER TABLE payments ADD COLUMN IF NOT EXISTS idempotency_key VARCHAR(128)",
             "ALTER TABLE payments ADD COLUMN IF NOT EXISTS order_id UUID",
+            # orders: costo real de Wompi por pedido (0 si no pasó por la pasarela)
+            "ALTER TABLE orders ADD COLUMN IF NOT EXISTS gateway_fee_amount DOUBLE PRECISION DEFAULT 0.0",
             # liquidations — tabla añadida post-lanzamiento, creada si no existe
             """CREATE TABLE IF NOT EXISTS liquidations (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -94,6 +96,7 @@ def _sync_postgres_schema() -> None:
                 created_at TIMESTAMP DEFAULT NOW()
             )""",
             "ALTER TABLE liquidations ADD COLUMN IF NOT EXISTS liq_type VARCHAR(20) DEFAULT 'web'",
+            "ALTER TABLE liquidations ADD COLUMN IF NOT EXISTS gateway_fee DOUBLE PRECISION DEFAULT 0.0",
             "CREATE INDEX IF NOT EXISTS ix_liquidations_tenant_id ON liquidations (tenant_id)",
             "CREATE INDEX IF NOT EXISTS ix_liquidations_status ON liquidations (status)",
             "CREATE INDEX IF NOT EXISTS ix_liquidations_created_at ON liquidations (created_at)",

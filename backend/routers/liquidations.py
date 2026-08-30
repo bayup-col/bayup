@@ -203,12 +203,13 @@ async def get_liquidation_summary(request: Request, db: Session = Depends(get_db
 
     pending_orders = web_orders + pos_orders
 
-    gross_web     = sum(o.total_price for o in web_orders)
-    bayup_fee_web = round(gross_web * BAYUP_RATE, 2)
-    net_web       = round(gross_web - bayup_fee_web, 2)
-    gross_pos     = sum(o.total_price for o in pos_orders)
-    pos_commission = round(gross_pos * BAYUP_RATE, 2)
-    net_transfer  = round(net_web - pos_commission, 2)
+    gross_web       = sum(o.total_price for o in web_orders)
+    bayup_fee_web   = round(gross_web * BAYUP_RATE, 2)
+    gateway_fee_web = round(sum(o.gateway_fee_amount or 0.0 for o in web_orders), 2)
+    net_web         = round(gross_web - bayup_fee_web - gateway_fee_web, 2)
+    gross_pos       = sum(o.total_price for o in pos_orders)
+    pos_commission  = round(gross_pos * BAYUP_RATE, 2)
+    net_transfer    = round(net_web - pos_commission, 2)
 
     next_dates = _next_payment_dates()
     scheduled = (
@@ -224,6 +225,7 @@ async def get_liquidation_summary(request: Request, db: Session = Depends(get_db
         "pending": {
             "gross":          round(gross_web + gross_pos, 2),
             "bayup_fee":      round(bayup_fee_web + pos_commission, 2),
+            "gateway_fee":    gateway_fee_web,
             "prix_fee":       0.0,
             "net":            net_transfer,
             "order_count":    len(pending_orders),
@@ -253,7 +255,8 @@ async def get_liquidation_summary(request: Request, db: Session = Depends(get_db
                 "customer_name": o.customer_name,
                 "total_price":   o.total_price,
                 "source":        o.source or "web",
-                "net":           round(o.total_price * (1 - BAYUP_RATE), 2) if (o.source or "web").lower() != "pos" else 0,
+                "gateway_fee":   round(o.gateway_fee_amount or 0.0, 2),
+                "net":           round(o.total_price * (1 - BAYUP_RATE) - (o.gateway_fee_amount or 0.0), 2) if (o.source or "web").lower() != "pos" else 0,
                 "commission":    round(o.total_price * BAYUP_RATE, 2),
                 "created_at":    o.created_at.isoformat(),
                 "status":        o.status,
@@ -281,6 +284,7 @@ async def list_my_liquidations(request: Request, db: Session = Depends(get_db), 
             "gross_amount":      l.gross_amount,
             "bayup_commission":  l.bayup_commission,
             "prix_fee":          l.prix_fee,
+            "gateway_fee":       l.gateway_fee or 0.0,
             "net_amount":        l.net_amount,
             "order_count":       l.order_count,
             "status":            l.status,
@@ -321,6 +325,7 @@ async def sa_list_liquidations(
             "gross_amount":      l.gross_amount,
             "bayup_commission":  l.bayup_commission,
             "prix_fee":          l.prix_fee,
+            "gateway_fee":       l.gateway_fee or 0.0,
             "net_amount":        l.net_amount,
             "order_count":       l.order_count,
             "liq_type":          l.liq_type or "web",
@@ -361,8 +366,9 @@ async def sa_pending_balances(request: Request, db: Session = Depends(get_db), u
         orders = q.all()
         if not orders:
             continue
-        gross = sum(o.total_price for o in orders)
-        net   = round(gross * (1 - BAYUP_RATE - PRIX_RATE), 2)
+        gross       = sum(o.total_price for o in orders)
+        gateway_fee = round(sum(o.gateway_fee_amount or 0.0 for o in orders), 2)
+        net         = round(gross * (1 - BAYUP_RATE - PRIX_RATE) - gateway_fee, 2)
         result.append({
             "tenant_id":    str(t.id),
             "tenant_name":  t.full_name or t.email,
@@ -370,6 +376,7 @@ async def sa_pending_balances(request: Request, db: Session = Depends(get_db), u
             "shop_slug":    t.shop_slug,
             "gross":        round(gross, 2),
             "bayup_fee":    round(gross * BAYUP_RATE, 2),
+            "gateway_fee":  gateway_fee,
             "prix_fee":     round(gross * PRIX_RATE, 2),
             "net":          net,
             "order_count":  len(orders),
@@ -439,8 +446,6 @@ async def sa_mark_paid(liq_id: str, payload: dict, request: Request, db: Session
     return {"ok": True, "paid_date": liq.paid_date.isoformat()}
 
 
-# ── Super admin: eliminar liquidación ────────────────────────────────────
-
 @router.post("/super-admin/liquidations/settle")
 async def sa_settle_combined(payload: dict, request: Request, db: Session = Depends(get_db), user=Depends(current_user)):
     """
@@ -486,7 +491,8 @@ async def sa_settle_combined(payload: dict, request: Request, db: Session = Depe
     web_orders = q_web.all()
     gross_web = round(sum(o.total_price for o in web_orders), 2)
     bayup_fee_web = round(gross_web * BAYUP_RATE, 2)
-    net_web = round(gross_web - bayup_fee_web, 2)
+    gateway_fee_web = round(sum(o.gateway_fee_amount or 0.0 for o in web_orders), 2)
+    net_web = round(gross_web - bayup_fee_web - gateway_fee_web, 2)
 
     # --- Pendiente comisión POS (mismo corte que /pos-commissions/pending) ---
     last_paid_pos = (
@@ -516,6 +522,7 @@ async def sa_settle_combined(payload: dict, request: Request, db: Session = Depe
         web_liq = models.Liquidation(
             tenant_id=tid, liq_type="web",
             gross_amount=gross_web, bayup_commission=bayup_fee_web, prix_fee=0.0,
+            gateway_fee=gateway_fee_web,
             net_amount=net_web, order_count=len(web_orders),
             status="paid", paid_date=now,
             transfer_reference=reference, notes=notes,
@@ -540,10 +547,12 @@ async def sa_settle_combined(payload: dict, request: Request, db: Session = Depe
     db.commit()
 
     fmt_cop = lambda v: f"${int(round(v)):,}".replace(",", ".")
+    gateway_note = f" y {fmt_cop(gateway_fee_web)} de costo de la pasarela de pago" if gateway_fee_web > 0 else ""
     if net_amount >= 0:
         message = (
             f"Bayup te transfirió {fmt_cop(net_amount)} "
-            f"(ventas web {fmt_cop(net_web)} menos comisión POS {fmt_cop(pos_commission)}). "
+            f"(ventas web {fmt_cop(gross_web)}, menos {fmt_cop(bayup_fee_web)} de comisión Bayup{gateway_note}"
+            f"{f', menos {fmt_cop(pos_commission)} de comisión POS' if pos_commission > 0 else ''}). "
             f"Ref: {reference or 'sin referencia'}."
         )
     else:
@@ -558,6 +567,7 @@ async def sa_settle_combined(payload: dict, request: Request, db: Session = Depe
         "pos_liquidation_id": str(pos_liq_id) if pos_liq_id else None,
         "gross_web": gross_web,
         "bayup_fee_web": bayup_fee_web,
+        "gateway_fee_web": gateway_fee_web,
         "net_web": net_web,
         "gross_pos": gross_pos,
         "pos_commission": pos_commission,

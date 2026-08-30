@@ -278,11 +278,19 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
     initial_status = "completed" if order.source.lower() == "pos" else "pending"
     commission_rate = getattr(order, 'commission_rate_snapshot', None) or 0.025
     commission_amount = round(subtotal * commission_rate, 2)
+    # Costo real de Wompi (Bayup opera una sola cuenta para toda la plataforma,
+    # así que este costo lo paga Bayup, no el tenant, en cada venta con
+    # pasarela) — se descuenta del neto liquidado al tenant más adelante,
+    # separado de commission_amount, para que la comisión de Bayup no tenga
+    # que absorberlo. 0 si el pedido no pasó por Wompi (POS, contraentrega).
+    import payment_service as _payment_service
+    gateway_fee_amount = _payment_service.wompi_fee(subtotal) if (order.payment_method or "").lower() == "wompi" else 0.0
     db_order = models.Order(
         id=uuid.uuid4(),
         total_price=subtotal,
         commission_amount=commission_amount,
         commission_rate_snapshot=commission_rate,
+        gateway_fee_amount=gateway_fee_amount,
         customer_id=customer_id,
         tenant_id=actual_tenant_id,
         customer_name=order.customer_name,

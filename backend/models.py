@@ -155,6 +155,7 @@ class Order(Base):
     total_price = Column(Float)
     commission_amount = Column(Float, default=0.0) # Comisión para Bayup
     commission_rate_snapshot = Column(Float, default=0.0) # Tasa aplicada en ese momento
+    gateway_fee_amount = Column(Float, default=0.0) # Costo real de Wompi (0 si no pasó por la pasarela)
     status = Column(String, default="pending", index=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
     tax_rate_id = Column(GUID(), nullable=True)
@@ -221,6 +222,7 @@ class Liquidation(Base):
     gross_amount    = Column(Float, default=0.0)   # Ventas brutas del período
     bayup_commission= Column(Float, default=0.0)   # Comisión Bayup (3.5 %)
     prix_fee        = Column(Float, default=0.0)   # Comisión Prix  (2.5 %)
+    gateway_fee     = Column(Float, default=0.0)   # Costo real de Wompi descontado en este período
     net_amount      = Column(Float, default=0.0)   # Lo que recibe el cliente
     order_count     = Column(Integer, default=0)   # Órdenes incluidas
     liq_type        = Column(String, default="web")  # 'web' | 'pos_commission'

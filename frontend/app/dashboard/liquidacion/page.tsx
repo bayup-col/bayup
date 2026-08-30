@@ -123,13 +123,16 @@ export default function LiquidacionPage() {
               <p className="text-[8px] text-amber-300/30">{pending.pos_count || 0} ventas POS</p>
             </div>
           </div>
+          {(pending.gateway_fee || 0) > 0 && (
+            <p className="text-[9px] text-white/25 mt-2">Costo pasarela de pago (Wompi): -{fmtCOP(pending.gateway_fee)}</p>
+          )}
         </div>
 
         {/* Aviso */}
         <div className="mx-3 flex items-start gap-2.5 p-3 bg-[#004d4d]/6 border border-[#004d4d]/15 rounded-2xl">
           <Info size={13} className="text-[#004d4d] mt-0.5 shrink-0"/>
           <p className="text-[10px] text-[#004d4d]/80 leading-relaxed">
-            Comisión <strong>2.5%</strong> por venta. Web: Bayup te transfiere el neto. POS: tú cobras, Bayup descuenta su comisión de la próxima dispersión.
+            Comisión <strong>2.5%</strong> por venta. Las ventas web también descuentan el costo real de la pasarela de pago (Wompi), aparte de la comisión de Bayup. POS: tú cobras, Bayup descuenta su comisión de la próxima dispersión.
           </p>
         </div>
 
@@ -273,6 +276,12 @@ export default function LiquidacionPage() {
                             <p className="text-[8px] text-gray-400 uppercase tracking-widest">Comisión Bayup</p>
                             <p className="text-[11px] font-bold text-rose-500 mt-0.5">-{fmtCOP(l.bayup_commission + l.prix_fee)}</p>
                           </div>
+                          {(l.gateway_fee || 0) > 0 && (
+                            <div>
+                              <p className="text-[8px] text-gray-400 uppercase tracking-widest">Costo pasarela (Wompi)</p>
+                              <p className="text-[11px] font-bold text-rose-500 mt-0.5">-{fmtCOP(l.gateway_fee)}</p>
+                            </div>
+                          )}
                           <div>
                             <p className="text-[8px] text-gray-400 uppercase tracking-widest">Referencia</p>
                             <p className="text-[11px] font-bold text-gray-700 mt-0.5 truncate">{l.transfer_reference || '—'}</p>
@@ -313,7 +322,7 @@ export default function LiquidacionPage() {
         <Info size={15} className="text-[#004d4d] mt-0.5 shrink-0"/>
         <p className="text-[11px] text-[#004d4d]/80 leading-relaxed">
           Bayup aplica una comisión del <strong>2.5%</strong> sobre todas tus ventas.
-          Las ventas <strong>web</strong> se dispersan martes y viernes (neto = venta − comisión).
+          Las ventas <strong>web</strong> se dispersan martes y viernes (neto = venta − comisión Bayup − costo de la pasarela de pago).
           Las ventas <strong>POS</strong> ya las cobraste tú — Bayup descuenta su comisión de la próxima dispersión web.
         </p>
       </div>
@@ -360,6 +369,15 @@ export default function LiquidacionPage() {
               <p className="text-[9px] text-amber-300/30">{pending.pos_count || 0} ventas · bruto {fmtCOP(pending.pos_gross || 0)}</p>
             </div>
           </div>
+          {(pending.gateway_fee || 0) > 0 && (
+            <div className="bg-white/5 rounded-xl p-3 mb-3 flex items-center justify-between">
+              <div>
+                <p className="text-[8px] text-white/30 uppercase tracking-widest mb-0.5">Costo pasarela de pago (Wompi)</p>
+                <p className="text-[9px] text-white/20">Se descuenta aparte de la comisión Bayup</p>
+              </div>
+              <p className="text-sm font-black text-white/60">-{fmtCOP(pending.gateway_fee)}</p>
+            </div>
+          )}
           <div className="bg-[#00f2ff]/10 border border-[#00f2ff]/20 rounded-xl p-3 flex items-center justify-between">
             <div>
               <p className="text-[8px] text-[#00f2ff]/50 uppercase tracking-widest mb-0.5">Te transferimos</p>
@@ -509,8 +527,8 @@ export default function LiquidacionPage() {
                     </div>
                     <p className="text-[11px] font-bold text-gray-700 self-center">{fmtCOP(l.gross_amount)}</p>
                     <div className="self-center">
-                      <p className="text-[10px] text-rose-500">-{fmtCOP(l.bayup_commission + l.prix_fee)}</p>
-                      <p className="text-[9px] text-gray-300">Comisión Bayup</p>
+                      <p className="text-[10px] text-rose-500">-{fmtCOP(l.bayup_commission + l.prix_fee + (l.gateway_fee || 0))}</p>
+                      <p className="text-[9px] text-gray-300">Bayup{(l.gateway_fee || 0) > 0 ? ' + pasarela' : ''}</p>
                     </div>
                     <p className="text-[13px] font-black text-emerald-600 self-center">{fmtCOP(l.net_amount)}</p>
                     <div className="self-center"><StatusBadge status={l.status}/></div>
@@ -531,6 +549,12 @@ export default function LiquidacionPage() {
                             <p className="text-[9px] text-gray-400 uppercase tracking-widest">Comisión Bayup</p>
                             <p className="text-[11px] font-bold text-rose-500 mt-0.5">-{fmtCOP(l.bayup_commission + l.prix_fee)}</p>
                           </div>
+                          {(l.gateway_fee || 0) > 0 && (
+                            <div>
+                              <p className="text-[9px] text-gray-400 uppercase tracking-widest">Costo pasarela (Wompi)</p>
+                              <p className="text-[11px] font-bold text-rose-500 mt-0.5">-{fmtCOP(l.gateway_fee)}</p>
+                            </div>
+                          )}
                           {l.notes && (
                             <div className="col-span-full">
                               <p className="text-[9px] text-gray-400 uppercase tracking-widest">Notas</p>
