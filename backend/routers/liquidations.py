@@ -441,6 +441,132 @@ async def sa_mark_paid(liq_id: str, payload: dict, request: Request, db: Session
 
 # ── Super admin: eliminar liquidación ────────────────────────────────────
 
+@router.post("/super-admin/liquidations/settle")
+async def sa_settle_combined(payload: dict, request: Request, db: Session = Depends(get_db), user=Depends(current_user)):
+    """
+    Liquidación combinada: en vez de pagarle al tenant sus ventas web y
+    cobrarle la comisión POS por separado (dos movimientos de plata), se
+    calculan ambas cosas juntas y se hace un solo movimiento neto — se
+    transfiere la diferencia si es a favor del tenant, o se le cobra si la
+    comisión POS pendiente supera lo que se le debía por ventas web.
+    Recalcula todo en el servidor (no confía en números que mande el
+    frontend) para evitar que un dato desactualizado infle o reduzca el pago.
+    """
+    require_super_admin(user)
+    tenant_id_str = payload.get("tenant_id")
+    if not tenant_id_str:
+        raise HTTPException(status_code=400, detail="tenant_id requerido")
+    try:
+        tid = _uuid.UUID(tenant_id_str)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="tenant_id inválido")
+
+    tenant = db.query(models.User).filter(models.User.id == tid).first()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+
+    reference = payload.get("transfer_reference", "") or payload.get("reference", "")
+    notes = payload.get("notes", "")
+    now = dt.datetime.now(dt.timezone.utc)
+
+    # --- Pendiente web (mismo corte que /liquidations/pending-balances) ---
+    last_paid_web = (
+        db.query(models.Liquidation)
+        .filter(models.Liquidation.tenant_id == tid, models.Liquidation.status == "paid", models.Liquidation.liq_type == "web")
+        .order_by(models.Liquidation.paid_date.desc()).first()
+    )
+    cutoff_web = last_paid_web.paid_date if last_paid_web else None
+    q_web = db.query(models.Order).filter(
+        models.Order.tenant_id == tid,
+        models.Order.status.in_(["confirmed", "delivered", "completed", "pending"]),
+        models.Order.source != "pos",
+    )
+    if cutoff_web:
+        q_web = q_web.filter(models.Order.created_at > cutoff_web)
+    web_orders = q_web.all()
+    gross_web = round(sum(o.total_price for o in web_orders), 2)
+    bayup_fee_web = round(gross_web * BAYUP_RATE, 2)
+    net_web = round(gross_web - bayup_fee_web, 2)
+
+    # --- Pendiente comisión POS (mismo corte que /pos-commissions/pending) ---
+    last_paid_pos = (
+        db.query(models.Liquidation)
+        .filter(models.Liquidation.tenant_id == tid, models.Liquidation.status == "paid", models.Liquidation.liq_type == "pos_commission")
+        .order_by(models.Liquidation.paid_date.desc()).first()
+    )
+    cutoff_pos = last_paid_pos.paid_date if last_paid_pos else None
+    q_pos = db.query(models.Order).filter(
+        models.Order.tenant_id == tid,
+        models.Order.source == "pos",
+        models.Order.status.in_(["confirmed", "delivered", "completed", "pending"]),
+    )
+    if cutoff_pos:
+        q_pos = q_pos.filter(models.Order.created_at > cutoff_pos)
+    pos_orders = q_pos.all()
+    gross_pos = round(sum(o.total_price for o in pos_orders), 2)
+    pos_commission = round(gross_pos * BAYUP_RATE, 2)
+
+    if not web_orders and not pos_orders:
+        raise HTTPException(status_code=400, detail="Esta empresa no tiene nada pendiente por liquidar")
+
+    net_amount = round(net_web - pos_commission, 2)
+
+    web_liq_id = None
+    if web_orders:
+        web_liq = models.Liquidation(
+            tenant_id=tid, liq_type="web",
+            gross_amount=gross_web, bayup_commission=bayup_fee_web, prix_fee=0.0,
+            net_amount=net_web, order_count=len(web_orders),
+            status="paid", paid_date=now,
+            transfer_reference=reference, notes=notes,
+        )
+        db.add(web_liq)
+        db.flush()
+        web_liq_id = web_liq.id
+
+    pos_liq_id = None
+    if pos_orders:
+        pos_liq = models.Liquidation(
+            tenant_id=tid, liq_type="pos_commission",
+            gross_amount=gross_pos, bayup_commission=pos_commission, prix_fee=0.0,
+            net_amount=0.0, order_count=len(pos_orders),
+            status="paid", paid_date=now,
+            transfer_reference=reference, notes=notes,
+        )
+        db.add(pos_liq)
+        db.flush()
+        pos_liq_id = pos_liq.id
+
+    db.commit()
+
+    fmt_cop = lambda v: f"${int(round(v)):,}".replace(",", ".")
+    if net_amount >= 0:
+        message = (
+            f"Bayup te transfirió {fmt_cop(net_amount)} "
+            f"(ventas web {fmt_cop(net_web)} menos comisión POS {fmt_cop(pos_commission)}). "
+            f"Ref: {reference or 'sin referencia'}."
+        )
+    else:
+        message = (
+            f"Tu comisión POS ({fmt_cop(pos_commission)}) superó tus ventas web netas ({fmt_cop(net_web)}) — "
+            f"quedaste debiendo {fmt_cop(abs(net_amount))} a Bayup. Ref: {reference or 'sin referencia'}."
+        )
+    push_notification(db, tid, title="💰 Liquidación procesada", message=message, type_="success" if net_amount >= 0 else "warning")
+
+    return {
+        "web_liquidation_id": str(web_liq_id) if web_liq_id else None,
+        "pos_liquidation_id": str(pos_liq_id) if pos_liq_id else None,
+        "gross_web": gross_web,
+        "bayup_fee_web": bayup_fee_web,
+        "net_web": net_web,
+        "gross_pos": gross_pos,
+        "pos_commission": pos_commission,
+        "net_amount": net_amount,
+        "direction": "bayup_pays_tenant" if net_amount >= 0 else "tenant_pays_bayup",
+        "paid_date": now.isoformat(),
+    }
+
+
 @router.delete("/super-admin/liquidations/{liq_id}")
 async def sa_delete_liquidation(liq_id: str, request: Request, db: Session = Depends(get_db), user=Depends(current_user)):
     require_super_admin(user)

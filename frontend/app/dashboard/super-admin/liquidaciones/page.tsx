@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Wallet, TrendingUp, CheckCircle2, Calendar, RefreshCw, X,
   Building2, ChevronDown, Loader2, Send, Plus, Eye, DollarSign,
-  AlertCircle, BadgeCheck, Clock, ArrowUpRight, Store, Receipt
+  AlertCircle, BadgeCheck, Clock, ArrowUpRight, Store
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
@@ -40,7 +40,7 @@ export default function SuperAdminLiquidacionesPage() {
   const [posBalances, setPosBalances] = useState<any[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [showPay, setShowPay]       = useState<any | null>(null);
-  const [showCollectPos, setShowCollectPos] = useState<any | null>(null);
+  const [showSettle, setShowSettle] = useState<any | null>(null);
   const [saving, setSaving]         = useState(false);
 
   // Form crear liquidación
@@ -49,8 +49,8 @@ export default function SuperAdminLiquidacionesPage() {
   });
   // Form marcar como pagado
   const [payForm, setPayForm] = useState({ transfer_reference: '', notes: '' });
-  // Form cobrar comisión POS
-  const [posForm, setPosForm] = useState({ reference: '', notes: '' });
+  // Form liquidación combinada (web + POS en un solo movimiento neto)
+  const [settleForm, setSettleForm] = useState({ reference: '', notes: '' });
 
   const load = async () => {
     setLoading(true);
@@ -114,22 +114,20 @@ export default function SuperAdminLiquidacionesPage() {
     finally { setSaving(false); }
   };
 
-  const handleCollectPos = async () => {
-    if (!showCollectPos) return;
+  const handleSettle = async () => {
+    if (!showSettle) return;
     setSaving(true);
     try {
-      await apiRequest('/super-admin/pos-commissions/collect', {
+      await apiRequest('/super-admin/liquidations/settle', {
         method: 'POST', token,
         body: JSON.stringify({
-          tenant_id: showCollectPos.tenant_id,
-          pos_gross: showCollectPos.pos_gross,
-          pos_count: showCollectPos.pos_count,
-          reference: posForm.reference,
-          notes:     posForm.notes,
+          tenant_id:          showSettle.tenant_id,
+          transfer_reference: settleForm.reference,
+          notes:              settleForm.notes,
         }),
       });
-      setShowCollectPos(null);
-      setPosForm({ reference: '', notes: '' });
+      setShowSettle(null);
+      setSettleForm({ reference: '', notes: '' });
       await load();
     } catch { /* silencioso */ }
     finally { setSaving(false); }
@@ -272,16 +270,11 @@ export default function SuperAdminLiquidacionesPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {r.web_net > 0 && (
-                          <button onClick={() => { setForm(f => ({ ...f, tenant_id: r.tenant_id })); setShowCreate(true); }}
-                            className="flex items-center gap-1.5 h-8 px-4 rounded-xl bg-[#004d4d] hover:bg-[#003838] text-white text-[9px] font-black uppercase tracking-widest transition-all">
-                            <Send size={10}/> Liquidar web
-                          </button>
-                        )}
-                        {r.pos_commission > 0 && (
-                          <button onClick={() => { setShowCollectPos(posBalances.find((b: any) => b.tenant_id === r.tenant_id)); setPosForm({ reference: '', notes: '' }); }}
-                            className="flex items-center gap-1.5 h-8 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-[9px] font-black uppercase tracking-widest transition-all">
-                            <Receipt size={10}/> Cobrar POS
+                        {(r.web_orders > 0 || r.pos_orders > 0) && (
+                          <button
+                            onClick={() => { setShowSettle(r); setSettleForm({ reference: '', notes: '' }); }}
+                            className={`flex items-center gap-1.5 h-8 px-4 rounded-xl text-white text-[9px] font-black uppercase tracking-widest transition-all ${saldoFinal >= 0 ? 'bg-[#004d4d] hover:bg-[#003838]' : 'bg-amber-500 hover:bg-amber-600'}`}>
+                            <Send size={10}/> {saldoFinal >= 0 ? 'Liquidar' : 'Liquidar (cobrar)'}
                           </button>
                         )}
                       </div>
@@ -486,52 +479,61 @@ export default function SuperAdminLiquidacionesPage() {
         )}
       </AnimatePresence>
 
-      {/* ── Modal cobrar comisión POS ── */}
+      {/* ── Modal liquidación combinada (web + POS en un solo neto) ── */}
       <AnimatePresence>
-        {showCollectPos && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowCollectPos(null)} className="fixed inset-0 bg-black/50 backdrop-blur-sm"/>
-            <motion.div initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }}
-              className="relative w-full max-w-sm bg-white rounded-[2rem] p-8 space-y-5 shadow-2xl z-10" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-black text-gray-900">Cobrar Comisión POS</h3>
-                <button onClick={() => setShowCollectPos(null)} className="h-8 w-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400"><X size={14}/></button>
-              </div>
-
-              <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl space-y-1">
-                <p className="text-[9px] font-bold text-amber-700 uppercase tracking-widest">{showCollectPos.tenant_name}</p>
-                <p className="text-2xl font-black text-amber-700">{fmtCOP(showCollectPos.commission)}</p>
-                <p className="text-[10px] text-amber-600">{showCollectPos.pos_count} ventas POS · bruto {fmtCOP(showCollectPos.pos_gross)}</p>
-                <p className="text-[9px] text-amber-500 mt-1">Esta comisión ya fue cobrada por el tenant al cliente. Registra aquí el cobro de Bayup.</p>
-              </div>
-
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Referencia (transferencia / comprobante)</label>
-                  <input value={posForm.reference} onChange={e => setPosForm(f => ({ ...f, reference: e.target.value }))}
-                    placeholder="Ej: TXN20260706-NEQUI o 'efectivo'"
-                    className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 placeholder:text-gray-300 focus:outline-none focus:border-amber-400"/>
+        {showSettle && (() => {
+          const net = (showSettle.web_net || 0) - (showSettle.pos_commission || 0);
+          const isPositive = net >= 0;
+          return (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => setShowSettle(null)} className="fixed inset-0 bg-black/50 backdrop-blur-sm"/>
+              <motion.div initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }}
+                className="relative w-full max-w-sm bg-white rounded-[2rem] p-8 space-y-5 shadow-2xl z-10" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-black text-gray-900">{isPositive ? 'Liquidar (transferir)' : 'Liquidar (cobrar)'}</h3>
+                  <button onClick={() => setShowSettle(null)} className="h-8 w-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400"><X size={14}/></button>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Notas (opcional)</label>
-                  <textarea value={posForm.notes} onChange={e => setPosForm(f => ({ ...f, notes: e.target.value }))} rows={2}
-                    placeholder="Ej: Cobrado vía Nequi 6-jul-2026"
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 placeholder:text-gray-300 focus:outline-none focus:border-amber-400 resize-none"/>
-                </div>
-              </div>
 
-              <div className="flex gap-3">
-                <button onClick={() => setShowCollectPos(null)} className="flex-1 h-10 rounded-xl border border-gray-200 text-[9px] font-bold text-gray-500">Cancelar</button>
-                <button onClick={handleCollectPos} disabled={saving}
-                  className="flex-[2] h-10 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-[9px] font-black uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2">
-                  {saving ? <Loader2 size={13} className="animate-spin"/> : <Receipt size={13}/>}
-                  {saving ? 'Registrando…' : 'Registrar cobro'}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
+                <div className={`p-4 rounded-2xl space-y-1 border ${isPositive ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'}`}>
+                  <p className={`text-[9px] font-bold uppercase tracking-widest ${isPositive ? 'text-emerald-700' : 'text-amber-700'}`}>{showSettle.tenant_name}</p>
+                  <p className={`text-2xl font-black ${isPositive ? 'text-emerald-700' : 'text-amber-700'}`}>{fmtCOP(Math.abs(net))}</p>
+                  <p className={`text-[10px] ${isPositive ? 'text-emerald-600' : 'text-amber-600'}`}>
+                    Ventas web netas {fmtCOP(showSettle.web_net || 0)} {(showSettle.pos_commission || 0) > 0 ? `− comisión POS ${fmtCOP(showSettle.pos_commission || 0)}` : ''}
+                  </p>
+                  <p className={`text-[9px] mt-1 ${isPositive ? 'text-emerald-500' : 'text-amber-500'}`}>
+                    {isPositive
+                      ? 'Un solo movimiento neto: ya se descontó la comisión POS pendiente de esta transferencia.'
+                      : 'La comisión POS pendiente superó las ventas web netas — este monto lo debe transferir el comerciante a Bayup.'}
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Referencia bancaria / comprobante *</label>
+                    <input value={settleForm.reference} onChange={e => setSettleForm(f => ({ ...f, reference: e.target.value }))}
+                      placeholder="Ej: TXN20260706-BCOLOMBIA"
+                      className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 placeholder:text-gray-300 focus:outline-none focus:border-[#004d4d]/40"/>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Notas (opcional)</label>
+                    <textarea value={settleForm.notes} onChange={e => setSettleForm(f => ({ ...f, notes: e.target.value }))} rows={2}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-[#004d4d]/40 resize-none"/>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button onClick={() => setShowSettle(null)} className="flex-1 h-10 rounded-xl border border-gray-200 text-[9px] font-bold text-gray-500">Cancelar</button>
+                  <button onClick={handleSettle} disabled={!settleForm.reference || saving}
+                    className={`flex-[2] h-10 rounded-xl text-white text-[9px] font-black uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2 ${isPositive ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-500 hover:bg-amber-600'}`}>
+                    {saving ? <Loader2 size={13} className="animate-spin"/> : <CheckCircle2 size={13}/>}
+                    {saving ? 'Procesando…' : 'Confirmar liquidación'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          );
+        })()}
       </AnimatePresence>
     </div>
   );
