@@ -243,3 +243,64 @@ def test_sa_collect_pos_sin_tenant_id(client, admin_token):
         "pos_gross": 100000,
     }, headers={"Authorization": f"Bearer {admin_token}"})
     assert r.status_code == 400
+
+
+# ── Super admin: POST /super-admin/liquidations/settle (compensación neta) ──
+
+def test_sa_settle_combined_saldo_a_favor_tenant(client, admin_token, tienda_liq, db_session):
+    """Ventas web netas superan la comisión POS pendiente: Bayup transfiere la diferencia."""
+    web_order = models.Order(tenant_id=tienda_liq.id, customer_name="C1", total_price=400000, status="pending", source="web")
+    pos_order = models.Order(tenant_id=tienda_liq.id, customer_name="C2", total_price=100000, status="pending", source="pos")
+    db_session.add_all([web_order, pos_order])
+    db_session.commit()
+
+    r = client.post("/super-admin/liquidations/settle", json={
+        "tenant_id": str(tienda_liq.id),
+        "transfer_reference": "REF-SETTLE-001",
+    }, headers={"Authorization": f"Bearer {admin_token}"})
+    assert r.status_code == 200
+    data = r.json()
+    assert data["direction"] == "bayup_pays_tenant"
+    assert data["net_web"] == pytest.approx(400000 * (1 - 0.025), rel=1e-3)
+    assert data["pos_commission"] == pytest.approx(100000 * 0.025, rel=1e-3)
+    assert data["net_amount"] == pytest.approx(data["net_web"] - data["pos_commission"], rel=1e-3)
+    assert data["net_amount"] > 0
+    assert data["web_liquidation_id"] is not None
+    assert data["pos_liquidation_id"] is not None
+
+    liqs = db_session.query(models.Liquidation).filter(models.Liquidation.tenant_id == tienda_liq.id).all()
+    assert len(liqs) == 2
+    assert all(l.status == "paid" for l in liqs)
+    assert all(l.transfer_reference == "REF-SETTLE-001" for l in liqs)
+
+
+def test_sa_settle_combined_saldo_a_favor_bayup(client, admin_token, tienda_liq, db_session):
+    """Comisión POS pendiente supera las ventas web netas: el comerciante le debe a Bayup."""
+    pos_order = models.Order(tenant_id=tienda_liq.id, customer_name="C3", total_price=500000, status="pending", source="pos")
+    db_session.add(pos_order)
+    db_session.commit()
+
+    r = client.post("/super-admin/liquidations/settle", json={
+        "tenant_id": str(tienda_liq.id),
+        "transfer_reference": "REF-SETTLE-002",
+    }, headers={"Authorization": f"Bearer {admin_token}"})
+    assert r.status_code == 200
+    data = r.json()
+    assert data["direction"] == "tenant_pays_bayup"
+    assert data["net_amount"] < 0
+    assert data["web_liquidation_id"] is None
+    assert data["pos_liquidation_id"] is not None
+
+
+def test_sa_settle_combined_nada_pendiente(client, admin_token, tienda_liq):
+    r = client.post("/super-admin/liquidations/settle", json={
+        "tenant_id": str(tienda_liq.id),
+    }, headers={"Authorization": f"Bearer {admin_token}"})
+    assert r.status_code == 400
+
+
+def test_sa_settle_combined_sin_permiso(client, tenant_liq_token, tienda_liq):
+    r = client.post("/super-admin/liquidations/settle", json={
+        "tenant_id": str(tienda_liq.id),
+    }, headers={"Authorization": f"Bearer {tenant_liq_token}"})
+    assert r.status_code == 403
