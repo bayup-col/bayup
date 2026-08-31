@@ -299,6 +299,24 @@ def send_password_reset(email: str, token: str) -> bool:
     )
     return _send_raw(email, "Restablece tu contraseña — Bayup", html)
 
+
+def send_customer_password_reset(email: str, token: str, shop_slug: str) -> bool:
+    """Recuperación de contraseña para el cliente final de una tienda (no el comerciante)."""
+    link = f"{_SITE}/shop/{shop_slug}?view=reset-password&token={token}"
+    html = _simple_email_html(
+        icon="&#128274;",
+        title="Restablecer contrase&#241;a",
+        body_html=(
+            "Recibimos una solicitud para restablecer la contrase&#241;a de tu cuenta. "
+            "Haz clic en el bot&#243;n para crear una nueva y volver a entrar a tu cuenta."
+        ),
+        cta_text="Crear nueva contrase&#241;a",
+        cta_url=link,
+        validity_text="V&#225;lido por 1 hora",
+        footer_note="Si no solicitaste esto, ignora este correo. Tu contrase&#241;a no cambiar&#225;.",
+    )
+    return _send_raw(email, "Restablece tu contraseña", html)
+
 def _order_header(shop_name: str, shop_logo: str | None = None) -> str:
     """
     El cliente le compró al tenant, no a Bayup — el header muestra la marca

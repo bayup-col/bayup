@@ -90,6 +90,14 @@ async def get_public_store_products(request: Request, response: Response, store_
             "category": p.category,
             "sku": p.sku,
             "status": p.status,
+            "collection_id": str(p.collection_id) if p.collection_id else None,
+            # Ligero (sin sku/attributes crudos) — suficiente para un selector de
+            # talla/variante en el storefront y para mandar el variant_id
+            # correcto al checkout en vez de caer siempre al fallback "Base".
+            "variants": [
+                {"id": str(v.id), "name": v.name, "stock": v.stock}
+                for v in (p.variants or [])
+            ],
         }
         for p in products if p.status == "active"
     ]
@@ -268,6 +276,43 @@ async def public_order_tracking(order_id: str, request: Request, db: Session = D
         "shop_slug":       tenant.shop_slug if tenant else None,
         "items":           items,
     }
+
+
+class PublicContactMessageRequest(BaseModel):
+    customer_name: str = Field(min_length=1)
+    customer_email: str | None = None
+    customer_phone: str | None = None
+    message: str = Field(min_length=1)
+
+
+@router.post("/public/stores/{store_id}/contact-message")
+@limiter.limit("10/minute")
+def create_public_contact_message(
+    request: Request, store_id: str, payload: PublicContactMessageRequest, db: Session = Depends(get_db),
+):
+    """Formulario de contacto del storefront público. El modelo StoreMessage
+    ya existía (usado por el dashboard del tenant) pero no tenía ningún
+    endpoint de creación — este es el primero."""
+    try:
+        tenant_uuid = _uuid.UUID(store_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="store_id inválido")
+    tenant = db.query(models.User).filter(models.User.id == tenant_uuid).first()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tienda no encontrada")
+    msg = models.StoreMessage(
+        tenant_id=tenant_uuid,
+        customer_name=payload.customer_name,
+        customer_email=payload.customer_email,
+        customer_phone=payload.customer_phone,
+        message=payload.message,
+        status="unread",
+    )
+    db.add(msg)
+    db.commit()
+    push_notification(db, tenant_uuid, "✉️ Nuevo mensaje de contacto",
+                       f"{payload.customer_name} escribió un mensaje", "info")
+    return {"ok": True}
 
 
 @router.get("/public/shop-info/{slug}")

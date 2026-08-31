@@ -595,6 +595,46 @@ class RoadmapVote(Base):
     session_key = Column(String, nullable=True)
     voted_at    = Column(DateTime, default=datetime.datetime.utcnow)
 
+class Post(Base):
+    """Entrada de blog/journal editorial de una tienda (hoy exclusivo del tenant Orzen)."""
+    __tablename__ = "posts"
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(GUID(), ForeignKey("users.id"), index=True, nullable=False)
+    slug = Column(String, index=True, nullable=False)
+    title = Column(String, nullable=False)
+    category = Column(String, nullable=True)
+    excerpt = Column(String, nullable=True)
+    body = Column(JSON, default=list)  # lista de párrafos
+    image_url = Column(String, nullable=True)
+    published_at = Column(DateTime, default=datetime.datetime.utcnow)
+    is_published = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class Address(Base):
+    """Dirección guardada de un cliente final para reusar en checkout."""
+    __tablename__ = "customer_addresses"
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    customer_id = Column(GUID(), ForeignKey("users.id"), index=True, nullable=False)
+    tenant_id = Column(GUID(), ForeignKey("users.id"), index=True, nullable=False)
+    label = Column(String, nullable=True)
+    full_name = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
+    address_line = Column(String, nullable=False)
+    city = Column(String, nullable=True)
+    postal_code = Column(String, nullable=True)
+    country = Column(String, default="Colombia")
+    is_default = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class WishlistItem(Base):
+    """Producto guardado como favorito por un cliente final."""
+    __tablename__ = "wishlist_items"
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    customer_id = Column(GUID(), ForeignKey("users.id"), index=True, nullable=False)
+    tenant_id = Column(GUID(), ForeignKey("users.id"), index=True, nullable=False)
+    product_id = Column(GUID(), ForeignKey("products.id"), index=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
 class RoadmapItem(Base):
     __tablename__ = "roadmap_items"
     id           = Column(GUID(), primary_key=True, default=uuid.uuid4)

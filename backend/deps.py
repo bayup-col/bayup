@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger("bayup")
 
 # Re-exportar get_db para que los routers importen desde aquí
-__all__ = ["get_db", "current_user", "tenant_id_from", "require_super_admin", "push_notification"]
+__all__ = ["get_db", "current_user", "current_customer", "tenant_id_from", "require_super_admin", "push_notification"]
 
 
 async def current_user(request: Request, db: Session = Depends(get_db)):
@@ -24,6 +24,43 @@ async def current_user(request: Request, db: Session = Depends(get_db)):
     if auth_header.lower().startswith("bearer ") and len(auth_header) > 7:
         token = auth_header[7:].strip() or None
     return await security.get_current_user(request=request, token=token, db=db)
+
+
+async def current_customer(request: Request, db: Session = Depends(get_db)):
+    """Autentica a un cliente final (comprador) de una tienda — completamente
+    separado del login de comerciante (`current_user`). El JWT lleva un claim
+    `tenant_id` explícito y `cust: true`; la fila de identidad es el mismo
+    `User(role='cliente', owner_id=tenant_id)` que ya crea el checkout, solo
+    que aquí se exige que tenga contraseña real (registro de cuenta)."""
+    import security
+    from jose import jwt, JWTError
+    import models as _m
+
+    auth_header = request.headers.get("Authorization", "")
+    token = None
+    if auth_header.lower().startswith("bearer ") and len(auth_header) > 7:
+        token = auth_header[7:].strip() or None
+    token = token or request.cookies.get("bayup_customer_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="No autenticado")
+    try:
+        payload = jwt.decode(token, security.SECRET_KEY, algorithms=[security.ALGORITHM])
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    if not payload.get("cust"):
+        raise HTTPException(status_code=401, detail="Token inválido")
+    email = payload.get("sub")
+    tenant_id = payload.get("tenant_id")
+    if not email or not tenant_id:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    customer = (
+        db.query(_m.User)
+        .filter(_m.User.email == email, _m.User.owner_id == tenant_id, _m.User.role == "cliente")
+        .first()
+    )
+    if not customer or customer.status not in ("Activo", "active"):
+        raise HTTPException(status_code=401, detail="Cuenta no encontrada")
+    return customer
 
 
 def tenant_id_from(user) -> str:
