@@ -1984,6 +1984,47 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             {/* SIDEBAR CARRITO */}
             <AnimatePresence>
                 {isCartOpen && (
+                    isOrzenTenant ? (
+                    <div className="fixed inset-0 z-[3000]">
+                        <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCartOpen(false)} className="overlay-scrim show" />
+                        <m.aside initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 28, stiffness: 220 }} className="drawer open">
+                            <div className="drawer-head">
+                                <h3>Tu Bolsa {cart.length > 0 ? `(${cart.length})` : ''}</h3>
+                                <button type="button" onClick={() => setIsCartOpen(false)} aria-label="Cerrar"><X size={20} /></button>
+                            </div>
+                            <div className="drawer-body">
+                                {cart.length === 0 ? (
+                                    <div className="drawer-empty">
+                                        <ShoppingBag size={40} />
+                                        <p>Tu bolsa está vacía.</p>
+                                        <button type="button" className="btn btn-dark btn-sm" onClick={() => { setIsCartOpen(false); router.push(`/shop/${slug}?view=catalog`); }}>Ir a la tienda</button>
+                                    </div>
+                                ) : cart.map((item) => (
+                                    <div key={item.id} className="cart-line">
+                                        <div className="line-media">
+                                            {item.image ? <img src={item.image} alt={item.title} className="ph-photo" /> : <div className="ph ph-product" />}
+                                        </div>
+                                        <div className="line-info">
+                                            <div className="line-name">{item.title}</div>
+                                            <div className="line-meta">Cantidad: {item.quantity}</div>
+                                            <div className="line-bottom">
+                                                <span className="line-price">${(item.price * item.quantity).toLocaleString('es-CO')}</span>
+                                                <button type="button" className="line-remove" onClick={() => removeItem(item.id)}>Eliminar</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            {cart.length > 0 && (
+                                <div className="drawer-foot">
+                                    <div className="drawer-subtotal"><span>Subtotal</span><span>${cartTotal.toLocaleString('es-CO')}</span></div>
+                                    <button type="button" className="btn btn-dark btn-full" onClick={() => { setIsCartOpen(false); setIsCheckoutOpen(true); }}>Ir a pagar</button>
+                                    <p className="drawer-note"><button type="button" className="line-remove" style={{ background: 'none', border: 'none', padding: 0 }} onClick={() => { setIsCartOpen(false); router.push(`/shop/${slug}?view=cart`); }}>Ver bolsa completa</button></p>
+                                </div>
+                            )}
+                        </m.aside>
+                    </div>
+                    ) : (
                     <div className="fixed inset-0 z-[3000] flex justify-end">
                         <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCartOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
                         <m.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="relative w-full max-w-md bg-white h-screen shadow-2xl flex flex-col">
@@ -2014,6 +2055,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                             )}
                         </m.div>
                     </div>
+                    )
                 )}
             </AnimatePresence>
 
