@@ -174,7 +174,10 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             const itemsWithVariants = await Promise.all(cart.map(async (item) => {
                 const prod = shopData.products.find((p: any) => p.id === item.id);
                 const variantId = item.variant || ((prod?.variants && prod.variants.length > 0) ? prod.variants[0].id : item.id);
-                return { product_variant_id: variantId, quantity: item.quantity };
+                // price_at_purchase: solo lo exige /public/orders (Contraentrega, sin
+                // pasarela) — el backend igual revalida el precio real por su cuenta
+                // (resolve_variant_items en public.py, CRIT-002), esto no es lo que se cobra.
+                return { product_variant_id: variantId, quantity: item.quantity, price_at_purchase: item.price };
             }));
             const shippingAddress = `${customerData.address}, ${customerData.city}${customerData.postal_code ? ', ' + customerData.postal_code : ''}`;
 
