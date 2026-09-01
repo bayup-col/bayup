@@ -567,6 +567,9 @@ h1,h2,h3,h4,p{margin:0;}
   overflow-x:hidden;
   isolation:isolate;
 }
+.orzen-storefront template{display:none!important;}
+.orzen-storefront:not(.orzen-ready){visibility:hidden;}
+.orzen-storefront.orzen-ready{visibility:visible;}
 .orzen-storefront main,
 .orzen-storefront section,
 .orzen-storefront .container,

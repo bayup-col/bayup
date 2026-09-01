@@ -43,6 +43,33 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function ShopLayout({ children }: Props) {
-  return <div className={studioFontVariables}>{children}</div>;
+const ORZEN_CRITICAL_CSS = `
+.orzen-storefront template{display:none!important}
+.orzen-storefront .logo img{height:20px;width:auto;max-height:20px}
+.orzen-storefront .icon-btn svg{width:20px;height:20px;max-width:none}
+.orzen-storefront .card-wish svg{width:16px;height:16px;max-width:none}
+.orzen-storefront .mobile-menu:not(.open),
+.orzen-storefront .search-overlay:not(.open),
+.orzen-storefront .filter-sheet:not(.open),
+.orzen-storefront .drawer:not(.open){
+  position:fixed;inset:0;transform:translateY(-100%);
+  pointer-events:none;visibility:hidden;
+}
+.orzen-storefront:not(.orzen-ready){visibility:hidden}
+.orzen-storefront.orzen-ready{visibility:visible}
+`;
+
+export default function ShopLayout({ children, params }: Props) {
+  const isOrzen = params.slug === 'orzen';
+  return (
+    <div className={studioFontVariables}>
+      {isOrzen && (
+        <>
+          <link rel="stylesheet" href="/templates/clients/orzen/style.css" precedence="high" />
+          <style dangerouslySetInnerHTML={{ __html: ORZEN_CRITICAL_CSS }} />
+        </>
+      )}
+      {children}
+    </div>
+  );
 }

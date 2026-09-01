@@ -5,6 +5,8 @@
 // las deduplique automaticamente dentro del mismo request (request memoization
 // de `fetch`) — evita pedir dos veces `/public/shop/{slug}` en cada carga.
 
+import { sanitizeCustomHtml } from '@/lib/sanitize-custom-html';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
 
 export async function getShopBaseData(slug: string): Promise<any | null> {
@@ -70,7 +72,9 @@ export async function getInitialShopData(slug: string, view: string, postSlug?: 
     // Plantilla tipo HTML: no tiene schema_data, el backend devuelve el HTML
     // crudo de esta pagina puntual.
     if (pageData && pageData.html) {
-      data.custom_html = pageData.html;
+      data.custom_html = (slug === 'orzen' || data.shop_slug === 'orzen')
+        ? sanitizeCustomHtml(pageData.html)
+        : pageData.html;
     }
   } else if (pageResult.status === 'rejected') {
     console.warn(`Diseño para vista ${view} no publicado.`);
