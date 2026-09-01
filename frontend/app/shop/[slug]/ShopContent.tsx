@@ -609,7 +609,11 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
         // wishlist/select-size más abajo (manipulación directa del DOM).
         if (view === 'catalog' && grid && cardTpl) {
             const countEl = root.querySelector('[data-bayup="product-count"]');
-            const sortSel = root.querySelector('[data-bayup="product-sort"]') as HTMLSelectElement | null;
+            // Dos <select> con el mismo data-bayup (uno en el toolbar de
+            // escritorio, otro dentro de la hoja de filtros móvil) — se
+            // mantienen sincronizados entre sí.
+            const sortSels = Array.from(root.querySelectorAll('[data-bayup="product-sort"]')) as HTMLSelectElement[];
+            const sortSel = sortSels[0];
             const renderCatalog = (cat: string, gender: string, sortVal: string) => {
                 let list = products.filter((p: any) => {
                     const matchesCat = cat === 'all' || p.category === cat;
@@ -640,12 +644,13 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             renderCatalog(initialCategory, initialGender, sortSel?.value || 'relevancia');
             (root as any)._orzCatalogState = { cat: initialCategory, gender: initialGender };
             (root as any)._orzRenderCatalog = renderCatalog;
-            if (sortSel) {
-                sortSel.onchange = () => {
+            sortSels.forEach(sel => {
+                sel.onchange = () => {
+                    sortSels.forEach(other => { if (other !== sel) other.value = sel.value; });
                     const st = (root as any)._orzCatalogState;
-                    renderCatalog(st.cat, st.gender, sortSel.value);
+                    renderCatalog(st.cat, st.gender, sel.value);
                 };
-            }
+            });
         }
 
         if (view === 'product' && productId) {
