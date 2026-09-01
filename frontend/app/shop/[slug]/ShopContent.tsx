@@ -485,6 +485,18 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
     const [placingOrderStep, setPlacingOrderStep] = useState<'idle' | 'creating' | 'confirming'>('idle');
     const [legalModalOpen, setLegalModalOpen] = useState<null | keyof typeof LEGAL_LABELS>(null);
     const customHtmlRef = useRef<HTMLDivElement>(null);
+    // Favorito pendiente tras volver del login (?wish=<id>): se guarda en un
+    // ref (no en el string de la URL) porque el efecto de rehidratación
+    // puede correr una primera vez ANTES de que el grid de productos exista
+    // todavía (mientras custom_html/products siguen cargando) — si solo
+    // dependiéramos del query param, esa primera pasada ya lo "gastaría"
+    // (POST + limpiar la URL) sin encontrar el corazón que marcar, y la
+    // pasada siguiente (con el grid ya listo) ya no vería el parámetro.
+    // Con el ref, el intento de MARCAR se repite en cada pasada hasta que
+    // realmente encuentra el corazón; el POST se hace una sola vez.
+    const pendingWishIdRef = useRef<string | null>(null);
+    const pendingWishPostedRef = useRef(false);
+    useEffect(() => { if (wishParam) pendingWishIdRef.current = wishParam; }, [wishParam]);
 
     // --- Checkout wizard de 4 pasos (EXCLUSIVO del tenant Orzen, ver
     // require_orzen_tenant en el backend) — el checkout genérico de arriba
@@ -903,23 +915,27 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
 
         // --- Favorito pendiente al volver del login (ver acción toggle-wishlist
         // más abajo: guarda ?wish=<id> antes de mandar a loguearse) ---
-        const pendingWish = wishParam;
+        const pendingWish = pendingWishIdRef.current;
         if (customerToken && pendingWish) {
-            fetch(`${apiBase}/shop/${slug}/customer-auth/wishlist`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${customerToken}` },
-                body: JSON.stringify({ product_id: pendingWish }),
-            }).then(() => {
-                root.querySelectorAll('[data-bayup-action="toggle-wishlist"]').forEach((el: any) => {
-                    if (String(el.dataset.productId) === String(pendingWish)) {
-                        el.setAttribute('data-wishlisted', 'true');
-                        el.classList.add('active');
-                    }
-                });
+            if (!pendingWishPostedRef.current) {
+                pendingWishPostedRef.current = true;
+                fetch(`${apiBase}/shop/${slug}/customer-auth/wishlist`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${customerToken}` },
+                    body: JSON.stringify({ product_id: pendingWish }),
+                }).catch(() => {});
                 const url = new URL(window.location.href);
                 url.searchParams.delete('wish');
                 window.history.replaceState({}, '', url.toString());
-            }).catch(() => {});
+            }
+            // El grid puede no existir todavía en esta pasada del efecto (sigue
+            // cargando) — se reintenta en cada pasada hasta encontrar el corazón.
+            const heartEl = root.querySelector(`[data-bayup-action="toggle-wishlist"][data-product-id="${pendingWish}"]`) as HTMLElement | null;
+            if (heartEl) {
+                heartEl.setAttribute('data-wishlisted', 'true');
+                heartEl.classList.add('active');
+                pendingWishIdRef.current = null;
+            }
         }
 
         // --- Login / registro de cliente final ---
