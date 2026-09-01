@@ -693,6 +693,24 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                 .catch(() => {});
         }
 
+        // --- Favorito pendiente al volver del login (ver acción toggle-wishlist
+        // más abajo: guarda ?wish=<id> antes de mandar a loguearse) ---
+        const pendingWish = searchParams.get('wish');
+        if (customerToken && pendingWish) {
+            fetch(`${apiBase}/shop/${slug}/customer-auth/wishlist`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${customerToken}` },
+                body: JSON.stringify({ product_id: pendingWish }),
+            }).then(() => {
+                root.querySelectorAll('[data-bayup-action="toggle-wishlist"]').forEach((el: any) => {
+                    if (String(el.dataset.productId) === String(pendingWish)) el.setAttribute('data-wishlisted', 'true');
+                });
+                const url = new URL(window.location.href);
+                url.searchParams.delete('wish');
+                window.history.replaceState({}, '', url.toString());
+            }).catch(() => {});
+        }
+
         // --- Login / registro de cliente final ---
         const loginForm = root.querySelector('[data-bayup="login-form"]') as HTMLFormElement | null;
         if (loginForm && !loginForm.dataset.bayupBound) {
@@ -708,7 +726,8 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                     if (res.ok) {
                         const data = await res.json();
                         setCustomerToken(data.access_token);
-                        router.push(`/shop/${slug}?view=account`);
+                        const next = searchParams.get('next');
+                        router.push(next ? decodeURIComponent(next) : `/shop/${slug}?view=account`);
                     } else {
                         const errEl = loginForm.querySelector('[data-bayup="login-error"]') as HTMLElement | null;
                         if (errEl) { errEl.textContent = 'Credenciales inválidas.'; errEl.style.display = ''; }
@@ -730,7 +749,8 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                     if (res.ok) {
                         const data = await res.json();
                         setCustomerToken(data.access_token);
-                        router.push(`/shop/${slug}?view=account`);
+                        const next = searchParams.get('next');
+                        router.push(next ? decodeURIComponent(next) : `/shop/${slug}?view=account`);
                     } else {
                         const errBody = await res.json().catch(() => null);
                         const errEl = registerForm.querySelector('[data-bayup="register-error"]') as HTMLElement | null;
@@ -1003,7 +1023,16 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                 const pid = target.dataset.productId;
                 if (!pid) return;
                 const token = getCustomerToken();
-                if (!token) { router.push(`/shop/${slug}?view=login`); return; }
+                if (!token) {
+                    // Sin sesión: al volver del login, regresa exactamente a esta
+                    // vista (no a "Mi cuenta") y guarda el producto pendiente en
+                    // favoritos automáticamente — evita perder el lugar donde
+                    // estaba el visitante solo por tener que loguearse primero.
+                    const here = `${window.location.pathname}${window.location.search}`;
+                    const hereWithWish = here + (here.includes('?') ? '&' : '?') + `wish=${pid}`;
+                    router.push(`/shop/${slug}?view=login&next=${encodeURIComponent(hereWithWish)}`);
+                    return;
+                }
                 const isActive = target.getAttribute('data-wishlisted') === 'true';
                 target.setAttribute('data-wishlisted', isActive ? 'false' : 'true');
                 fetch(`${apiBase}/shop/${slug}/customer-auth/wishlist${isActive ? '/' + pid : ''}`, {
