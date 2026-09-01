@@ -520,6 +520,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
     const lastAdaptedHtmlRef = useRef<string | null>(null);
     const orzenEverReadyRef = useRef(false);
     const pageHtmlCacheRef = useRef<Record<string, string>>({});
+    const scrollLockYRef = useRef(0);
     const cartRef = useRef(cart);
     cartRef.current = cart;
     // Favorito pendiente tras volver del login (?wish=<id>): se guarda en un
@@ -563,6 +564,35 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
     const getCustomerToken = () => { try { return localStorage.getItem(customerTokenKey); } catch { return null; } };
     const setCustomerToken = (token: string) => { try { localStorage.setItem(customerTokenKey, token); } catch {} };
     const clearCustomerToken = () => { try { localStorage.removeItem(customerTokenKey); } catch {} };
+
+    // Favoritos de invitado (ORZEN) — localStorage, como el prototipo estático.
+    // Al iniciar sesión se sincronizan con la API del cliente.
+    const guestWishlistKey = `bayup_wishlist_${slug}`;
+    const getGuestWishlist = (): string[] => {
+        try { return JSON.parse(localStorage.getItem(guestWishlistKey) || '[]'); } catch { return []; }
+    };
+    const setGuestWishlist = (ids: string[]) => { try { localStorage.setItem(guestWishlistKey, JSON.stringify(ids)); } catch {} };
+    const toggleGuestWishlist = (productId: string): boolean => {
+        const ids = getGuestWishlist();
+        const idx = ids.indexOf(productId);
+        if (idx >= 0) { ids.splice(idx, 1); setGuestWishlist(ids); return false; }
+        ids.push(productId);
+        setGuestWishlist(ids);
+        return true;
+    };
+    const mergeGuestWishlistToServer = async (token: string) => {
+        const ids = getGuestWishlist();
+        if (!ids.length) return;
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
+        await Promise.allSettled(ids.map(id =>
+            fetch(`${apiBase}/shop/${slug}/customer-auth/wishlist`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ product_id: id }),
+            })
+        ));
+        setGuestWishlist([]);
+    };
 
     // Carga el script del widget de Wompi al montar
     useEffect(() => {
@@ -981,26 +1011,26 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             if (searchInput.value) runSearch(searchInput.value);
         }
 
-        // --- Wishlist: marca corazones activos si hay sesión de cliente ---
-        // (data-product-id ya se asignó en cada clon de card/detalle más arriba)
+        // --- Wishlist: marca corazones activos (servidor o localStorage invitado) ---
+        const markWishlistedHearts = (ids: Set<string>) => {
+            root.querySelectorAll('[data-bayup-action="toggle-wishlist"]').forEach((el: any) => {
+                if (el.dataset.productId && ids.has(String(el.dataset.productId))) {
+                    el.setAttribute('data-wishlisted', 'true');
+                    el.classList.add('active');
+                }
+            });
+        };
         const customerToken = getCustomerToken();
         if (customerToken) {
             fetch(`${apiBase}/shop/${slug}/customer-auth/wishlist`, { headers: { Authorization: `Bearer ${customerToken}` } })
                 .then(r => r.ok ? r.json() : [])
-                .then((items: any[]) => {
-                    const ids = new Set(items.map(i => String(i.product_id)));
-                    root.querySelectorAll('[data-bayup-action="toggle-wishlist"]').forEach((el: any) => {
-                        if (el.dataset.productId && ids.has(String(el.dataset.productId))) {
-                            el.setAttribute('data-wishlisted', 'true');
-                            el.classList.add('active');
-                        }
-                    });
-                })
+                .then((items: any[]) => markWishlistedHearts(new Set(items.map(i => String(i.product_id)))))
                 .catch(() => {});
+        } else if (isOrzenTenant) {
+            markWishlistedHearts(new Set(getGuestWishlist()));
         }
 
-        // --- Favorito pendiente al volver del login (ver acción toggle-wishlist
-        // más abajo: guarda ?wish=<id> antes de mandar a loguearse) ---
+        // --- Favorito pendiente al volver del login (legacy ?wish=) ---
         const pendingWish = pendingWishIdRef.current;
         if (customerToken && pendingWish) {
             if (!pendingWishPostedRef.current) {
@@ -1039,6 +1069,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                     if (res.ok) {
                         const data = await res.json();
                         setCustomerToken(data.access_token);
+                        await mergeGuestWishlistToServer(data.access_token);
                         const next = nextParam;
                         router.push(next ? decodeURIComponent(next) : `/shop/${slug}?view=account`);
                     } else {
@@ -1062,6 +1093,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                     if (res.ok) {
                         const data = await res.json();
                         setCustomerToken(data.access_token);
+                        await mergeGuestWishlistToServer(data.access_token);
                         const next = nextParam;
                         router.push(next ? decodeURIComponent(next) : `/shop/${slug}?view=account`);
                     } else {
@@ -1073,9 +1105,57 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             });
         }
 
-        // --- Cuenta de cliente (pedidos, direcciones, ajustes, wishlist) ---
-        const ACCOUNT_VIEWS = ['account', 'orders', 'order-detail', 'addresses', 'settings', 'wishlist'];
-        if (ACCOUNT_VIEWS.includes(view)) {
+        // --- Cuenta de cliente (pedidos, direcciones, ajustes) ---
+        const ACCOUNT_VIEWS = ['account', 'orders', 'order-detail', 'addresses', 'settings'];
+
+        const fillWishlistGrid = (entries: { id: string; name: string; price: number; image_url?: string }[]) => {
+            const grid = root.querySelector('[data-bayup="product-grid"]');
+            const tpl = root.querySelector('template[data-bayup="product-card-template"]') as HTMLTemplateElement | null;
+            const emptyEl = root.querySelector('[data-bayup="wishlist-empty"]') as HTMLElement | null;
+            if (!grid || !tpl) return;
+            grid.innerHTML = '';
+            if (emptyEl) emptyEl.style.display = entries.length ? 'none' : '';
+            entries.forEach(p => {
+                const clone = tpl.content.cloneNode(true) as DocumentFragment;
+                clone.querySelectorAll('[data-bayup-card="image"]').forEach((el: any) => { if (p.image_url) el.src = p.image_url; el.alt = p.name; });
+                clone.querySelectorAll('[data-bayup-card="name"]').forEach(el => { el.textContent = p.name; });
+                clone.querySelectorAll('[data-bayup-card="price"]').forEach(el => { el.textContent = fmt(p.price); });
+                clone.querySelectorAll('[data-bayup-action="nav-product"]').forEach(el => { (el as HTMLElement).dataset.productId = p.id; });
+                clone.querySelectorAll('[data-bayup-action="toggle-wishlist"]').forEach(el => {
+                    (el as HTMLElement).dataset.productId = p.id;
+                    el.setAttribute('data-wishlisted', 'true');
+                    el.classList.add('active');
+                });
+                grid.appendChild(clone);
+            });
+        };
+
+        if (view === 'wishlist') {
+            if (customerToken) {
+                fetch(`${apiBase}/shop/${slug}/customer-auth/wishlist`, { headers: { Authorization: `Bearer ${customerToken}` } })
+                    .then(r => r.ok ? r.json() : [])
+                    .then((items: any[]) => {
+                        fillWishlistGrid(items.map((it: any) => ({
+                            id: String(it.product_id),
+                            name: it.name,
+                            price: it.price,
+                            image_url: it.image_url,
+                        })));
+                    });
+            } else if (isOrzenTenant) {
+                const ids = new Set(getGuestWishlist());
+                fillWishlistGrid(
+                    products.filter(p => ids.has(String(p.id))).map(p => ({
+                        id: String(p.id),
+                        name: p.name,
+                        price: p.price,
+                        image_url: imgOf(p),
+                    }))
+                );
+            } else {
+                router.push(`/shop/${slug}?view=login&next=${encodeURIComponent(`/shop/${slug}?view=wishlist`)}`);
+            }
+        } else if (ACCOUNT_VIEWS.includes(view)) {
             if (!customerToken) {
                 router.push(`/shop/${slug}?view=login`);
             } else {
@@ -1222,35 +1302,30 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                     }
                 }
 
-                if (view === 'wishlist') {
-                    fetch(`${apiBase}/shop/${slug}/customer-auth/wishlist`, { headers: authHeaders })
-                        .then(r => r.ok ? r.json() : [])
-                        .then((items: any[]) => {
-                            const grid = root.querySelector('[data-bayup="product-grid"]');
-                            const tpl = root.querySelector('template[data-bayup="product-card-template"]') as HTMLTemplateElement | null;
-                            const emptyEl = root.querySelector('[data-bayup="wishlist-empty"]') as HTMLElement | null;
-                            if (grid && tpl) {
-                                grid.innerHTML = '';
-                                if (emptyEl) emptyEl.style.display = items.length ? 'none' : '';
-                                items.forEach((it: any) => {
-                                    const clone = tpl.content.cloneNode(true) as DocumentFragment;
-                                    clone.querySelectorAll('[data-bayup-card="image"]').forEach((el: any) => { if (it.image_url) el.src = it.image_url; el.alt = it.name; });
-                                    clone.querySelectorAll('[data-bayup-card="name"]').forEach(el => { el.textContent = it.name; });
-                                    clone.querySelectorAll('[data-bayup-card="price"]').forEach(el => { el.textContent = fmt(it.price); });
-                                    clone.querySelectorAll('[data-bayup-action="nav-product"]').forEach(el => { (el as HTMLElement).dataset.productId = it.product_id; });
-                                    clone.querySelectorAll('[data-bayup-action="toggle-wishlist"]').forEach(el => { (el as HTMLElement).dataset.productId = it.product_id; el.setAttribute('data-wishlisted', 'true'); el.classList.add('active'); });
-                                    grid.appendChild(clone);
-                                });
-                            }
-                        });
-                }
             }
         }
 
         // --- Shell UI ORZEN (menú móvil, búsqueda overlay, filtros, acordeón) ---
         const syncBodyLock = () => {
-            const anyOpen = root.querySelector('.mobile-menu.open, .search-overlay.open, .filter-sheet.open');
-            document.body.style.overflow = anyOpen ? 'hidden' : '';
+            const anyOpen = root.querySelector('.mobile-menu.open, .search-overlay.open, .filter-sheet.open, .drawer.open');
+            if (anyOpen) {
+                scrollLockYRef.current = window.scrollY;
+                document.body.style.position = 'fixed';
+                document.body.style.top = `-${scrollLockYRef.current}px`;
+                document.body.style.left = '0';
+                document.body.style.right = '0';
+                document.body.style.width = '100%';
+                document.body.style.overflow = 'hidden';
+            } else {
+                const y = scrollLockYRef.current;
+                document.body.style.position = '';
+                document.body.style.top = '';
+                document.body.style.left = '';
+                document.body.style.right = '';
+                document.body.style.width = '';
+                document.body.style.overflow = '';
+                window.scrollTo(0, y);
+            }
         };
         const q = (sel: string) => root.querySelector(sel) as HTMLElement | null;
         const mobileMenu = q('.mobile-menu') || q('#mobile-menu');
@@ -1434,14 +1509,28 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             }
             if (action === 'toggle-wishlist') {
                 e.preventDefault();
+                e.stopPropagation();
                 const pid = target.dataset.productId;
                 if (!pid) return;
                 const token = getCustomerToken();
                 if (!token) {
-                    // Sin sesión: al volver del login, regresa exactamente a esta
-                    // vista (no a "Mi cuenta") y guarda el producto pendiente en
-                    // favoritos automáticamente — evita perder el lugar donde
-                    // estaba el visitante solo por tener que loguearse primero.
+                    if (isOrzenTenant) {
+                        const nowActive = toggleGuestWishlist(pid);
+                        target.setAttribute('data-wishlisted', nowActive ? 'true' : 'false');
+                        target.classList.toggle('active', nowActive);
+                        if (view === 'wishlist') {
+                            const ids = new Set(getGuestWishlist());
+                            fillWishlistGrid(
+                                products.filter(p => ids.has(String(p.id))).map(p => ({
+                                    id: String(p.id),
+                                    name: p.name,
+                                    price: p.price,
+                                    image_url: imgOf(p),
+                                }))
+                            );
+                        }
+                        return;
+                    }
                     const here = `${window.location.pathname}${window.location.search}`;
                     const hereWithWish = here + (here.includes('?') ? '&' : '?') + `wish=${pid}`;
                     router.push(`/shop/${slug}?view=login&next=${encodeURIComponent(hereWithWish)}`);
@@ -1526,6 +1615,11 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             root.removeEventListener('click', preventHashNav, true);
             root.removeEventListener('click', handleClick);
             document.removeEventListener('keydown', onKeyDown);
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.left = '';
+            document.body.style.right = '';
+            document.body.style.width = '';
             document.body.style.overflow = '';
         };
     }, [sanitizedCustomHtml, shopData.products, shopData.full_name, shopData.phone, shopData.categories, shopData.posts, shopData.currentPost, view, productId, postSlug, slug, router, categoriaParam, generoParam, nextParam, wishParam, isOrzenTenant, shopData.custom_html, shopData.id, shopData.owner_id]);

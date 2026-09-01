@@ -160,7 +160,13 @@ h1,h2,h3,h4,p{margin:0;}
   display:flex;flex-direction:column;
   padding:max(24px, env(safe-area-inset-top)) var(--gutter) max(32px, env(safe-area-inset-bottom));
 }
-.mobile-menu.open{transform:translateY(0);}
+.mobile-menu.open{
+  transform:translateY(0);
+  visibility:visible;
+  pointer-events:auto;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
 .mobile-menu-top{display:flex;justify-content:space-between;align-items:center;height:52px;}
 .mobile-menu-top .logo{color:var(--white);}
 .mobile-menu-top button svg{width:24px;height:24px;stroke:var(--white);}
@@ -613,6 +619,9 @@ h1,h2,h3,h4,p{margin:0;}
   .split-panel img,.split-panel .ph-photo{object-fit:cover;object-position:center;}
   .footer-top{grid-template-columns:1fr 1fr;gap:28px 20px;}
   .footer-brand{grid-column:1/-1;}
+  /* Tienda/Colecciones ya están en el menú hamburguesa — no duplicar en footer */
+  .footer-top .footer-col:nth-child(2),
+  .footer-top .footer-col:nth-child(3){display:none;}
   .footer-col h4{margin-bottom:12px;}
   .footer-col ul{gap:8px;}
   .site-header .container{height:64px;}
@@ -685,5 +694,7 @@ h1,h2,h3,h4,p{margin:0;}
   .gender-card{aspect-ratio:3/4;}
   .mobile-nav a{font-size:clamp(26px,10vw,40px);}
   .mobile-menu-footer{gap:12px 20px;font-size:10px;}
-  .footer-top{grid-template-columns:1fr;gap:24px;}
+  .site-footer{padding-bottom:max(24px, env(safe-area-inset-bottom));}
+  .footer-top{grid-template-columns:1fr 1fr;gap:20px 16px;}
+  .footer-bottom{padding-bottom:max(20px, env(safe-area-inset-bottom));}
 }
