@@ -48,6 +48,14 @@ const ORZEN_CRITICAL_CSS = `
 .orzen-storefront .logo img{height:20px;width:auto;max-height:20px}
 .orzen-storefront .icon-btn svg{width:20px;height:20px;max-width:none}
 .orzen-storefront .card-wish svg{width:16px;height:16px;max-width:none}
+.orzen-storefront .mobile-menu.open,
+.orzen-storefront .search-overlay.open,
+.orzen-storefront .filter-sheet.open,
+.orzen-storefront .drawer.open{
+  visibility:visible;
+  pointer-events:auto;
+  transform:translateY(0);
+}
 .orzen-storefront .mobile-menu:not(.open),
 .orzen-storefront .search-overlay:not(.open),
 .orzen-storefront .filter-sheet:not(.open),
