@@ -175,15 +175,13 @@ h1,h2,h3,h4,p{margin:0;}
 
 /* =============== HERO =============== */
 .hero{position:relative;width:100%;aspect-ratio:1995/788;color:var(--white);overflow:hidden;background:var(--black-deep);}
-.hero-img{width:100%;height:100%;object-fit:cover;display:block;}
+.hero-img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 .photo-hit{position:absolute;display:block;}
+/* Tablet: el texto del banner va a la izquierda — no recortar con cover centrado */
 @media (max-width:900px){
-  .hero{aspect-ratio:auto;min-height:460px;}
-  .hero-img{object-position:32% center;}
-}
-@media (max-width:520px){
-  .hero{min-height:400px;}
+  .hero{aspect-ratio:auto;height:auto;min-height:0;}
+  .hero-img{height:auto;object-fit:contain;object-position:left center;}
 }
 
 /* =============== SECTION HEADS =============== */
@@ -606,8 +604,8 @@ h1,h2,h3,h4,p{margin:0;}
   .photo-banner img{height:auto;max-height:none;object-fit:contain;object-position:left center;}
   .gender-card{height:auto;min-height:0;max-height:none;aspect-ratio:4/5;}
   .gender-card img{object-fit:contain;object-position:left center;}
-  .hero{min-height:0;aspect-ratio:4/5;}
-  .hero-img{object-position:22% center;}
+  .hero{aspect-ratio:auto;height:auto;min-height:0;}
+  .hero-img{height:auto;object-fit:contain;object-position:left center;}
   .page-head-photo .page-head-bg{object-position:center;}
   .split-panel img,.split-panel .ph-photo{object-fit:cover;object-position:center;}
   .footer-top{grid-template-columns:1fr 1fr;gap:28px 20px;}
@@ -669,8 +667,12 @@ h1,h2,h3,h4,p{margin:0;}
   .card-info{padding:10px 2px 18px;}
   .card-name,.card-price{font-size:12px;}
   .btn{padding:13px 20px;font-size:11px;}
-  .hero{aspect-ratio:3/4;min-height:320px;}
+  .hero-img{object-position:left center;}
   .photo-banner-own img,.photo-banner-limited img{object-position:left center;}
+  .site-header .container{padding-left:max(16px,var(--gutter));padding-right:max(16px,var(--gutter));}
+  .nav-actions{gap:10px;}
+  .icon-btn svg{width:18px;height:18px;}
+  .burger{width:22px;}
   .checkout-steps{flex-direction:column;align-items:flex-start;}
   .checkout-steps .sep{display:none;}
   .confirm-actions{flex-direction:column;width:100%;}
