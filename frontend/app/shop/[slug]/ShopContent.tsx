@@ -895,7 +895,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             clone.querySelectorAll('[data-bayup-action="nav-journal-post"]').forEach(el => { (el as HTMLElement).dataset.postSlug = post.slug; });
         };
 
-        if (jGrid && jTpl) {
+        if (view === 'journal' && jGrid && jTpl) {
             const renderJournal = (cat: string) => {
                 const list = cat === 'all' ? posts : posts.filter((p: any) => p.category === cat);
                 jGrid.innerHTML = '';
@@ -1801,32 +1801,39 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                 if (isOrzen && hasBaseData) {
                     const cacheKey = orzenPageCacheKey(view, postSlug);
                     const cachedHtml = pageHtmlCacheRef.current[cacheKey];
-                    if (cachedHtml) {
+                    const storeId = shopData.id;
+                    const needsPosts = view === 'journal';
+                    const needsCurrentPost = view === 'journal-post' && !!postSlug;
+                    const hasPostsData = needsPosts && Array.isArray(shopData.posts) && shopData.posts.length > 0;
+                    const hasPostData = needsCurrentPost && shopData.currentPost?.slug === postSlug;
+
+                    // El prefetch en hover solo guarda HTML — Revista también necesita
+                    // los posts de la API; si no, el grid queda vacío hasta refrescar.
+                    if (cachedHtml && (!needsPosts || hasPostsData) && (!needsCurrentPost || hasPostData)) {
                         setShopData((prev: any) => ({ ...prev, custom_html: cachedHtml }));
                         return;
                     }
 
-                    const storeId = shopData.id;
                     const fetchPageWithFallback = async () => {
                         const primary = await fetch(`${apiBase}/public/stores/${storeId}/pages/${view}`);
                         if (primary.ok || view !== 'cart') return primary;
                         return fetch(`${apiBase}/public/stores/${storeId}/pages/home`);
                     };
-                    const fetchExtras = view === 'journal'
+                    const fetchExtras = needsPosts
                         ? fetch(`${apiBase}/public/stores/${storeId}/posts`)
-                        : (view === 'journal-post' && postSlug)
+                        : needsCurrentPost
                         ? fetch(`${apiBase}/public/stores/${storeId}/posts/${postSlug}`)
                         : Promise.resolve(null as any);
                     const [pageResult, postsResult] = await Promise.allSettled([
-                        fetchPageWithFallback(),
-                        fetchExtras,
+                        cachedHtml ? Promise.resolve(null as any) : fetchPageWithFallback(),
+                        (needsPosts || needsCurrentPost) ? fetchExtras : Promise.resolve(null as any),
                     ]);
 
-                    let newHtml: string | undefined;
+                    let newHtml: string | undefined = cachedHtml;
                     let posts = shopData.posts;
                     let currentPost = shopData.currentPost;
 
-                    if (pageResult.status === 'fulfilled' && pageResult.value.ok) {
+                    if (!cachedHtml && pageResult.status === 'fulfilled' && pageResult.value?.ok) {
                         const pageData = await pageResult.value.json();
                         if (pageData?.html) {
                             newHtml = sanitizeCustomHtml(pageData.html);
@@ -1835,16 +1842,16 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                     }
                     if (postsResult.status === 'fulfilled' && postsResult.value?.ok) {
                         const postsJson = await postsResult.value.json();
-                        if (view === 'journal') posts = postsJson;
-                        else currentPost = postsJson;
+                        if (needsPosts) posts = postsJson;
+                        else if (needsCurrentPost) currentPost = postsJson;
                     }
 
-                    if (newHtml) {
+                    if (newHtml || needsPosts || needsCurrentPost) {
                         setShopData((prev: any) => ({
                             ...prev,
-                            custom_html: newHtml,
-                            posts,
-                            currentPost,
+                            ...(newHtml ? { custom_html: newHtml } : {}),
+                            ...(needsPosts ? { posts } : {}),
+                            ...(needsCurrentPost ? { currentPost } : {}),
                         }));
                     }
                     return;
