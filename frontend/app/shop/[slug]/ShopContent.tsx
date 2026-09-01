@@ -107,6 +107,17 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
     const view = searchParams.get("view") || "home"; // home, product, catalog, checkout, about
     const productId = searchParams.get("id");
     const postSlug = searchParams.get("post");
+    // Primitivos (strings estables), NO el objeto searchParams completo: éste
+    // último puede cambiar de referencia en cada render sin que la URL real
+    // cambie — usarlo directo como dependencia del useEffect grande de abajo
+    // causaba que TODA la plantilla HTML (incluido el <link> de estilos) se
+    // recreara en cada tecla escrita en cualquier input, provocando un
+    // parpadeo sin estilos. Con estos strings primitivos como dependencia el
+    // efecto solo re-corre cuando la URL de verdad cambia.
+    const categoriaParam = searchParams.get('categoria');
+    const generoParam = searchParams.get('genero');
+    const nextParam = searchParams.get('next');
+    const wishParam = searchParams.get('wish');
 
     const router = useRouter();
     const { items: cart, addItem, removeItem, clearCart, total: cartTotal, isCartOpen, setIsCartOpen, isCheckoutOpen, setIsCheckoutOpen } = useCart();
@@ -418,8 +429,8 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                     el.classList.toggle('active', (el as HTMLElement).dataset.category === cat);
                 });
             };
-            const initialCategory = searchParams.get('categoria') || 'all';
-            const initialGender = searchParams.get('genero') || '';
+            const initialCategory = categoriaParam || 'all';
+            const initialGender = generoParam || '';
             renderCatalog(initialCategory, initialGender, sortSel?.value || 'relevancia');
             (root as any)._orzCatalogState = { cat: initialCategory, gender: initialGender };
             (root as any)._orzRenderCatalog = renderCatalog;
@@ -695,7 +706,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
 
         // --- Favorito pendiente al volver del login (ver acción toggle-wishlist
         // más abajo: guarda ?wish=<id> antes de mandar a loguearse) ---
-        const pendingWish = searchParams.get('wish');
+        const pendingWish = wishParam;
         if (customerToken && pendingWish) {
             fetch(`${apiBase}/shop/${slug}/customer-auth/wishlist`, {
                 method: 'POST',
@@ -726,7 +737,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                     if (res.ok) {
                         const data = await res.json();
                         setCustomerToken(data.access_token);
-                        const next = searchParams.get('next');
+                        const next = nextParam;
                         router.push(next ? decodeURIComponent(next) : `/shop/${slug}?view=account`);
                     } else {
                         const errEl = loginForm.querySelector('[data-bayup="login-error"]') as HTMLElement | null;
@@ -749,7 +760,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                     if (res.ok) {
                         const data = await res.json();
                         setCustomerToken(data.access_token);
-                        const next = searchParams.get('next');
+                        const next = nextParam;
                         router.push(next ? decodeURIComponent(next) : `/shop/${slug}?view=account`);
                     } else {
                         const errBody = await res.json().catch(() => null);
@@ -1093,7 +1104,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
         };
         root.addEventListener('click', handleClick);
         return () => root.removeEventListener('click', handleClick);
-    }, [shopData.custom_html, shopData.products, shopData.full_name, shopData.phone, shopData.categories, shopData.posts, shopData.currentPost, cart, cartTotal, view, productId, postSlug, slug, router, searchParams]);
+    }, [shopData.custom_html, shopData.products, shopData.full_name, shopData.phone, shopData.categories, shopData.posts, shopData.currentPost, cart, cartTotal, view, productId, postSlug, slug, router, categoriaParam, generoParam, nextParam, wishParam]);
 
     const extractErrorMessage = async (res: Response, fallback: string) => {
         try {
