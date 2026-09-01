@@ -126,12 +126,162 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
     // --- LÓGICA DE INTERFAZ ---
     const [isClientLoginOpen, setIsClientLoginOpen] = useState(false);
     const [customerData, setCustomerData] = useState({
-        name: "", phone: "", email: "", address: "", city: "", notes: ""
+        name: "", phone: "", email: "", address: "", city: "", notes: "", postal_code: ""
     });
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
     const [placingOrderStep, setPlacingOrderStep] = useState<'idle' | 'creating' | 'confirming'>('idle');
     const [legalModalOpen, setLegalModalOpen] = useState<null | keyof typeof LEGAL_LABELS>(null);
     const customHtmlRef = useRef<HTMLDivElement>(null);
+
+    // --- Checkout wizard de 4 pasos (EXCLUSIVO del tenant Orzen, ver
+    // require_orzen_tenant en el backend) — el checkout genérico de arriba
+    // (una sola pantalla) sigue intacto para cualquier otro tenant. ---
+    const isOrzenTenant = shopData?.shop_slug === 'orzen';
+    const [orzStep, setOrzStep] = useState<'datos' | 'envio' | 'metodo' | 'pago' | 'confirmacion'>('datos');
+    const [orzShippingOptions, setOrzShippingOptions] = useState<any[]>([]);
+    const [orzShippingId, setOrzShippingId] = useState<string>('');
+    const [orzPaymentMethod, setOrzPaymentMethod] = useState<'tarjeta' | 'contraentrega'>('tarjeta');
+    const [orzConfirmedOrder, setOrzConfirmedOrder] = useState<any>(null);
+    const [orzPlacing, setOrzPlacing] = useState(false);
+    const [orzError, setOrzError] = useState<string>('');
+
+    useEffect(() => {
+        if (!isOrzenTenant || !isCheckoutOpen) return;
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
+        fetch(`${apiBase}/public/stores/${shopData.id}/shipping-options`)
+            .then(r => r.ok ? r.json() : [])
+            .then(opts => {
+                setOrzShippingOptions(opts || []);
+                if (opts && opts[0]) setOrzShippingId(opts[0].id);
+            })
+            .catch(() => {});
+    }, [isOrzenTenant, isCheckoutOpen, shopData?.id]);
+
+    const orzShippingCost = orzShippingOptions.find(o => o.id === orzShippingId)?.cost || 0;
+    const orzTotal = cartTotal + orzShippingCost;
+
+    const orzResetWizard = () => {
+        setOrzStep('datos');
+        setOrzConfirmedOrder(null);
+        setOrzError('');
+    };
+
+    const orzPlaceOrder = async () => {
+        setOrzPlacing(true);
+        setOrzError('');
+        try {
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
+            const itemsWithVariants = await Promise.all(cart.map(async (item) => {
+                const prod = shopData.products.find((p: any) => p.id === item.id);
+                const variantId = item.variant || ((prod?.variants && prod.variants.length > 0) ? prod.variants[0].id : item.id);
+                return { product_variant_id: variantId, quantity: item.quantity };
+            }));
+            const shippingAddress = `${customerData.address}, ${customerData.city}${customerData.postal_code ? ', ' + customerData.postal_code : ''}`;
+
+            if (orzPaymentMethod === 'contraentrega') {
+                const res = await fetch(`${apiBase}/public/orders`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tenant_id: shopData.id,
+                        total_price: orzTotal,
+                        customer_name: customerData.name,
+                        customer_phone: customerData.phone,
+                        customer_email: customerData.email,
+                        customer_city: customerData.city,
+                        shipping_address: shippingAddress,
+                        shipping_option_id: orzShippingId || null,
+                        payment_method: 'contraentrega',
+                        source: 'web',
+                        items: itemsWithVariants,
+                    }),
+                });
+                if (!res.ok) {
+                    setOrzError(await extractErrorMessage(res, 'No se pudo crear el pedido.'));
+                    setOrzPlacing(false);
+                    return;
+                }
+                const order = await res.json();
+                clearCart();
+                setOrzConfirmedOrder(order);
+                setOrzStep('confirmacion');
+                setOrzPlacing(false);
+                return;
+            }
+
+            // Tarjeta: mismo flujo real de Wompi que el checkout genérico, con el
+            // envío ya incluido en el total cobrado (shipping_option_id server-side).
+            const res = await fetch(`${apiBase}/public/checkout`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    tenant_id: shopData.id,
+                    customer_name: customerData.name,
+                    customer_phone: customerData.phone,
+                    customer_email: customerData.email,
+                    customer_city: customerData.city,
+                    shipping_address: shippingAddress,
+                    shipping_option_id: orzShippingId || null,
+                    currency: 'COP',
+                    items: itemsWithVariants,
+                }),
+            });
+            if (!res.ok) {
+                setOrzError(await extractErrorMessage(res, 'No se pudo iniciar el pago.'));
+                setOrzPlacing(false);
+                return;
+            }
+            const config = await res.json();
+            if (!config.public_key) {
+                setOrzError('Los pagos en línea no están disponibles en este momento. Intenta de nuevo más tarde.');
+                setOrzPlacing(false);
+                return;
+            }
+            if (typeof window.WidgetCheckout !== 'function') {
+                const ready = await waitForWompiScript();
+                if (!ready) {
+                    setOrzError('La pasarela de pago tardó demasiado en cargar. Recarga la página e intenta de nuevo.');
+                    setOrzPlacing(false);
+                    return;
+                }
+            }
+            const redirectUrl = `${window.location.origin}/pago/confirmando?payment_id=${config.payment_id}&slug=${slug}`;
+            const checkout = new window.WidgetCheckout({
+                currency: config.currency,
+                amountInCents: config.amount_in_cents,
+                reference: config.reference,
+                publicKey: config.public_key,
+                signature: { integrity: config.signature },
+                redirectUrl,
+                customerData: {
+                    email: customerData.email,
+                    fullName: customerData.name,
+                    phoneNumber: customerData.phone.replace(/\D/g, ''),
+                    phoneNumberPrefix: '+57',
+                },
+            });
+            checkout.open(async (result: any) => {
+                const clientStatus = result?.transaction?.status;
+                if (clientStatus !== 'APPROVED') {
+                    setOrzError(`Pago no completado (${clientStatus || 'cancelado'}).`);
+                    setOrzPlacing(false);
+                    return;
+                }
+                const confirmed = await waitForPaymentConfirmation(apiBase, config.payment_id);
+                if (confirmed?.status === 'approved') {
+                    clearCart();
+                    setOrzConfirmedOrder({ id: confirmed.order_id, total_price: orzTotal });
+                    setOrzStep('confirmacion');
+                } else {
+                    setOrzError('Tu pago está siendo verificado. Te notificaremos por correo en cuanto se confirme.');
+                }
+                setOrzPlacing(false);
+            });
+        } catch (error: any) {
+            setOrzError(error?.message || 'Error de conexión. Intenta de nuevo.');
+            setOrzPlacing(false);
+        }
+    };
 
     // Sesión de cliente final (comprador) — completamente separada del login
     // de comerciante. Se guarda en localStorage (no la cookie httpOnly, que
@@ -230,6 +380,52 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                 clone.querySelectorAll('[data-bayup-action="toggle-wishlist"]').forEach(el => { (el as HTMLElement).dataset.productId = String(p.id); });
                 grid.appendChild(clone);
             });
+        }
+
+        // --- Catálogo (Tienda): filtro por categoría/género + contador + orden ---
+        // Reemplaza el grid genérico de arriba (que llena con TODOS los
+        // productos) solo cuando la vista es 'catalog'. Filtro/orden son
+        // 100% cliente (sin recargar ni refetch) — mismo patrón que
+        // wishlist/select-size más abajo (manipulación directa del DOM).
+        if (view === 'catalog' && grid && cardTpl) {
+            const countEl = root.querySelector('[data-bayup="product-count"]');
+            const sortSel = root.querySelector('[data-bayup="product-sort"]') as HTMLSelectElement | null;
+            const renderCatalog = (cat: string, gender: string, sortVal: string) => {
+                let list = products.filter((p: any) => {
+                    const matchesCat = cat === 'all' || p.category === cat;
+                    const matchesGender = !gender || !p.gender || p.gender === 'unisex' || p.gender === gender;
+                    return matchesCat && matchesGender;
+                });
+                if (sortVal === 'precio-asc') list = [...list].sort((a: any, b: any) => a.price - b.price);
+                else if (sortVal === 'precio-desc') list = [...list].sort((a: any, b: any) => b.price - a.price);
+                else if (sortVal === 'nuevo') list = [...list].reverse();
+                grid.innerHTML = '';
+                list.forEach((p: any) => {
+                    const clone = cardTpl.content.cloneNode(true) as DocumentFragment;
+                    const src = imgOf(p);
+                    clone.querySelectorAll('[data-bayup-card="image"]').forEach((el: any) => { if (src) el.src = src; el.alt = p.name; });
+                    clone.querySelectorAll('[data-bayup-card="name"]').forEach(el => { el.textContent = p.name; });
+                    clone.querySelectorAll('[data-bayup-card="price"]').forEach(el => { el.textContent = fmt(p.price); });
+                    clone.querySelectorAll('[data-bayup-action="nav-product"]').forEach(el => { (el as HTMLElement).dataset.productId = String(p.id); });
+                    clone.querySelectorAll('[data-bayup-action="toggle-wishlist"]').forEach(el => { (el as HTMLElement).dataset.productId = String(p.id); });
+                    grid.appendChild(clone);
+                });
+                if (countEl) countEl.textContent = `${list.length} producto${list.length === 1 ? '' : 's'}`;
+                root.querySelectorAll('[data-bayup-action="filter-category"]').forEach(el => {
+                    el.classList.toggle('active', (el as HTMLElement).dataset.category === cat);
+                });
+            };
+            const initialCategory = searchParams.get('categoria') || 'all';
+            const initialGender = searchParams.get('genero') || '';
+            renderCatalog(initialCategory, initialGender, sortSel?.value || 'relevancia');
+            (root as any)._orzCatalogState = { cat: initialCategory, gender: initialGender };
+            (root as any)._orzRenderCatalog = renderCatalog;
+            if (sortSel) {
+                sortSel.onchange = () => {
+                    const st = (root as any)._orzCatalogState;
+                    renderCatalog(st.cat, st.gender, sortSel.value);
+                };
+            }
         }
 
         if (view === 'product' && productId) {
@@ -337,16 +533,24 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
         const jGrid = root.querySelector('[data-bayup="journal-grid"]');
         const jTpl = root.querySelector('template[data-bayup="journal-card-template"]') as HTMLTemplateElement | null;
         if (jGrid && jTpl) {
-            jGrid.innerHTML = '';
-            posts.forEach((post: any) => {
-                const clone = jTpl.content.cloneNode(true) as DocumentFragment;
-                clone.querySelectorAll('[data-bayup-card="image"]').forEach((el: any) => { if (post.image_url) el.src = post.image_url; el.alt = post.title; });
-                clone.querySelectorAll('[data-bayup-card="title"]').forEach(el => { el.textContent = post.title; });
-                clone.querySelectorAll('[data-bayup-card="category"]').forEach(el => { el.textContent = post.category || ''; });
-                clone.querySelectorAll('[data-bayup-card="excerpt"]').forEach(el => { el.textContent = post.excerpt || ''; });
-                clone.querySelectorAll('[data-bayup-action="nav-journal-post"]').forEach(el => { (el as HTMLElement).dataset.postSlug = post.slug; });
-                jGrid.appendChild(clone);
-            });
+            const renderJournal = (cat: string) => {
+                const list = cat === 'all' ? posts : posts.filter((p: any) => p.category === cat);
+                jGrid.innerHTML = '';
+                list.forEach((post: any) => {
+                    const clone = jTpl.content.cloneNode(true) as DocumentFragment;
+                    clone.querySelectorAll('[data-bayup-card="image"]').forEach((el: any) => { if (post.image_url) el.src = post.image_url; el.alt = post.title; });
+                    clone.querySelectorAll('[data-bayup-card="title"]').forEach(el => { el.textContent = post.title; });
+                    clone.querySelectorAll('[data-bayup-card="category"]').forEach(el => { el.textContent = post.category || ''; });
+                    clone.querySelectorAll('[data-bayup-card="excerpt"]').forEach(el => { el.textContent = post.excerpt || ''; });
+                    clone.querySelectorAll('[data-bayup-action="nav-journal-post"]').forEach(el => { (el as HTMLElement).dataset.postSlug = post.slug; });
+                    jGrid.appendChild(clone);
+                });
+                root.querySelectorAll('[data-bayup-action="filter-journal-category"]').forEach(el => {
+                    el.classList.toggle('active', (el as HTMLElement).dataset.journalCategory === cat);
+                });
+            };
+            renderJournal('all');
+            (root as any)._orzRenderJournal = renderJournal;
         }
         if (view === 'journal-post' && shopData.currentPost) {
             const post = shopData.currentPost;
@@ -534,10 +738,14 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                             if (list && tpl) {
                                 list.innerHTML = '';
                                 if (emptyEl) emptyEl.style.display = orders.length ? 'none' : '';
+                                const STATUS_LABEL: Record<string, string> = {
+                                    pending: 'En proceso', confirmed: 'En proceso',
+                                    delivered: 'Entregado', completed: 'Entregado', cancelled: 'Cancelado',
+                                };
                                 orders.forEach((o: any) => {
                                     const clone = tpl.content.cloneNode(true) as DocumentFragment;
                                     clone.querySelectorAll('[data-bayup-row="short_id"]').forEach(el => { el.textContent = o.short_id; });
-                                    clone.querySelectorAll('[data-bayup-row="status"]').forEach(el => { el.textContent = o.status; });
+                                    clone.querySelectorAll('[data-bayup-row="status"]').forEach(el => { el.textContent = STATUS_LABEL[o.status] || o.status; });
                                     clone.querySelectorAll('[data-bayup-row="total"]').forEach(el => { el.textContent = fmt(o.total_price); });
                                     clone.querySelectorAll('[data-bayup-row="date"]').forEach(el => { el.textContent = o.created_at ? new Date(o.created_at).toLocaleDateString('es-CO') : ''; });
                                     clone.querySelectorAll('[data-bayup-action="nav-order-detail"]').forEach(el => { (el as HTMLElement).dataset.orderId = o.id; });
@@ -551,8 +759,25 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                     fetch(`${apiBase}/shop/${slug}/customer-auth/orders/${productId}`, { headers: authHeaders })
                         .then(r => r.ok ? r.json() : Promise.reject())
                         .then((order: any) => {
+                            const STATUS_LABEL: Record<string, string> = {
+                                pending: 'En proceso', confirmed: 'En proceso',
+                                delivered: 'Entregado', completed: 'Entregado', cancelled: 'Cancelado',
+                            };
+                            const STATUS_CLASS: Record<string, string> = {
+                                pending: 'status-processing', confirmed: 'status-processing',
+                                delivered: 'status-delivered', completed: 'status-delivered', cancelled: '',
+                            };
+                            const PAYMENT_LABEL: Record<string, string> = {
+                                wompi: 'Pagado con tarjeta', contraentrega: 'Contraentrega — pendiente de pago', cash: 'Pago en efectivo',
+                            };
                             root.querySelectorAll('[data-bayup="order-short-id"]').forEach(el => { el.textContent = order.short_id; });
-                            root.querySelectorAll('[data-bayup="order-status"]').forEach(el => { el.textContent = order.status; });
+                            root.querySelectorAll('[data-bayup="order-status"]').forEach(el => {
+                                el.textContent = STATUS_LABEL[order.status] || order.status;
+                                el.className = `status-pill ${STATUS_CLASS[order.status] || ''}`.trim();
+                            });
+                            root.querySelectorAll('[data-bayup="order-payment-method"]').forEach(el => {
+                                el.textContent = PAYMENT_LABEL[order.payment_method] || order.payment_method || '';
+                            });
                             root.querySelectorAll('[data-bayup="order-total"]').forEach(el => { el.textContent = fmt(order.total_price); });
                             root.querySelectorAll('[data-bayup="order-address"]').forEach(el => { el.textContent = order.shipping_address || ''; });
                             const itemsBox = root.querySelector('[data-bayup="order-items"]');
@@ -660,7 +885,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
         }
 
         const NAV_VIEW: Record<string, string> = {
-            'nav-home': '', 'nav-catalog': 'catalog', 'nav-contact': 'contact', 'nav-privacy': 'privacy', 'nav-cart': 'cart',
+            'nav-home': '', 'nav-contact': 'contact', 'nav-privacy': 'privacy', 'nav-cart': 'cart',
             'nav-collections': 'collections', 'nav-journal': 'journal', 'nav-search': 'search',
             'nav-wishlist': 'wishlist', 'nav-account': 'account', 'nav-login': 'login', 'nav-orders': 'orders',
             'nav-addresses': 'addresses', 'nav-settings': 'settings', 'nav-about': 'about', 'nav-size-guide': 'size-guide',
@@ -670,6 +895,33 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             const target = (e.target as HTMLElement)?.closest('[data-bayup-action]') as HTMLElement | null;
             if (!target || !root.contains(target)) return;
             const action = target.dataset.bayupAction || '';
+            if (action === 'nav-catalog') {
+                e.preventDefault();
+                const cat = target.dataset.category;
+                const gender = target.dataset.gender;
+                const params = new URLSearchParams();
+                if (cat) params.set('categoria', cat);
+                if (gender) params.set('genero', gender);
+                const qs = params.toString();
+                router.push(`/shop/${slug}?view=catalog${qs ? '&' + qs : ''}`);
+                return;
+            }
+            if (action === 'filter-category') {
+                e.preventDefault();
+                const cat = target.dataset.category || 'all';
+                const st = (root as any)._orzCatalogState || { gender: '' };
+                st.cat = cat;
+                (root as any)._orzCatalogState = st;
+                const sortSel = root.querySelector('[data-bayup="product-sort"]') as HTMLSelectElement | null;
+                (root as any)._orzRenderCatalog?.(cat, st.gender, sortSel?.value || 'relevancia');
+                return;
+            }
+            if (action === 'filter-journal-category') {
+                e.preventDefault();
+                const cat = target.dataset.journalCategory || 'all';
+                (root as any)._orzRenderJournal?.(cat);
+                return;
+            }
             if (action in NAV_VIEW) {
                 e.preventDefault();
                 const v = NAV_VIEW[action];
@@ -782,7 +1034,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
         };
         root.addEventListener('click', handleClick);
         return () => root.removeEventListener('click', handleClick);
-    }, [shopData.custom_html, shopData.products, shopData.full_name, shopData.phone, shopData.categories, shopData.posts, shopData.currentPost, cart, cartTotal, view, productId, postSlug, slug, router]);
+    }, [shopData.custom_html, shopData.products, shopData.full_name, shopData.phone, shopData.categories, shopData.posts, shopData.currentPost, cart, cartTotal, view, productId, postSlug, slug, router, searchParams]);
 
     const extractErrorMessage = async (res: Response, fallback: string) => {
         try {
@@ -1382,9 +1634,11 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                 )}
             </AnimatePresence>
 
-            {/* CHECKOUT — página completa estilo retail (no modal flotante) */}
+            {/* CHECKOUT — página completa estilo retail (no modal flotante). Genérico
+                para cualquier tenant EXCEPTO Orzen, que tiene su propio wizard de 4
+                pasos justo abajo (ver isOrzenTenant). */}
             <AnimatePresence>
-                {isCheckoutOpen && (
+                {isCheckoutOpen && !isOrzenTenant && (
                     <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         className="fixed inset-0 z-[4000] bg-gray-50 overflow-y-auto">
 
@@ -1493,6 +1747,181 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                                 </div>
                             </div>
                         </div>
+                    </m.div>
+                )}
+            </AnimatePresence>
+
+            {/* CHECKOUT ORZEN — wizard real de 4 pasos (Datos/Envío/Método/Pago) +
+                confirmación, usando las clases checkout- y confirm- que ya
+                existían sin usar en style.css. Exclusivo del tenant Orzen. */}
+            <AnimatePresence>
+                {isCheckoutOpen && isOrzenTenant && (
+                    <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[4000] overflow-y-auto" style={{ background: 'var(--white, #fff)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 32px', borderBottom: '1px solid rgba(0,0,0,.08)' }}>
+                            <img src="/templates/clients/orzen/img/logo.png" alt="ORZEN" style={{ height: 20 }} />
+                            <button onClick={() => { setIsCheckoutOpen(false); orzResetWizard(); }} aria-label="Cerrar" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {orzStep !== 'confirmacion' ? (
+                            <div className="checkout-wrap">
+                                <div className="checkout-main">
+                                    <div className="checkout-steps">
+                                        <span className={`step ${orzStep === 'datos' ? 'active' : 'done'}`}>01 Datos</span><span className="sep">·</span>
+                                        <span className={`step ${orzStep === 'envio' ? 'active' : ['metodo','pago'].includes(orzStep) ? 'done' : ''}`}>02 Envío</span><span className="sep">·</span>
+                                        <span className={`step ${orzStep === 'metodo' ? 'active' : orzStep === 'pago' ? 'done' : ''}`}>03 Método</span><span className="sep">·</span>
+                                        <span className={`step ${orzStep === 'pago' ? 'active' : ''}`}>04 Pago</span>
+                                    </div>
+
+                                    {orzStep === 'datos' && (
+                                        <div className="checkout-panel active">
+                                            <h2 className="checkout-title">Datos</h2>
+                                            <div className="field">
+                                                <label>Nombre completo</label>
+                                                <input required value={customerData.name} onChange={e => setCustomerData({ ...customerData, name: e.target.value })} />
+                                            </div>
+                                            <div className="field-row">
+                                                <div className="field">
+                                                    <label>Correo electrónico</label>
+                                                    <input required type="email" value={customerData.email} onChange={e => setCustomerData({ ...customerData, email: e.target.value })} />
+                                                </div>
+                                                <div className="field">
+                                                    <label>Teléfono</label>
+                                                    <input required value={customerData.phone} onChange={e => setCustomerData({ ...customerData, phone: e.target.value.replace(/\D/g, '') })} />
+                                                </div>
+                                            </div>
+                                            <div className="checkout-nav">
+                                                <span />
+                                                <button className="btn btn-dark" disabled={!customerData.name || !customerData.email || !customerData.phone}
+                                                    onClick={() => setOrzStep('envio')}>Siguiente</button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {orzStep === 'envio' && (
+                                        <div className="checkout-panel active">
+                                            <h2 className="checkout-title">Envío</h2>
+                                            <div className="field">
+                                                <label>Dirección</label>
+                                                <input required value={customerData.address} onChange={e => setCustomerData({ ...customerData, address: e.target.value })} />
+                                            </div>
+                                            <div className="field-row">
+                                                <div className="field">
+                                                    <label>Ciudad</label>
+                                                    <input required value={customerData.city} onChange={e => setCustomerData({ ...customerData, city: e.target.value })} />
+                                                </div>
+                                                <div className="field">
+                                                    <label>Código postal</label>
+                                                    <input value={customerData.postal_code} onChange={e => setCustomerData({ ...customerData, postal_code: e.target.value })} />
+                                                </div>
+                                            </div>
+                                            <div className="field">
+                                                <label>País</label>
+                                                <input value="Colombia" disabled />
+                                            </div>
+                                            <div className="checkout-nav">
+                                                <button className="btn btn-outline" onClick={() => setOrzStep('datos')}>Atrás</button>
+                                                <button className="btn btn-dark" disabled={!customerData.address || !customerData.city}
+                                                    onClick={() => setOrzStep('metodo')}>Siguiente</button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {orzStep === 'metodo' && (
+                                        <div className="checkout-panel active">
+                                            <h2 className="checkout-title">Método de envío</h2>
+                                            {orzShippingOptions.map(opt => (
+                                                <label key={opt.id} className={`radio-card ${orzShippingId === opt.id ? 'selected' : ''}`}>
+                                                    <span className="radio-left">
+                                                        <input type="radio" name="orz-shipping" checked={orzShippingId === opt.id} onChange={() => setOrzShippingId(opt.id)} />
+                                                        {opt.name}
+                                                    </span>
+                                                    <span className="radio-price">{opt.cost > 0 ? `$${opt.cost.toLocaleString('es-CO')}` : 'Gratis'}</span>
+                                                </label>
+                                            ))}
+                                            <div className="checkout-nav">
+                                                <button className="btn btn-outline" onClick={() => setOrzStep('envio')}>Atrás</button>
+                                                <button className="btn btn-dark" disabled={!orzShippingId} onClick={() => setOrzStep('pago')}>Siguiente</button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {orzStep === 'pago' && (
+                                        <div className="checkout-panel active">
+                                            <h2 className="checkout-title">Pago</h2>
+                                            <label className={`radio-card ${orzPaymentMethod === 'tarjeta' ? 'selected' : ''}`}>
+                                                <span className="radio-left">
+                                                    <input type="radio" name="orz-payment" checked={orzPaymentMethod === 'tarjeta'} onChange={() => setOrzPaymentMethod('tarjeta')} />
+                                                    Tarjeta
+                                                </span>
+                                            </label>
+                                            <label className="radio-card" style={{ opacity: .45, cursor: 'not-allowed' }}>
+                                                <span className="radio-left">
+                                                    <input type="radio" name="orz-payment" disabled />
+                                                    PSE
+                                                </span>
+                                                <span className="radio-price">Próximamente</span>
+                                            </label>
+                                            <label className={`radio-card ${orzPaymentMethod === 'contraentrega' ? 'selected' : ''}`}>
+                                                <span className="radio-left">
+                                                    <input type="radio" name="orz-payment" checked={orzPaymentMethod === 'contraentrega'} onChange={() => setOrzPaymentMethod('contraentrega')} />
+                                                    Contraentrega
+                                                </span>
+                                            </label>
+                                            {orzError && <p style={{ color: '#b3261e', fontSize: 12, marginTop: 14 }}>{orzError}</p>}
+                                            <div className="checkout-nav">
+                                                <button className="btn btn-outline" onClick={() => setOrzStep('metodo')}>Atrás</button>
+                                                <button className="btn btn-dark" disabled={orzPlacing} onClick={orzPlaceOrder}>
+                                                    {orzPlacing ? 'Procesando…' : orzPaymentMethod === 'contraentrega' ? 'Confirmar pedido' : 'Pagar ahora'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="checkout-side">
+                                    <h3 style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 24 }}>Resumen del pedido</h3>
+                                    {cart.map(item => (
+                                        <div key={item.id} className="order-line">
+                                            <div className="line-media">
+                                                {item.image ? <Image src={item.image} width={64} height={80} style={{ objectFit: 'cover', width: '100%', height: '100%' }} alt={item.title} /> : null}
+                                                <span className="qty-badge">{item.quantity}</span>
+                                            </div>
+                                            <div className="line-info">
+                                                <div className="line-name">{item.title}</div>
+                                                <div className="line-price">${(item.price * item.quantity).toLocaleString('es-CO')}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div className="summary-row"><span>Subtotal</span><span>${cartTotal.toLocaleString('es-CO')}</span></div>
+                                    <div className="summary-row">
+                                        <span>Envío</span>
+                                        <span>{orzShippingId ? (orzShippingCost > 0 ? `$${orzShippingCost.toLocaleString('es-CO')}` : 'Gratis') : 'Por definir'}</span>
+                                    </div>
+                                    <div className="summary-row total"><span>Total</span><span>${orzTotal.toLocaleString('es-CO')}</span></div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="confirm-wrap">
+                                <div className="confirm-check"><CheckCheck /></div>
+                                <p className="confirm-order-no">Pedido #{String(orzConfirmedOrder?.id || '').slice(0, 8).toUpperCase()}</p>
+                                <h1 className="confirm-title hgroup">Pedido confirmado.<br />Bienvenido a ORZEN.</h1>
+                                <p style={{ color: 'var(--gray-500)', marginTop: 14, fontSize: 14 }}>
+                                    Te hemos enviado un correo con los detalles de tu compra.
+                                    {orzPaymentMethod === 'contraentrega' ? ' Pagas al recibir tu pedido.' : ''}
+                                </p>
+                                <div className="confirm-actions">
+                                    <button className="btn btn-dark" onClick={() => {
+                                        setIsCheckoutOpen(false);
+                                        orzResetWizard();
+                                        if (orzConfirmedOrder?.id) router.push(`/shop/${slug}?view=order-detail&id=${orzConfirmedOrder.id}`);
+                                    }}>Ver mi pedido</button>
+                                    <button className="btn btn-outline" onClick={() => { setIsCheckoutOpen(false); orzResetWizard(); router.push(`/shop/${slug}`); }}>Seguir comprando</button>
+                                </div>
+                            </div>
+                        )}
                     </m.div>
                 )}
             </AnimatePresence>

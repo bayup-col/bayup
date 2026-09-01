@@ -29,6 +29,7 @@ class PublicOrderCreateRequest(BaseModel):
     customer_phone: str | None = None
     customer_city: str | None = None
     shipping_address: str | None = None
+    shipping_option_id: str | None = None
     payment_method: str = "cash"
     source: str = "web"
     items: list[PublicOrderItemRequest] = Field(min_length=1)
@@ -149,16 +150,38 @@ def resolve_variant_items(db: Session, tenant_uuid, raw_items: list) -> list:
     return validated_items
 
 
+def resolve_shipping_cost(db: Session, tenant_uuid, shipping_option_id: str | None) -> tuple:
+    """Resuelve el costo real de envío contra ShippingOption (CRIT-002: nunca
+    se confía en un monto que mande el navegador). Devuelve (option_id, cost).
+    Sin shipping_option_id, envío gratis (ej. checkout genérico que no lo usa)."""
+    if not shipping_option_id:
+        return None, 0.0
+    try:
+        opt_uuid = _uuid.UUID(str(shipping_option_id))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="shipping_option_id inválido")
+    opt = db.query(models.ShippingOption).filter(
+        models.ShippingOption.id == opt_uuid,
+        models.ShippingOption.owner_id == tenant_uuid,
+    ).first()
+    if not opt:
+        raise HTTPException(status_code=400, detail="Opción de envío no válida")
+    return opt.id, float(opt.cost or 0.0)
+
+
 def finalize_web_order(
     db: Session, tenant_uuid, validated_items: list,
     customer_name: str, customer_email: str | None, customer_phone: str | None,
     customer_city: str | None, shipping_address: str | None,
     payment_method: str, source: str,
+    shipping_option_id: str | None = None,
 ) -> models.Order:
     """Crea la orden ya validada, encola emails, genera envío y notifica al
     tenant. Compartido entre el checkout directo (/public/orders) y la
     confirmación de pago vía webhook de la pasarela (Wompi)."""
     import email_queue as _eq
+
+    resolved_option_id, shipping_cost = resolve_shipping_cost(db, tenant_uuid, shipping_option_id)
 
     order_in = schemas.OrderCreate(
         tenant_id=tenant_uuid,
@@ -168,6 +191,8 @@ def finalize_web_order(
         customer_phone=customer_phone,
         customer_city=customer_city,
         shipping_address=shipping_address,
+        shipping_option_id=resolved_option_id,
+        shipping_cost_snapshot=shipping_cost,
         payment_method=payment_method,
         source=source,
         items=validated_items,
@@ -238,9 +263,25 @@ def create_public_order(request: Request, payload: PublicOrderCreateRequest, db:
         customer_name=payload.customer_name, customer_email=payload.customer_email,
         customer_phone=payload.customer_phone, customer_city=payload.customer_city,
         shipping_address=payload.shipping_address, payment_method=payload.payment_method,
-        source=payload.source,
+        source=payload.source, shipping_option_id=payload.shipping_option_id,
     )
     return schemas.Order.model_validate(db_order).model_dump(mode="json")
+
+
+@router.get("/public/stores/{store_id}/shipping-options")
+@limiter.limit("30/minute")
+async def get_public_shipping_options(request: Request, response: Response, store_id: str, db: Session = Depends(get_db)):
+    """Opciones de envío reales del tenant, para el paso 'Método' del checkout público."""
+    try:
+        store_uuid = _uuid.UUID(store_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="store_id inválido")
+    options = db.query(models.ShippingOption).filter(models.ShippingOption.owner_id == store_uuid).all()
+    response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
+    return [
+        {"id": str(o.id), "name": o.name, "cost": float(o.cost or 0), "min_order_total": float(o.min_order_total or 0)}
+        for o in options
+    ]
 
 
 @router.get("/public/orders/{order_id}")

@@ -165,6 +165,8 @@ class OrderBase(BaseModel):
     customer_phone: Optional[str] = None
     customer_city: Optional[str] = None
     shipping_address: Optional[str] = None
+    shipping_option_id: Optional[uuid.UUID] = None
+    shipping_cost_snapshot: Optional[float] = 0.0
     payment_method: str = "cash"
     source: str = "pos"
     seller_name: Optional[str] = None

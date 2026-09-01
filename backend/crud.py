@@ -285,9 +285,14 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
     # que absorberlo. 0 si el pedido no pasó por Wompi (POS, contraentrega).
     import payment_service as _payment_service
     gateway_fee_amount = _payment_service.wompi_fee(subtotal) if (order.payment_method or "").lower() == "wompi" else 0.0
+    # Costo de envío: ya viene resuelto server-side contra ShippingOption real
+    # (ver resolve_shipping_cost en routers/public.py) — nunca se confía en un
+    # monto que mande el navegador. No entra en subtotal/comisión/gateway_fee
+    # (esas son sobre el valor de la mercancía), solo se suma al total a cobrar.
+    shipping_cost = float(getattr(order, 'shipping_cost_snapshot', None) or 0.0)
     db_order = models.Order(
         id=uuid.uuid4(),
-        total_price=subtotal,
+        total_price=subtotal + shipping_cost,
         commission_amount=commission_amount,
         commission_rate_snapshot=commission_rate,
         gateway_fee_amount=gateway_fee_amount,
@@ -303,6 +308,8 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
         status=initial_status,
         customer_city=getattr(order, 'customer_city', None),
         shipping_address=getattr(order, 'shipping_address', None),
+        shipping_option_id=getattr(order, 'shipping_option_id', None),
+        shipping_cost_snapshot=shipping_cost,
     )
     db.add(db_order)
     db.flush() # Generamos el ID de la orden sin hacer commit aún

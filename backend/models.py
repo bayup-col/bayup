@@ -121,6 +121,7 @@ class Product(Base):
     wholesale_price = Column(Float, default=0.0)
     cost = Column(Float, default=0.0)
     category = Column(String, nullable=True) # Campo de categoría simple
+    gender = Column(String, nullable=True) # 'hombre'/'mujer'/'unisex' — filtro público de la tienda (hoy solo lo usa Orzen)
     sku = Column(String, index=True)
     status = Column(String, default="active")
     add_gateway_fee = Column(Boolean, default=False)
@@ -563,6 +564,10 @@ class Payment(Base):
     customer_name    = Column(String(255), nullable=True)
     customer_email   = Column(String(255), nullable=True)
     customer_phone   = Column(String(50),  nullable=True)
+    customer_city    = Column(String(120), nullable=True)
+    shipping_address = Column(String(500), nullable=True)
+    shipping_option_id = Column(GUID(), nullable=True)
+    shipping_cost    = Column(Float, default=0.0)
 
     # Artículos del carrito: [{product_id, name, qty, unit_price}]
     items            = Column(JSON, default=list)

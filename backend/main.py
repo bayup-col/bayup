@@ -204,6 +204,14 @@ def _sync_postgres_schema() -> None:
             "CREATE INDEX IF NOT EXISTS ix_wishlist_items_customer_id ON wishlist_items (customer_id)",
             "CREATE INDEX IF NOT EXISTS ix_wishlist_items_tenant_id ON wishlist_items (tenant_id)",
             "CREATE INDEX IF NOT EXISTS ix_wishlist_items_product_id ON wishlist_items (product_id)",
+            # envío real + contraentrega + género de producto — ver alembic 0016
+            "ALTER TABLE products ADD COLUMN IF NOT EXISTS gender VARCHAR",
+            "ALTER TABLE payments ADD COLUMN IF NOT EXISTS customer_city VARCHAR(120)",
+            "ALTER TABLE payments ADD COLUMN IF NOT EXISTS shipping_address VARCHAR(500)",
+            "ALTER TABLE payments ADD COLUMN IF NOT EXISTS shipping_option_id UUID",
+            "ALTER TABLE payments ADD COLUMN IF NOT EXISTS shipping_cost DOUBLE PRECISION DEFAULT 0.0",
+            "ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_option_id UUID",
+            "ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_cost_snapshot DOUBLE PRECISION DEFAULT 0.0",
         ]
         with engine.begin() as conn:
             for stmt in stmts:
