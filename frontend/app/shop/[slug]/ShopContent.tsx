@@ -518,6 +518,8 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
     const [legalModalOpen, setLegalModalOpen] = useState<null | keyof typeof LEGAL_LABELS>(null);
     const customHtmlRef = useRef<HTMLDivElement>(null);
     const lastAdaptedHtmlRef = useRef<string | null>(null);
+    const orzenEverReadyRef = useRef(false);
+    const pageHtmlCacheRef = useRef<Record<string, string>>({});
     const cartRef = useRef(cart);
     cartRef.current = cart;
     // Favorito pendiente tras volver del login (?wish=<id>): se guarda en un
@@ -542,6 +544,16 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
         () => (shopData?.custom_html ? sanitizeCustomHtml(shopData.custom_html) : ''),
         [shopData?.custom_html],
     );
+
+    const orzenPageCacheKey = (v: string, post?: string | null) => `${v}:${post || ''}`;
+
+    // Cache de HTML por vista — evita refetch al volver a un módulo ya visitado.
+    useEffect(() => {
+        if (!initialShopData?.custom_html) return;
+        const key = orzenPageCacheKey(view, postSlug);
+        pageHtmlCacheRef.current[key] = sanitizeCustomHtml(initialShopData.custom_html);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Sesión de cliente final (comprador) — completamente separada del login
     // de comerciante. Se guarda en localStorage (no la cookie httpOnly, que
@@ -648,7 +660,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
 
         const htmlChanged = lastAdaptedHtmlRef.current !== sanitizedCustomHtml;
 
-        if (isOrzenTenant && htmlChanged) {
+        if (isOrzenTenant && htmlChanged && !orzenEverReadyRef.current) {
             root.classList.remove('orzen-ready');
         }
 
@@ -1302,6 +1314,28 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             'nav-addresses': 'addresses', 'nav-settings': 'settings', 'nav-about': 'about', 'nav-size-guide': 'size-guide',
             'nav-shipping': 'shipping', 'nav-returns': 'returns', 'nav-terms': 'terms',
         };
+        if (isOrzenTenant && shopData.id) {
+            const prefetchOrzenPage = (targetView: string) => {
+                const v = targetView || 'home';
+                const key = orzenPageCacheKey(v, null);
+                if (pageHtmlCacheRef.current[key]) return;
+                fetch(`${apiBase}/public/stores/${shopData.id}/pages/${v}`)
+                    .then(r => r.ok ? r.json() : null)
+                    .then(d => {
+                        if (d?.html) pageHtmlCacheRef.current[key] = sanitizeCustomHtml(d.html);
+                    })
+                    .catch(() => {});
+            };
+            root.querySelectorAll('[data-bayup-action]').forEach(el => {
+                const action = (el as HTMLElement).dataset.bayupAction || '';
+                let targetView: string | null = null;
+                if (action === 'nav-catalog') targetView = 'catalog';
+                else if (action in NAV_VIEW) targetView = NAV_VIEW[action] || 'home';
+                if (targetView !== null) {
+                    bindOnce(el, 'mouseenter', () => prefetchOrzenPage(targetView!));
+                }
+            });
+        }
         const preventHashNav = (e: Event) => {
             const anchor = (e.target as HTMLElement)?.closest('a[href="#"]');
             if (anchor && root.contains(anchor)) e.preventDefault();
@@ -1481,6 +1515,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
         if (isOrzenTenant) {
             requestAnimationFrame(() => {
                 root.classList.add('orzen-ready');
+                orzenEverReadyRef.current = true;
                 lastAdaptedHtmlRef.current = sanitizedCustomHtml;
             });
         } else {
@@ -1660,26 +1695,72 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
 
     useEffect(() => {
         const fetchShop = async () => {
-            const softNav = (slug === 'orzen' || shopData?.shop_slug === 'orzen') && !!shopData?.custom_html;
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
+            const isOrzen = slug === 'orzen' || shopData?.shop_slug === 'orzen';
+            const hasBaseData = !!shopData?.id && Array.isArray(shopData?.products);
+            const softNav = isOrzen && hasBaseData;
             if (!softNav) setLoading(true);
-            try {
-                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
 
-                // 1. Cargamos info base de la tienda
+            try {
+                // ORZEN SPA: solo pedir el HTML de la página nueva (~1s).
+                // Antes se repetía tienda + productos + página en cada clic (~3s).
+                if (isOrzen && hasBaseData) {
+                    const cacheKey = orzenPageCacheKey(view, postSlug);
+                    const cachedHtml = pageHtmlCacheRef.current[cacheKey];
+                    if (cachedHtml) {
+                        setShopData((prev: any) => ({ ...prev, custom_html: cachedHtml }));
+                        return;
+                    }
+
+                    const storeId = shopData.id;
+                    const fetchPageWithFallback = async () => {
+                        const primary = await fetch(`${apiBase}/public/stores/${storeId}/pages/${view}`);
+                        if (primary.ok || view !== 'cart') return primary;
+                        return fetch(`${apiBase}/public/stores/${storeId}/pages/home`);
+                    };
+                    const fetchExtras = view === 'journal'
+                        ? fetch(`${apiBase}/public/stores/${storeId}/posts`)
+                        : (view === 'journal-post' && postSlug)
+                        ? fetch(`${apiBase}/public/stores/${storeId}/posts/${postSlug}`)
+                        : Promise.resolve(null as any);
+                    const [pageResult, postsResult] = await Promise.allSettled([
+                        fetchPageWithFallback(),
+                        fetchExtras,
+                    ]);
+
+                    let newHtml: string | undefined;
+                    let posts = shopData.posts;
+                    let currentPost = shopData.currentPost;
+
+                    if (pageResult.status === 'fulfilled' && pageResult.value.ok) {
+                        const pageData = await pageResult.value.json();
+                        if (pageData?.html) {
+                            newHtml = sanitizeCustomHtml(pageData.html);
+                            pageHtmlCacheRef.current[cacheKey] = newHtml;
+                        }
+                    }
+                    if (postsResult.status === 'fulfilled' && postsResult.value?.ok) {
+                        const postsJson = await postsResult.value.json();
+                        if (view === 'journal') posts = postsJson;
+                        else currentPost = postsJson;
+                    }
+
+                    if (newHtml) {
+                        setShopData((prev: any) => ({
+                            ...prev,
+                            custom_html: newHtml,
+                            posts,
+                            currentPost,
+                        }));
+                    }
+                    return;
+                }
+
+                // Carga completa: primera visita o tiendas sin plantilla HTML nativa.
                 const res = await fetch(`${apiBase}/public/shop/${slug}`);
                 if (res.ok) {
                     const data = await res.json();
 
-                    // 2 y 3. Productos y diseño publicado solo dependen del id de la
-                    // tienda (no uno del otro), asi que se piden en paralelo en vez
-                    // de en cascada — reduce a la mitad el tiempo hasta que la
-                    // tienda publica se ve completa.
-                    // "cart" no siempre es una página real persistida: para tiendas
-                    // nativas (bloques) no existe una ShopPage propia y reutilizamos
-                    // el header/footer ya publicados de "home". Una plantilla HTML
-                    // curada (custom_html) puede traer su propia página de carrito
-                    // real (ej. Orzen) — se intenta esa primero y solo se cae a
-                    // "home" si de verdad no existe.
                     const fetchPageWithFallback = async () => {
                         const primary = await fetch(`${apiBase}/public/stores/${data.id}/pages/${view}`);
                         if (primary.ok || view !== 'cart') return primary;
@@ -1713,12 +1794,13 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                         if (sd && (sd.header || sd.body || sd.footer)) {
                             data.custom_schema = sd;
                         }
-                        // Plantilla tipo HTML: no tiene schema_data, el backend
-                        // devuelve el HTML crudo de esta página puntual.
                         if (pageData && pageData.html) {
                             data.custom_html = (slug === 'orzen' || data.shop_slug === 'orzen')
                                 ? sanitizeCustomHtml(pageData.html)
                                 : pageData.html;
+                            if (slug === 'orzen' || data.shop_slug === 'orzen') {
+                                pageHtmlCacheRef.current[orzenPageCacheKey(view, postSlug)] = data.custom_html;
+                            }
                         }
                     } else if (pageResult.status === 'rejected') {
                         console.warn(`Diseño para vista ${view} no publicado.`);
@@ -1788,7 +1870,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
     const { scrollY } = useScroll();
     const navBg = useTransform(scrollY, [0, 100], ["rgba(255,255,255,0)", "rgba(255,255,255,0.95)"]);
 
-    const orzenSoftLoading = isOrzenTenant && !!shopData?.custom_html && loading;
+    const orzenSoftLoading = isOrzenTenant && !!shopData?.id && Array.isArray(shopData?.products) && loading;
     if (loading && !orzenSoftLoading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-[#004d4d]" size={40}/></div>;
     if (!shopData) return <div className="h-screen flex items-center justify-center">Tienda no encontrada</div>;
 
