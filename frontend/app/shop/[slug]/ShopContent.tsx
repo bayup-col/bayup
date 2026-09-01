@@ -542,13 +542,28 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
     // Carga el motor de Tailwind (CDN) una sola vez, solo si la tienda usa
     // alguna plantilla HTML nativa (custom_html) — su propio observer de DOM
     // recalcula clases en cada navegación siguiente sin recargar el script.
+    // ORZEN trae su propio style.css: el preflight de Tailwind rompe el layout
+    // responsive al redimensionar (resetea márgenes, imágenes, etc.).
     useEffect(() => {
         if (!shopData.custom_html) return;
+        if (shopData.shop_slug === 'orzen') return;
         if ((window as any).tailwind) return;
         const script = document.createElement('script');
         script.src = 'https://cdn.tailwindcss.com';
         document.head.appendChild(script);
-    }, [shopData.custom_html]);
+    }, [shopData.custom_html, shopData?.shop_slug]);
+
+    // Asegura que el CSS de ORZEN esté cargado aunque el HTML publicado no
+    // traiga el <link> (o se haya omitido en alguna página).
+    useEffect(() => {
+        if (shopData?.shop_slug !== 'orzen') return;
+        const href = '/templates/clients/orzen/style.css';
+        if (document.querySelector(`link[href="${href}"]`)) return;
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
+        document.head.appendChild(link);
+    }, [shopData?.shop_slug]);
 
     // Adaptador de plantillas HTML nativas (WebTemplate tipo "html"): las
     // páginas llegan como HTML crudo vía dangerouslySetInnerHTML, así que
@@ -1166,6 +1181,66 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             }
         }
 
+        // --- Shell UI ORZEN (menú móvil, búsqueda overlay, filtros, acordeón) ---
+        const syncBodyLock = () => {
+            const anyOpen = root.querySelector('.mobile-menu.open, .search-overlay.open, .filter-sheet.open');
+            document.body.style.overflow = anyOpen ? 'hidden' : '';
+        };
+        const q = (sel: string) => root.querySelector(sel) as HTMLElement | null;
+        const mobileMenu = q('.mobile-menu') || q('#mobile-menu');
+        const searchOverlay = q('.search-overlay') || q('#search-overlay');
+        const filterSheet = q('.filter-sheet') || q('#filter-sheet');
+        const openMobileMenu = () => { mobileMenu?.classList.add('open'); syncBodyLock(); };
+        const closeMobileMenu = () => { mobileMenu?.classList.remove('open'); syncBodyLock(); };
+        const openSearchOverlay = () => {
+            searchOverlay?.classList.add('open');
+            syncBodyLock();
+            const input = searchOverlay?.querySelector('[data-bayup="search-input"], input') as HTMLInputElement | null;
+            setTimeout(() => input?.focus(), 300);
+        };
+        const closeSearchOverlay = () => { searchOverlay?.classList.remove('open'); syncBodyLock(); };
+        const openFilterSheet = () => { filterSheet?.classList.add('open'); syncBodyLock(); };
+        const closeFilterSheet = () => { filterSheet?.classList.remove('open'); syncBodyLock(); };
+        const bindOnce = (el: Element | null, event: string, handler: EventListener) => {
+            if (!el || (el as HTMLElement).dataset.bayupBound) return;
+            (el as HTMLElement).dataset.bayupBound = '1';
+            el.addEventListener(event, handler);
+        };
+        bindOnce(q('#btn-burger') || q('.burger'), 'click', () => openMobileMenu());
+        bindOnce(q('#btn-close-menu'), 'click', () => closeMobileMenu());
+        mobileMenu?.querySelectorAll('a, button[data-bayup-action]').forEach(el => {
+            bindOnce(el, 'click', () => closeMobileMenu());
+        });
+        bindOnce(q('#btn-search'), 'click', () => openSearchOverlay());
+        bindOnce(q('#btn-close-search') || q('.search-close button'), 'click', () => closeSearchOverlay());
+        bindOnce(q('#btn-open-filters'), 'click', () => openFilterSheet());
+        bindOnce(q('#btn-close-filters'), 'click', () => closeFilterSheet());
+        bindOnce(q('#btn-apply-filters'), 'click', () => closeFilterSheet());
+        root.querySelectorAll('.acc-head').forEach(head => {
+            bindOnce(head, 'click', () => {
+                const item = head.closest('.acc-item');
+                if (!item) return;
+                const willOpen = !item.classList.contains('open');
+                item.parentElement?.querySelectorAll('.acc-item.open').forEach(other => {
+                    if (other !== item) {
+                        other.classList.remove('open');
+                        const b = other.querySelector('.acc-body') as HTMLElement | null;
+                        if (b) b.style.maxHeight = '0';
+                    }
+                });
+                item.classList.toggle('open', willOpen);
+                const body = item.querySelector('.acc-body') as HTMLElement | null;
+                if (body) body.style.maxHeight = willOpen ? `${body.scrollHeight}px` : '0';
+            });
+        });
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key !== 'Escape') return;
+            closeMobileMenu();
+            closeSearchOverlay();
+            closeFilterSheet();
+        };
+        document.addEventListener('keydown', onKeyDown);
+
         const NAV_VIEW: Record<string, string> = {
             'nav-home': '', 'nav-contact': 'contact', 'nav-privacy': 'privacy', 'nav-cart': 'cart',
             'nav-collections': 'collections', 'nav-journal': 'journal', 'nav-search': 'search',
@@ -1194,10 +1269,19 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                 const st = (root as any)._orzCatalogState || { gender: '' };
                 st.cat = cat;
                 (root as any)._orzCatalogState = st;
-                const sortSel = root.querySelector('[data-bayup="product-sort"]') as HTMLSelectElement | null;
-                (root as any)._orzRenderCatalog?.(cat, st.gender, sortSel?.value || 'relevancia');
+                const sortSels = Array.from(root.querySelectorAll('[data-bayup="product-sort"]')) as HTMLSelectElement[];
+                const sortVal = sortSels[0]?.value || 'relevancia';
+                (root as any)._orzRenderCatalog?.(cat, st.gender, sortVal);
+                if (target.closest('.filter-sheet')) closeFilterSheet();
                 return;
             }
+            if (action === 'open-mobile-menu') { e.preventDefault(); openMobileMenu(); return; }
+            if (action === 'close-mobile-menu') { e.preventDefault(); closeMobileMenu(); return; }
+            if (action === 'open-search') { e.preventDefault(); openSearchOverlay(); return; }
+            if (action === 'close-search') { e.preventDefault(); closeSearchOverlay(); return; }
+            if (action === 'open-filters') { e.preventDefault(); openFilterSheet(); return; }
+            if (action === 'close-filters') { e.preventDefault(); closeFilterSheet(); return; }
+            if (action === 'apply-filters') { e.preventDefault(); closeFilterSheet(); return; }
             if (action === 'filter-journal-category') {
                 e.preventDefault();
                 const cat = target.dataset.journalCategory || 'all';
@@ -1328,7 +1412,11 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             }
         };
         root.addEventListener('click', handleClick);
-        return () => root.removeEventListener('click', handleClick);
+        return () => {
+            root.removeEventListener('click', handleClick);
+            document.removeEventListener('keydown', onKeyDown);
+            document.body.style.overflow = '';
+        };
     }, [shopData.custom_html, shopData.products, shopData.full_name, shopData.phone, shopData.categories, shopData.posts, shopData.currentPost, cart, cartTotal, view, productId, postSlug, slug, router, categoriaParam, generoParam, nextParam, wishParam]);
 
     const extractErrorMessage = async (res: Response, fallback: string) => {
@@ -1626,7 +1714,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
 
     return (
         <LazyMotion features={domAnimation}>
-        <div className="min-h-screen bg-[#FAFAFA] text-slate-900 font-sans selection:bg-[#00f2ff] selection:text-black relative">
+        <div className={`min-h-screen relative ${isOrzenTenant ? 'bg-[#f2f1ee] text-[#050505]' : shopData.custom_html ? '' : 'bg-[#FAFAFA] text-slate-900 font-sans selection:bg-[#00f2ff] selection:text-black'}`}>
 
             {/* --- NAVEGACIÓN UNIVERSAL --- */}
             {/* Oculta en páginas de plantilla HTML nativa (custom_html): ese
@@ -1718,7 +1806,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                     // Plantilla tipo HTML curada por el equipo Bayup (no es
                     // contenido subido por el usuario final, por eso el
                     // riesgo de inyección es bajo) — se renderiza tal cual.
-                    <div ref={customHtmlRef} dangerouslySetInnerHTML={{ __html: shopData.custom_html }} />
+                    <div ref={customHtmlRef} className={isOrzenTenant ? 'orzen-storefront' : undefined} dangerouslySetInnerHTML={{ __html: shopData.custom_html }} />
                 ) : shopData.custom_schema ? (
                     <StudioProvider>
                         <Canvas
