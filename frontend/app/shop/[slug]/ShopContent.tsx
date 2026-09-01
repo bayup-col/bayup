@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef, memo, useLayoutEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { LazyMotion, domAnimation, m, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import dynamic from 'next/dynamic';
@@ -40,6 +40,7 @@ import { StudioProvider } from '../../dashboard/pages/studio/context';
 import { useCart } from '@/context/cart-context';
 import { generateTemplateSchema } from '@/lib/templates-config';
 import { trackPageview, trackSearch } from '@/lib/track';
+import { sanitizeCustomHtml } from '@/lib/sanitize-custom-html';
 
 // El motor de Studio (Canvas + su arbol de edicion, dnd-kit, etc.) solo hace
 // falta cuando la tienda tiene un diseño publicado con `custom_schema` — pero
@@ -98,6 +99,37 @@ const LEGAL_LABELS: Record<string, string> = {
     return_policy:    'Devoluciones y cambios',
     shipping_policy:  'Política de envíos',
 };
+
+/** Evita que re-renders del padre (carrito, menús…) vuelvan a asignar
+ *  innerHTML y destruyan el DOM + estilos de la plantilla ORZEN. */
+const CustomHtmlHost = memo(function CustomHtmlHost({
+    html,
+    className,
+    hostRef,
+}: {
+    html: string;
+    className?: string;
+    hostRef: React.RefObject<HTMLDivElement>;
+}) {
+    const appliedHtmlRef = useRef('');
+    const isFirstPaint = appliedHtmlRef.current === '' && !!html;
+
+    useLayoutEffect(() => {
+        const el = hostRef.current;
+        if (!el || !html || appliedHtmlRef.current === html) return;
+        appliedHtmlRef.current = html;
+        el.innerHTML = html;
+    }, [html, hostRef]);
+
+    return (
+        <div
+            ref={hostRef}
+            className={className}
+            suppressHydrationWarning
+            {...(isFirstPaint ? { dangerouslySetInnerHTML: { __html: html } } : {})}
+        />
+    );
+}, (prev, next) => prev.html === next.html && prev.className === next.className);
 
 // Checkout ORZEN — wizard real de 4 pasos (Datos/Envío/Método/Pago) +
 // confirmación, usando las clases checkout- y confirm- que ya existían sin
@@ -485,6 +517,9 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
     const [placingOrderStep, setPlacingOrderStep] = useState<'idle' | 'creating' | 'confirming'>('idle');
     const [legalModalOpen, setLegalModalOpen] = useState<null | keyof typeof LEGAL_LABELS>(null);
     const customHtmlRef = useRef<HTMLDivElement>(null);
+    const lastAdaptedHtmlRef = useRef<string | null>(null);
+    const cartRef = useRef(cart);
+    cartRef.current = cart;
     // Favorito pendiente tras volver del login (?wish=<id>): se guarda en un
     // ref (no en el string de la URL) porque el efecto de rehidratación
     // puede correr una primera vez ANTES de que el grid de productos exista
@@ -501,7 +536,12 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
     // --- Checkout wizard de 4 pasos (EXCLUSIVO del tenant Orzen, ver
     // require_orzen_tenant en el backend) — el checkout genérico de arriba
     // (una sola pantalla) sigue intacto para cualquier otro tenant. ---
-    const isOrzenTenant = shopData?.shop_slug === 'orzen';
+    const isOrzenTenant = shopData?.shop_slug === 'orzen' || slug === 'orzen';
+
+    const sanitizedCustomHtml = useMemo(
+        () => (shopData?.custom_html ? sanitizeCustomHtml(shopData.custom_html) : ''),
+        [shopData?.custom_html],
+    );
 
     // Sesión de cliente final (comprador) — completamente separada del login
     // de comerciante. Se guarda en localStorage (no la cookie httpOnly, que
@@ -565,6 +605,33 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
         document.head.appendChild(link);
     }, [shopData?.shop_slug]);
 
+    // Badge del carrito y filas en página carrito — sin re-ejecutar todo el adaptador.
+    useEffect(() => {
+        const root = customHtmlRef.current;
+        if (!shopData.custom_html || !root) return;
+        const fmt = (n: number) => `$${Math.round(n || 0).toLocaleString('es-CO')}`;
+        root.querySelectorAll('[data-bayup="cart-count"]').forEach(el => {
+            el.textContent = cart.length ? String(cart.length) : '';
+            (el as HTMLElement).style.display = cart.length ? '' : 'none';
+        });
+        const cartBody = root.querySelector('[data-bayup="cart-items"]');
+        const rowTpl = root.querySelector('template[data-bayup="cart-row-template"]') as HTMLTemplateElement | null;
+        if (cartBody && rowTpl) {
+            cartBody.innerHTML = '';
+            cart.forEach(item => {
+                const clone = rowTpl.content.cloneNode(true) as DocumentFragment;
+                clone.querySelectorAll('[data-bayup-row="name"]').forEach(el => { el.textContent = item.title; });
+                clone.querySelectorAll('[data-bayup-row="price"]').forEach(el => { el.textContent = fmt(item.price); });
+                clone.querySelectorAll('[data-bayup-row="qty"]').forEach(el => { el.textContent = String(item.quantity); });
+                clone.querySelectorAll('[data-bayup-row="subtotal"]').forEach(el => { el.textContent = fmt(item.price * item.quantity); });
+                cartBody.appendChild(clone);
+            });
+        }
+        root.querySelectorAll('[data-bayup="cart-subtotal"], [data-bayup="cart-total"]').forEach(el => {
+            el.textContent = fmt(cartTotal);
+        });
+    }, [cart, cartTotal, shopData.custom_html]);
+
     // Adaptador de plantillas HTML nativas (WebTemplate tipo "html"): las
     // páginas llegan como HTML crudo vía dangerouslySetInnerHTML, así que
     // el navegador nunca ejecuta sus <script> (comportamiento estándar de
@@ -579,12 +646,20 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
         const root = customHtmlRef.current;
         if (!shopData.custom_html || !root) return;
 
-        Array.from(root.querySelectorAll('script')).forEach((oldScript) => {
-            const newScript = document.createElement('script');
-            Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-            newScript.textContent = oldScript.textContent;
-            oldScript.replaceWith(newScript);
-        });
+        const htmlChanged = lastAdaptedHtmlRef.current !== sanitizedCustomHtml;
+
+        if (isOrzenTenant && htmlChanged) {
+            root.classList.remove('orzen-ready');
+        }
+
+        if (htmlChanged && !isOrzenTenant) {
+            Array.from(root.querySelectorAll('script')).forEach((oldScript) => {
+                const newScript = document.createElement('script');
+                Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                newScript.textContent = oldScript.textContent;
+                oldScript.replaceWith(newScript);
+            });
+        }
 
         const fmt = (n: number) => `$${Math.round(n || 0).toLocaleString('es-CO')}`;
         const products: any[] = shopData.products || [];
@@ -595,10 +670,6 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
 
         root.querySelectorAll('[data-bayup="store-name"]').forEach(el => { el.textContent = shopData.full_name || ''; });
         root.querySelectorAll('[data-bayup="store-phone"]').forEach(el => { el.textContent = shopData.phone || ''; });
-        root.querySelectorAll('[data-bayup="cart-count"]').forEach(el => {
-            el.textContent = cart.length ? String(cart.length) : '';
-            (el as HTMLElement).style.display = cart.length ? '' : 'none';
-        });
 
         const grid = root.querySelector('[data-bayup="product-grid"]');
         const cardTpl = root.querySelector('template[data-bayup="product-card-template"]') as HTMLTemplateElement | null;
@@ -709,23 +780,6 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                 }
             }
         }
-
-        const cartBody = root.querySelector('[data-bayup="cart-items"]');
-        const rowTpl = root.querySelector('template[data-bayup="cart-row-template"]') as HTMLTemplateElement | null;
-        if (cartBody) {
-            cartBody.innerHTML = '';
-            if (rowTpl) {
-                cart.forEach(item => {
-                    const clone = rowTpl.content.cloneNode(true) as DocumentFragment;
-                    clone.querySelectorAll('[data-bayup-row="name"]').forEach(el => { el.textContent = item.title; });
-                    clone.querySelectorAll('[data-bayup-row="price"]').forEach(el => { el.textContent = fmt(item.price); });
-                    clone.querySelectorAll('[data-bayup-row="qty"]').forEach(el => { el.textContent = String(item.quantity); });
-                    clone.querySelectorAll('[data-bayup-row="subtotal"]').forEach(el => { el.textContent = fmt(item.price * item.quantity); });
-                    cartBody.appendChild(clone);
-                });
-            }
-        }
-        root.querySelectorAll('[data-bayup="cart-subtotal"], [data-bayup="cart-total"]').forEach(el => { el.textContent = fmt(cartTotal); });
 
         const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
 
@@ -1243,10 +1297,14 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
 
         const NAV_VIEW: Record<string, string> = {
             'nav-home': '', 'nav-contact': 'contact', 'nav-privacy': 'privacy', 'nav-cart': 'cart',
-            'nav-collections': 'collections', 'nav-journal': 'journal', 'nav-search': 'search',
+            'nav-collections': 'collections', 'nav-journal': 'journal',
             'nav-wishlist': 'wishlist', 'nav-account': 'account', 'nav-login': 'login', 'nav-orders': 'orders',
             'nav-addresses': 'addresses', 'nav-settings': 'settings', 'nav-about': 'about', 'nav-size-guide': 'size-guide',
             'nav-shipping': 'shipping', 'nav-returns': 'returns', 'nav-terms': 'terms',
+        };
+        const preventHashNav = (e: Event) => {
+            const anchor = (e.target as HTMLElement)?.closest('a[href="#"]');
+            if (anchor && root.contains(anchor)) e.preventDefault();
         };
         const handleClick = (e: MouseEvent) => {
             const target = (e.target as HTMLElement)?.closest('[data-bayup-action]') as HTMLElement | null;
@@ -1282,6 +1340,12 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             if (action === 'open-filters') { e.preventDefault(); openFilterSheet(); return; }
             if (action === 'close-filters') { e.preventDefault(); closeFilterSheet(); return; }
             if (action === 'apply-filters') { e.preventDefault(); closeFilterSheet(); return; }
+            if (action === 'nav-search') {
+                e.preventDefault();
+                if (searchOverlay) openSearchOverlay();
+                else router.push(`/shop/${slug}?view=search`);
+                return;
+            }
             if (action === 'filter-journal-category') {
                 e.preventDefault();
                 const cat = target.dataset.journalCategory || 'all';
@@ -1401,7 +1465,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             }
             if (action === 'checkout') {
                 e.preventDefault();
-                if (cart.length === 0) return;
+                if (cartRef.current.length === 0) return;
                 setIsCheckoutOpen(true);
                 return;
             }
@@ -1411,13 +1475,25 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                 return;
             }
         };
+        root.addEventListener('click', preventHashNav, true);
         root.addEventListener('click', handleClick);
+
+        if (isOrzenTenant) {
+            requestAnimationFrame(() => {
+                root.classList.add('orzen-ready');
+                lastAdaptedHtmlRef.current = sanitizedCustomHtml;
+            });
+        } else {
+            lastAdaptedHtmlRef.current = sanitizedCustomHtml;
+        }
+
         return () => {
+            root.removeEventListener('click', preventHashNav, true);
             root.removeEventListener('click', handleClick);
             document.removeEventListener('keydown', onKeyDown);
             document.body.style.overflow = '';
         };
-    }, [shopData.custom_html, shopData.products, shopData.full_name, shopData.phone, shopData.categories, shopData.posts, shopData.currentPost, cart, cartTotal, view, productId, postSlug, slug, router, categoriaParam, generoParam, nextParam, wishParam]);
+    }, [sanitizedCustomHtml, shopData.products, shopData.full_name, shopData.phone, shopData.categories, shopData.posts, shopData.currentPost, view, productId, postSlug, slug, router, categoriaParam, generoParam, nextParam, wishParam, isOrzenTenant, shopData.custom_html, shopData.id, shopData.owner_id]);
 
     const extractErrorMessage = async (res: Response, fallback: string) => {
         try {
@@ -1584,7 +1660,8 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
 
     useEffect(() => {
         const fetchShop = async () => {
-            setLoading(true);
+            const softNav = (slug === 'orzen' || shopData?.shop_slug === 'orzen') && !!shopData?.custom_html;
+            if (!softNav) setLoading(true);
             try {
                 const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
 
@@ -1639,7 +1716,9 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                         // Plantilla tipo HTML: no tiene schema_data, el backend
                         // devuelve el HTML crudo de esta página puntual.
                         if (pageData && pageData.html) {
-                            data.custom_html = pageData.html;
+                            data.custom_html = (slug === 'orzen' || data.shop_slug === 'orzen')
+                                ? sanitizeCustomHtml(pageData.html)
+                                : pageData.html;
                         }
                     } else if (pageResult.status === 'rejected') {
                         console.warn(`Diseño para vista ${view} no publicado.`);
@@ -1709,7 +1788,8 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
     const { scrollY } = useScroll();
     const navBg = useTransform(scrollY, [0, 100], ["rgba(255,255,255,0)", "rgba(255,255,255,0.95)"]);
 
-    if (loading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-[#004d4d]" size={40}/></div>;
+    const orzenSoftLoading = isOrzenTenant && !!shopData?.custom_html && loading;
+    if (loading && !orzenSoftLoading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-[#004d4d]" size={40}/></div>;
     if (!shopData) return <div className="h-screen flex items-center justify-center">Tienda no encontrada</div>;
 
     return (
@@ -1806,7 +1886,11 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                     // Plantilla tipo HTML curada por el equipo Bayup (no es
                     // contenido subido por el usuario final, por eso el
                     // riesgo de inyección es bajo) — se renderiza tal cual.
-                    <div ref={customHtmlRef} className={isOrzenTenant ? 'orzen-storefront' : undefined} dangerouslySetInnerHTML={{ __html: shopData.custom_html }} />
+                    <CustomHtmlHost
+                        html={sanitizedCustomHtml}
+                        className={isOrzenTenant ? 'orzen-storefront' : undefined}
+                        hostRef={customHtmlRef}
+                    />
                 ) : shopData.custom_schema ? (
                     <StudioProvider>
                         <Canvas
