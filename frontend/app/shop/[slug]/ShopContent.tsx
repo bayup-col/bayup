@@ -99,56 +99,35 @@ const LEGAL_LABELS: Record<string, string> = {
     shipping_policy:  'Política de envíos',
 };
 
-export function ShopContent({ initialShopData }: { initialShopData: any }) {
-    const { slug } = useParams();
-    const searchParams = useSearchParams();
-
-    // ROUTER DINÁMICO: Identificamos qué vista mostrar
-    const view = searchParams.get("view") || "home"; // home, product, catalog, checkout, about
-    const productId = searchParams.get("id");
-    const postSlug = searchParams.get("post");
-    // Primitivos (strings estables), NO el objeto searchParams completo: éste
-    // último puede cambiar de referencia en cada render sin que la URL real
-    // cambie — usarlo directo como dependencia del useEffect grande de abajo
-    // causaba que TODA la plantilla HTML (incluido el <link> de estilos) se
-    // recreara en cada tecla escrita en cualquier input, provocando un
-    // parpadeo sin estilos. Con estos strings primitivos como dependencia el
-    // efecto solo re-corre cuando la URL de verdad cambia.
-    const categoriaParam = searchParams.get('categoria');
-    const generoParam = searchParams.get('genero');
-    const nextParam = searchParams.get('next');
-    const wishParam = searchParams.get('wish');
-
-    const router = useRouter();
-    const { items: cart, addItem, removeItem, clearCart, total: cartTotal, isCartOpen, setIsCartOpen, isCheckoutOpen, setIsCheckoutOpen } = useCart();
-
-    // La carga inicial (tienda + productos + diseño publicado de la vista con
-    // la que se abrió la página) ya llega resuelta desde el servidor
-    // (page.tsx, Server Component) — arrancamos con esos datos en vez de un
-    // estado vacío + spinner, que es justamente el waterfall que se elimina.
-    const [shopData, setShopData] = useState<any>(initialShopData);
-    const [loading, setLoading] = useState(!initialShopData);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState("all");
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-
-    // --- LÓGICA DE INTERFAZ ---
-    const [isClientLoginOpen, setIsClientLoginOpen] = useState(false);
-    const [customerData, setCustomerData] = useState({
-        name: "", phone: "", email: "", address: "", city: "", notes: "", postal_code: ""
-    });
-    const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-    const [placingOrderStep, setPlacingOrderStep] = useState<'idle' | 'creating' | 'confirming'>('idle');
-    const [legalModalOpen, setLegalModalOpen] = useState<null | keyof typeof LEGAL_LABELS>(null);
-    const customHtmlRef = useRef<HTMLDivElement>(null);
-
-    // --- Checkout wizard de 4 pasos (EXCLUSIVO del tenant Orzen, ver
-    // require_orzen_tenant en el backend) — el checkout genérico de arriba
-    // (una sola pantalla) sigue intacto para cualquier otro tenant. ---
-    const isOrzenTenant = shopData?.shop_slug === 'orzen';
+// Checkout ORZEN — wizard real de 4 pasos (Datos/Envío/Método/Pago) +
+// confirmación, usando las clases checkout- y confirm- que ya existían sin
+// usar en style.css. Exclusivo del tenant Orzen (ver isOrzenTenant en
+// ShopContent). Componente APARTE con su PROPIO estado (customerData, paso
+// actual, etc.): si ese estado viviera en ShopContent, escribir en cualquier
+// campo re-renderiza todo ese componente gigante, y por alguna razón React
+// vuelve a asignar dangerouslySetInnerHTML del HTML de la tienda en cada
+// re-render — recreando el <link> de estilos y produciendo un parpadeo sin
+// estilos en cada tecla (confirmado con MutationObserver: 21 nodos
+// removidos/agregados por cada letra escrita). Aislar el estado aquí evita
+// que ShopContent se re-renderice al escribir, sin depender de entender esa
+// causa exacta de React/dangerouslySetInnerHTML.
+function OrzenCheckoutWizard({
+    cart, cartTotal, clearCart, shopData, slug, router,
+    setIsCheckoutOpen, waitForWompiScript, waitForPaymentConfirmation, extractErrorMessage,
+}: {
+    cart: any[];
+    cartTotal: number;
+    clearCart: () => void;
+    shopData: any;
+    slug: any;
+    router: any;
+    setIsCheckoutOpen: (v: boolean) => void;
+    waitForWompiScript: (maxWaitMs?: number) => Promise<boolean>;
+    waitForPaymentConfirmation: (apiBase: string, paymentId: string, maxTries?: number) => Promise<any>;
+    extractErrorMessage: (res: Response, fallback: string) => Promise<string>;
+}) {
     const [orzStep, setOrzStep] = useState<'datos' | 'envio' | 'metodo' | 'pago' | 'confirmacion'>('datos');
+    const [customerData, setCustomerData] = useState({ name: '', phone: '', email: '', address: '', city: '', postal_code: '' });
     const [orzShippingOptions, setOrzShippingOptions] = useState<any[]>([]);
     const [orzShippingId, setOrzShippingId] = useState<string>('');
     const [orzPaymentMethod, setOrzPaymentMethod] = useState<'tarjeta' | 'contraentrega'>('tarjeta');
@@ -157,7 +136,6 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
     const [orzError, setOrzError] = useState<string>('');
 
     useEffect(() => {
-        if (!isOrzenTenant || !isCheckoutOpen) return;
         const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
         fetch(`${apiBase}/public/stores/${shopData.id}/shipping-options`)
             .then(r => r.ok ? r.json() : [])
@@ -166,23 +144,17 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                 if (opts && opts[0]) setOrzShippingId(opts[0].id);
             })
             .catch(() => {});
-    }, [isOrzenTenant, isCheckoutOpen, shopData?.id]);
+    }, [shopData?.id]);
 
     const orzShippingCost = orzShippingOptions.find(o => o.id === orzShippingId)?.cost || 0;
     const orzTotal = cartTotal + orzShippingCost;
-
-    const orzResetWizard = () => {
-        setOrzStep('datos');
-        setOrzConfirmedOrder(null);
-        setOrzError('');
-    };
 
     const orzPlaceOrder = async () => {
         setOrzPlacing(true);
         setOrzError('');
         try {
             const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
-            const itemsWithVariants = await Promise.all(cart.map(async (item) => {
+            const itemsWithVariants = await Promise.all(cart.map(async (item: any) => {
                 const prod = shopData.products.find((p: any) => p.id === item.id);
                 const variantId = item.variant || ((prod?.variants && prod.variants.length > 0) ? prod.variants[0].id : item.id);
                 // price_at_purchase: solo lo exige /public/orders (Contraentrega, sin
@@ -296,6 +268,228 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             setOrzPlacing(false);
         }
     };
+
+    return (
+        <AnimatePresence>
+            <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[4000] overflow-y-auto" style={{ background: 'var(--white, #fff)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 32px', borderBottom: '1px solid rgba(0,0,0,.08)' }}>
+                    <img src="/templates/clients/orzen/img/logo.png" alt="ORZEN" style={{ height: 20 }} />
+                    <button onClick={() => setIsCheckoutOpen(false)} aria-label="Cerrar" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                        <X size={20} />
+                    </button>
+                </div>
+
+                {orzStep !== 'confirmacion' ? (
+                    <div className="checkout-wrap">
+                        <div className="checkout-main">
+                            <div className="checkout-steps">
+                                <span className={`step ${orzStep === 'datos' ? 'active' : 'done'}`}>01 Datos</span><span className="sep">·</span>
+                                <span className={`step ${orzStep === 'envio' ? 'active' : ['metodo', 'pago'].includes(orzStep) ? 'done' : ''}`}>02 Envío</span><span className="sep">·</span>
+                                <span className={`step ${orzStep === 'metodo' ? 'active' : orzStep === 'pago' ? 'done' : ''}`}>03 Método</span><span className="sep">·</span>
+                                <span className={`step ${orzStep === 'pago' ? 'active' : ''}`}>04 Pago</span>
+                            </div>
+
+                            {orzStep === 'datos' && (
+                                <div className="checkout-panel active">
+                                    <h2 className="checkout-title">Datos</h2>
+                                    <div className="field">
+                                        <label>Nombre completo</label>
+                                        <input required value={customerData.name} onChange={e => setCustomerData({ ...customerData, name: e.target.value })} />
+                                    </div>
+                                    <div className="field-row">
+                                        <div className="field">
+                                            <label>Correo electrónico</label>
+                                            <input required type="email" value={customerData.email} onChange={e => setCustomerData({ ...customerData, email: e.target.value })} />
+                                        </div>
+                                        <div className="field">
+                                            <label>Teléfono</label>
+                                            <input required value={customerData.phone} onChange={e => setCustomerData({ ...customerData, phone: e.target.value.replace(/\D/g, '') })} />
+                                        </div>
+                                    </div>
+                                    <div className="checkout-nav">
+                                        <span />
+                                        <button className="btn btn-dark" disabled={!customerData.name || !customerData.email || !customerData.phone}
+                                            onClick={() => setOrzStep('envio')}>Siguiente</button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {orzStep === 'envio' && (
+                                <div className="checkout-panel active">
+                                    <h2 className="checkout-title">Envío</h2>
+                                    <div className="field">
+                                        <label>Dirección</label>
+                                        <input required value={customerData.address} onChange={e => setCustomerData({ ...customerData, address: e.target.value })} />
+                                    </div>
+                                    <div className="field-row">
+                                        <div className="field">
+                                            <label>Ciudad</label>
+                                            <input required value={customerData.city} onChange={e => setCustomerData({ ...customerData, city: e.target.value })} />
+                                        </div>
+                                        <div className="field">
+                                            <label>Código postal</label>
+                                            <input value={customerData.postal_code} onChange={e => setCustomerData({ ...customerData, postal_code: e.target.value })} />
+                                        </div>
+                                    </div>
+                                    <div className="field">
+                                        <label>País</label>
+                                        <input value="Colombia" disabled />
+                                    </div>
+                                    <div className="checkout-nav">
+                                        <button className="btn btn-outline" onClick={() => setOrzStep('datos')}>Atrás</button>
+                                        <button className="btn btn-dark" disabled={!customerData.address || !customerData.city}
+                                            onClick={() => setOrzStep('metodo')}>Siguiente</button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {orzStep === 'metodo' && (
+                                <div className="checkout-panel active">
+                                    <h2 className="checkout-title">Método de envío</h2>
+                                    {orzShippingOptions.map(opt => (
+                                        <label key={opt.id} className={`radio-card ${orzShippingId === opt.id ? 'selected' : ''}`}>
+                                            <span className="radio-left">
+                                                <input type="radio" name="orz-shipping" checked={orzShippingId === opt.id} onChange={() => setOrzShippingId(opt.id)} />
+                                                {opt.name}
+                                            </span>
+                                            <span className="radio-price">{opt.cost > 0 ? `$${opt.cost.toLocaleString('es-CO')}` : 'Gratis'}</span>
+                                        </label>
+                                    ))}
+                                    <div className="checkout-nav">
+                                        <button className="btn btn-outline" onClick={() => setOrzStep('envio')}>Atrás</button>
+                                        <button className="btn btn-dark" disabled={!orzShippingId} onClick={() => setOrzStep('pago')}>Siguiente</button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {orzStep === 'pago' && (
+                                <div className="checkout-panel active">
+                                    <h2 className="checkout-title">Pago</h2>
+                                    <label className={`radio-card ${orzPaymentMethod === 'tarjeta' ? 'selected' : ''}`}>
+                                        <span className="radio-left">
+                                            <input type="radio" name="orz-payment" checked={orzPaymentMethod === 'tarjeta'} onChange={() => setOrzPaymentMethod('tarjeta')} />
+                                            Tarjeta
+                                        </span>
+                                    </label>
+                                    <label className="radio-card" style={{ opacity: .45, cursor: 'not-allowed' }}>
+                                        <span className="radio-left">
+                                            <input type="radio" name="orz-payment" disabled />
+                                            PSE
+                                        </span>
+                                        <span className="radio-price">Próximamente</span>
+                                    </label>
+                                    <label className={`radio-card ${orzPaymentMethod === 'contraentrega' ? 'selected' : ''}`}>
+                                        <span className="radio-left">
+                                            <input type="radio" name="orz-payment" checked={orzPaymentMethod === 'contraentrega'} onChange={() => setOrzPaymentMethod('contraentrega')} />
+                                            Contraentrega
+                                        </span>
+                                    </label>
+                                    {orzError && <p style={{ color: '#b3261e', fontSize: 12, marginTop: 14 }}>{orzError}</p>}
+                                    <div className="checkout-nav">
+                                        <button className="btn btn-outline" onClick={() => setOrzStep('metodo')}>Atrás</button>
+                                        <button className="btn btn-dark" disabled={orzPlacing} onClick={orzPlaceOrder}>
+                                            {orzPlacing ? 'Procesando…' : orzPaymentMethod === 'contraentrega' ? 'Confirmar pedido' : 'Pagar ahora'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="checkout-side">
+                            <h3 style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 24 }}>Resumen del pedido</h3>
+                            {cart.map((item: any) => (
+                                <div key={item.id} className="order-line">
+                                    <div className="line-media">
+                                        {item.image ? <Image src={item.image} width={64} height={80} style={{ objectFit: 'cover', width: '100%', height: '100%' }} alt={item.title} /> : null}
+                                        <span className="qty-badge">{item.quantity}</span>
+                                    </div>
+                                    <div className="line-info">
+                                        <div className="line-name">{item.title}</div>
+                                        <div className="line-price">${(item.price * item.quantity).toLocaleString('es-CO')}</div>
+                                    </div>
+                                </div>
+                            ))}
+                            <div className="summary-row"><span>Subtotal</span><span>${cartTotal.toLocaleString('es-CO')}</span></div>
+                            <div className="summary-row">
+                                <span>Envío</span>
+                                <span>{orzShippingId ? (orzShippingCost > 0 ? `$${orzShippingCost.toLocaleString('es-CO')}` : 'Gratis') : 'Por definir'}</span>
+                            </div>
+                            <div className="summary-row total"><span>Total</span><span>${orzTotal.toLocaleString('es-CO')}</span></div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="confirm-wrap">
+                        <div className="confirm-check"><CheckCheck /></div>
+                        <p className="confirm-order-no">Pedido #{String(orzConfirmedOrder?.id || '').slice(0, 8).toUpperCase()}</p>
+                        <h1 className="confirm-title hgroup">Pedido confirmado.<br />Bienvenido a ORZEN.</h1>
+                        <p style={{ color: 'var(--gray-500)', marginTop: 14, fontSize: 14 }}>
+                            Te hemos enviado un correo con los detalles de tu compra.
+                            {orzPaymentMethod === 'contraentrega' ? ' Pagas al recibir tu pedido.' : ''}
+                        </p>
+                        <div className="confirm-actions">
+                            <button className="btn btn-dark" onClick={() => {
+                                setIsCheckoutOpen(false);
+                                if (orzConfirmedOrder?.id) router.push(`/shop/${slug}?view=order-detail&id=${orzConfirmedOrder.id}`);
+                            }}>Ver mi pedido</button>
+                            <button className="btn btn-outline" onClick={() => { setIsCheckoutOpen(false); router.push(`/shop/${slug}`); }}>Seguir comprando</button>
+                        </div>
+                    </div>
+                )}
+            </m.div>
+        </AnimatePresence>
+    );
+}
+
+export function ShopContent({ initialShopData }: { initialShopData: any }) {
+    const { slug } = useParams();
+    const searchParams = useSearchParams();
+
+    // ROUTER DINÁMICO: Identificamos qué vista mostrar
+    const view = searchParams.get("view") || "home"; // home, product, catalog, checkout, about
+    const productId = searchParams.get("id");
+    const postSlug = searchParams.get("post");
+    // Primitivos (strings estables), NO el objeto searchParams completo: éste
+    // último puede cambiar de referencia en cada render sin que la URL real
+    // cambie — usarlo directo como dependencia del useEffect grande de abajo
+    // causaba que TODA la plantilla HTML (incluido el <link> de estilos) se
+    // recreara en cada tecla escrita en cualquier input, provocando un
+    // parpadeo sin estilos. Con estos strings primitivos como dependencia el
+    // efecto solo re-corre cuando la URL de verdad cambia.
+    const categoriaParam = searchParams.get('categoria');
+    const generoParam = searchParams.get('genero');
+    const nextParam = searchParams.get('next');
+    const wishParam = searchParams.get('wish');
+
+    const router = useRouter();
+    const { items: cart, addItem, removeItem, clearCart, total: cartTotal, isCartOpen, setIsCartOpen, isCheckoutOpen, setIsCheckoutOpen } = useCart();
+
+    // La carga inicial (tienda + productos + diseño publicado de la vista con
+    // la que se abrió la página) ya llega resuelta desde el servidor
+    // (page.tsx, Server Component) — arrancamos con esos datos en vez de un
+    // estado vacío + spinner, que es justamente el waterfall que se elimina.
+    const [shopData, setShopData] = useState<any>(initialShopData);
+    const [loading, setLoading] = useState(!initialShopData);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState("all");
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+    // --- LÓGICA DE INTERFAZ ---
+    const [isClientLoginOpen, setIsClientLoginOpen] = useState(false);
+    const [customerData, setCustomerData] = useState({
+        name: "", phone: "", email: "", address: "", city: "", notes: "", postal_code: ""
+    });
+    const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+    const [placingOrderStep, setPlacingOrderStep] = useState<'idle' | 'creating' | 'confirming'>('idle');
+    const [legalModalOpen, setLegalModalOpen] = useState<null | keyof typeof LEGAL_LABELS>(null);
+    const customHtmlRef = useRef<HTMLDivElement>(null);
+
+    // --- Checkout wizard de 4 pasos (EXCLUSIVO del tenant Orzen, ver
+    // require_orzen_tenant en el backend) — el checkout genérico de arriba
+    // (una sola pantalla) sigue intacto para cualquier otro tenant. ---
+    const isOrzenTenant = shopData?.shop_slug === 'orzen';
 
     // Sesión de cliente final (comprador) — completamente separada del login
     // de comerciante. Se guarda en localStorage (no la cookie httpOnly, que
@@ -1821,180 +2015,24 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                 )}
             </AnimatePresence>
 
-            {/* CHECKOUT ORZEN — wizard real de 4 pasos (Datos/Envío/Método/Pago) +
-                confirmación, usando las clases checkout- y confirm- que ya
-                existían sin usar en style.css. Exclusivo del tenant Orzen. */}
-            <AnimatePresence>
-                {isCheckoutOpen && isOrzenTenant && (
-                    <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[4000] overflow-y-auto" style={{ background: 'var(--white, #fff)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 32px', borderBottom: '1px solid rgba(0,0,0,.08)' }}>
-                            <img src="/templates/clients/orzen/img/logo.png" alt="ORZEN" style={{ height: 20 }} />
-                            <button onClick={() => { setIsCheckoutOpen(false); orzResetWizard(); }} aria-label="Cerrar" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        {orzStep !== 'confirmacion' ? (
-                            <div className="checkout-wrap">
-                                <div className="checkout-main">
-                                    <div className="checkout-steps">
-                                        <span className={`step ${orzStep === 'datos' ? 'active' : 'done'}`}>01 Datos</span><span className="sep">·</span>
-                                        <span className={`step ${orzStep === 'envio' ? 'active' : ['metodo','pago'].includes(orzStep) ? 'done' : ''}`}>02 Envío</span><span className="sep">·</span>
-                                        <span className={`step ${orzStep === 'metodo' ? 'active' : orzStep === 'pago' ? 'done' : ''}`}>03 Método</span><span className="sep">·</span>
-                                        <span className={`step ${orzStep === 'pago' ? 'active' : ''}`}>04 Pago</span>
-                                    </div>
-
-                                    {orzStep === 'datos' && (
-                                        <div className="checkout-panel active">
-                                            <h2 className="checkout-title">Datos</h2>
-                                            <div className="field">
-                                                <label>Nombre completo</label>
-                                                <input required value={customerData.name} onChange={e => setCustomerData({ ...customerData, name: e.target.value })} />
-                                            </div>
-                                            <div className="field-row">
-                                                <div className="field">
-                                                    <label>Correo electrónico</label>
-                                                    <input required type="email" value={customerData.email} onChange={e => setCustomerData({ ...customerData, email: e.target.value })} />
-                                                </div>
-                                                <div className="field">
-                                                    <label>Teléfono</label>
-                                                    <input required value={customerData.phone} onChange={e => setCustomerData({ ...customerData, phone: e.target.value.replace(/\D/g, '') })} />
-                                                </div>
-                                            </div>
-                                            <div className="checkout-nav">
-                                                <span />
-                                                <button className="btn btn-dark" disabled={!customerData.name || !customerData.email || !customerData.phone}
-                                                    onClick={() => setOrzStep('envio')}>Siguiente</button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {orzStep === 'envio' && (
-                                        <div className="checkout-panel active">
-                                            <h2 className="checkout-title">Envío</h2>
-                                            <div className="field">
-                                                <label>Dirección</label>
-                                                <input required value={customerData.address} onChange={e => setCustomerData({ ...customerData, address: e.target.value })} />
-                                            </div>
-                                            <div className="field-row">
-                                                <div className="field">
-                                                    <label>Ciudad</label>
-                                                    <input required value={customerData.city} onChange={e => setCustomerData({ ...customerData, city: e.target.value })} />
-                                                </div>
-                                                <div className="field">
-                                                    <label>Código postal</label>
-                                                    <input value={customerData.postal_code} onChange={e => setCustomerData({ ...customerData, postal_code: e.target.value })} />
-                                                </div>
-                                            </div>
-                                            <div className="field">
-                                                <label>País</label>
-                                                <input value="Colombia" disabled />
-                                            </div>
-                                            <div className="checkout-nav">
-                                                <button className="btn btn-outline" onClick={() => setOrzStep('datos')}>Atrás</button>
-                                                <button className="btn btn-dark" disabled={!customerData.address || !customerData.city}
-                                                    onClick={() => setOrzStep('metodo')}>Siguiente</button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {orzStep === 'metodo' && (
-                                        <div className="checkout-panel active">
-                                            <h2 className="checkout-title">Método de envío</h2>
-                                            {orzShippingOptions.map(opt => (
-                                                <label key={opt.id} className={`radio-card ${orzShippingId === opt.id ? 'selected' : ''}`}>
-                                                    <span className="radio-left">
-                                                        <input type="radio" name="orz-shipping" checked={orzShippingId === opt.id} onChange={() => setOrzShippingId(opt.id)} />
-                                                        {opt.name}
-                                                    </span>
-                                                    <span className="radio-price">{opt.cost > 0 ? `$${opt.cost.toLocaleString('es-CO')}` : 'Gratis'}</span>
-                                                </label>
-                                            ))}
-                                            <div className="checkout-nav">
-                                                <button className="btn btn-outline" onClick={() => setOrzStep('envio')}>Atrás</button>
-                                                <button className="btn btn-dark" disabled={!orzShippingId} onClick={() => setOrzStep('pago')}>Siguiente</button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {orzStep === 'pago' && (
-                                        <div className="checkout-panel active">
-                                            <h2 className="checkout-title">Pago</h2>
-                                            <label className={`radio-card ${orzPaymentMethod === 'tarjeta' ? 'selected' : ''}`}>
-                                                <span className="radio-left">
-                                                    <input type="radio" name="orz-payment" checked={orzPaymentMethod === 'tarjeta'} onChange={() => setOrzPaymentMethod('tarjeta')} />
-                                                    Tarjeta
-                                                </span>
-                                            </label>
-                                            <label className="radio-card" style={{ opacity: .45, cursor: 'not-allowed' }}>
-                                                <span className="radio-left">
-                                                    <input type="radio" name="orz-payment" disabled />
-                                                    PSE
-                                                </span>
-                                                <span className="radio-price">Próximamente</span>
-                                            </label>
-                                            <label className={`radio-card ${orzPaymentMethod === 'contraentrega' ? 'selected' : ''}`}>
-                                                <span className="radio-left">
-                                                    <input type="radio" name="orz-payment" checked={orzPaymentMethod === 'contraentrega'} onChange={() => setOrzPaymentMethod('contraentrega')} />
-                                                    Contraentrega
-                                                </span>
-                                            </label>
-                                            {orzError && <p style={{ color: '#b3261e', fontSize: 12, marginTop: 14 }}>{orzError}</p>}
-                                            <div className="checkout-nav">
-                                                <button className="btn btn-outline" onClick={() => setOrzStep('metodo')}>Atrás</button>
-                                                <button className="btn btn-dark" disabled={orzPlacing} onClick={orzPlaceOrder}>
-                                                    {orzPlacing ? 'Procesando…' : orzPaymentMethod === 'contraentrega' ? 'Confirmar pedido' : 'Pagar ahora'}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="checkout-side">
-                                    <h3 style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 24 }}>Resumen del pedido</h3>
-                                    {cart.map(item => (
-                                        <div key={item.id} className="order-line">
-                                            <div className="line-media">
-                                                {item.image ? <Image src={item.image} width={64} height={80} style={{ objectFit: 'cover', width: '100%', height: '100%' }} alt={item.title} /> : null}
-                                                <span className="qty-badge">{item.quantity}</span>
-                                            </div>
-                                            <div className="line-info">
-                                                <div className="line-name">{item.title}</div>
-                                                <div className="line-price">${(item.price * item.quantity).toLocaleString('es-CO')}</div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    <div className="summary-row"><span>Subtotal</span><span>${cartTotal.toLocaleString('es-CO')}</span></div>
-                                    <div className="summary-row">
-                                        <span>Envío</span>
-                                        <span>{orzShippingId ? (orzShippingCost > 0 ? `$${orzShippingCost.toLocaleString('es-CO')}` : 'Gratis') : 'Por definir'}</span>
-                                    </div>
-                                    <div className="summary-row total"><span>Total</span><span>${orzTotal.toLocaleString('es-CO')}</span></div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="confirm-wrap">
-                                <div className="confirm-check"><CheckCheck /></div>
-                                <p className="confirm-order-no">Pedido #{String(orzConfirmedOrder?.id || '').slice(0, 8).toUpperCase()}</p>
-                                <h1 className="confirm-title hgroup">Pedido confirmado.<br />Bienvenido a ORZEN.</h1>
-                                <p style={{ color: 'var(--gray-500)', marginTop: 14, fontSize: 14 }}>
-                                    Te hemos enviado un correo con los detalles de tu compra.
-                                    {orzPaymentMethod === 'contraentrega' ? ' Pagas al recibir tu pedido.' : ''}
-                                </p>
-                                <div className="confirm-actions">
-                                    <button className="btn btn-dark" onClick={() => {
-                                        setIsCheckoutOpen(false);
-                                        orzResetWizard();
-                                        if (orzConfirmedOrder?.id) router.push(`/shop/${slug}?view=order-detail&id=${orzConfirmedOrder.id}`);
-                                    }}>Ver mi pedido</button>
-                                    <button className="btn btn-outline" onClick={() => { setIsCheckoutOpen(false); orzResetWizard(); router.push(`/shop/${slug}`); }}>Seguir comprando</button>
-                                </div>
-                            </div>
-                        )}
-                    </m.div>
-                )}
-            </AnimatePresence>
+            {/* CHECKOUT ORZEN — wizard real de 4 pasos, componente aparte con su
+                propio estado (ver OrzenCheckoutWizard arriba) para que escribir
+                en sus campos no vuelva a renderizar todo ShopContent (eso
+                causaba que el <link> de estilos se recreara en cada tecla). */}
+            {isCheckoutOpen && isOrzenTenant && (
+                <OrzenCheckoutWizard
+                    cart={cart}
+                    cartTotal={cartTotal}
+                    clearCart={clearCart}
+                    shopData={shopData}
+                    slug={slug}
+                    router={router}
+                    setIsCheckoutOpen={setIsCheckoutOpen}
+                    waitForWompiScript={waitForWompiScript}
+                    waitForPaymentConfirmation={waitForPaymentConfirmation}
+                    extractErrorMessage={extractErrorMessage}
+                />
+            )}
 
             {/* MODAL LOGIN CLIENTE */}
             <AnimatePresence>
