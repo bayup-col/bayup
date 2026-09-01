@@ -892,7 +892,10 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                 .then((items: any[]) => {
                     const ids = new Set(items.map(i => String(i.product_id)));
                     root.querySelectorAll('[data-bayup-action="toggle-wishlist"]').forEach((el: any) => {
-                        if (el.dataset.productId && ids.has(String(el.dataset.productId))) el.setAttribute('data-wishlisted', 'true');
+                        if (el.dataset.productId && ids.has(String(el.dataset.productId))) {
+                            el.setAttribute('data-wishlisted', 'true');
+                            el.classList.add('active');
+                        }
                     });
                 })
                 .catch(() => {});
@@ -908,7 +911,10 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                 body: JSON.stringify({ product_id: pendingWish }),
             }).then(() => {
                 root.querySelectorAll('[data-bayup-action="toggle-wishlist"]').forEach((el: any) => {
-                    if (String(el.dataset.productId) === String(pendingWish)) el.setAttribute('data-wishlisted', 'true');
+                    if (String(el.dataset.productId) === String(pendingWish)) {
+                        el.setAttribute('data-wishlisted', 'true');
+                        el.classList.add('active');
+                    }
                 });
                 const url = new URL(window.location.href);
                 url.searchParams.delete('wish');
@@ -1130,7 +1136,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                                     clone.querySelectorAll('[data-bayup-card="name"]').forEach(el => { el.textContent = it.name; });
                                     clone.querySelectorAll('[data-bayup-card="price"]').forEach(el => { el.textContent = fmt(it.price); });
                                     clone.querySelectorAll('[data-bayup-action="nav-product"]').forEach(el => { (el as HTMLElement).dataset.productId = it.product_id; });
-                                    clone.querySelectorAll('[data-bayup-action="toggle-wishlist"]').forEach(el => { (el as HTMLElement).dataset.productId = it.product_id; el.setAttribute('data-wishlisted', 'true'); });
+                                    clone.querySelectorAll('[data-bayup-action="toggle-wishlist"]').forEach(el => { (el as HTMLElement).dataset.productId = it.product_id; el.setAttribute('data-wishlisted', 'true'); el.classList.add('active'); });
                                     grid.appendChild(clone);
                                 });
                             }
@@ -1240,11 +1246,15 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                 }
                 const isActive = target.getAttribute('data-wishlisted') === 'true';
                 target.setAttribute('data-wishlisted', isActive ? 'false' : 'true');
+                target.classList.toggle('active', !isActive); // .card-wish.active svg{fill:...} en style.css
                 fetch(`${apiBase}/shop/${slug}/customer-auth/wishlist${isActive ? '/' + pid : ''}`, {
                     method: isActive ? 'DELETE' : 'POST',
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                     body: isActive ? undefined : JSON.stringify({ product_id: pid }),
-                }).catch(() => { target.setAttribute('data-wishlisted', isActive ? 'true' : 'false'); });
+                }).catch(() => {
+                    target.setAttribute('data-wishlisted', isActive ? 'true' : 'false');
+                    target.classList.toggle('active', isActive);
+                });
                 return;
             }
             if (action === 'select-size') {
