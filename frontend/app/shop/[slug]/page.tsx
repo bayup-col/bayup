@@ -5,7 +5,7 @@ import { ShopContent } from './ShopContent';
 
 interface Props {
   params: { slug: string };
-  searchParams: { view?: string; id?: string };
+  searchParams: { view?: string; id?: string; post?: string };
 }
 
 // Server Component: resuelve la carga inicial (tienda + productos + diseño
@@ -17,7 +17,7 @@ interface Props {
 // un Client Component que recibe estos datos como prop inicial.
 export default async function PublicShopPage({ params, searchParams }: Props) {
   const view = searchParams?.view || 'home';
-  const initialShopData = await getInitialShopData(params.slug, view);
+  const initialShopData = await getInitialShopData(params.slug, view, searchParams?.post);
 
   return (
     <Suspense fallback={

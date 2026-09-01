@@ -14,7 +14,7 @@ import payment_service
 import schemas
 from database import get_db
 from rate_limit import limiter
-from routers.public import resolve_variant_items, finalize_web_order
+from routers.public import resolve_variant_items, finalize_web_order, resolve_shipping_cost
 
 router = APIRouter(tags=["payments"])
 logger = logging.getLogger("bayup")
@@ -34,6 +34,7 @@ class CheckoutRequest(BaseModel):
     customer_phone: str = Field(min_length=7)
     customer_city:  str | None = None
     shipping_address: str | None = None
+    shipping_option_id: str | None = None
     items: list[CheckoutItemSchema] = Field(min_length=1)
     currency: str = Field(default="COP", max_length=3)
     idempotency_key: str | None = Field(default=None, max_length=128)
@@ -126,6 +127,13 @@ async def public_checkout(payload: CheckoutRequest, request: Request, db: Sessio
         })
         total += v_item.price_at_purchase * v_item.quantity
 
+    # CRIT-002: costo de envío resuelto server-side contra ShippingOption real,
+    # nunca contra un monto que mande el navegador. Se suma ANTES de armar la
+    # sesión de Wompi (así se cobra el total correcto) y antes del link de
+    # WhatsApp (fallback sin pasarela configurada).
+    resolved_shipping_id, shipping_cost = resolve_shipping_cost(db, tenant_uuid, payload.shipping_option_id)
+    total += shipping_cost
+
     whatsapp_url = None
     if tenant.phone:
         whatsapp_url = _build_whatsapp_url(tenant.phone, tenant.full_name or "tu tienda", items_dict, total, payload.currency)
@@ -138,6 +146,10 @@ async def public_checkout(payload: CheckoutRequest, request: Request, db: Sessio
         customer_name=payload.customer_name,
         customer_email=payload.customer_email,
         customer_phone=payload.customer_phone,
+        customer_city=payload.customer_city,
+        shipping_address=payload.shipping_address,
+        shipping_option_id=resolved_shipping_id,
+        shipping_cost=shipping_cost,
         items=items_dict,
         gateway=None,
         gateway_redirect_url=None,
@@ -266,8 +278,10 @@ async def payment_webhook(request: Request, db: Session = Depends(get_db)):
             db_order = finalize_web_order(
                 db, payment.tenant_id, validated_items,
                 customer_name=payment.customer_name, customer_email=payment.customer_email,
-                customer_phone=payment.customer_phone, customer_city=None, shipping_address=None,
+                customer_phone=payment.customer_phone, customer_city=payment.customer_city,
+                shipping_address=payment.shipping_address,
                 payment_method="wompi", source="web",
+                shipping_option_id=str(payment.shipping_option_id) if payment.shipping_option_id else None,
             )
             payment.order_id = db_order.id
             db.commit()

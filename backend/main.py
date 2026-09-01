@@ -162,6 +162,56 @@ def _sync_postgres_schema() -> None:
             "CREATE INDEX IF NOT EXISTS ix_order_items_product_variant_id ON order_items (product_variant_id)",
             "CREATE INDEX IF NOT EXISTS ix_orders_customer_id ON orders (customer_id)",
             "CREATE INDEX IF NOT EXISTS ix_product_variants_product_id ON product_variants (product_id)",
+            # blog/journal, direcciones y wishlist — feature exclusiva del tenant Orzen
+            """CREATE TABLE IF NOT EXISTS posts (
+                id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                tenant_id     UUID NOT NULL REFERENCES users(id),
+                slug          VARCHAR NOT NULL,
+                title         VARCHAR NOT NULL,
+                category      VARCHAR,
+                excerpt       VARCHAR,
+                body          JSON DEFAULT '[]',
+                image_url     VARCHAR,
+                published_at  TIMESTAMP DEFAULT NOW(),
+                is_published  BOOLEAN DEFAULT TRUE,
+                created_at    TIMESTAMP DEFAULT NOW()
+            )""",
+            "CREATE INDEX IF NOT EXISTS ix_posts_tenant_id ON posts (tenant_id)",
+            "CREATE INDEX IF NOT EXISTS ix_posts_slug ON posts (slug)",
+            """CREATE TABLE IF NOT EXISTS customer_addresses (
+                id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                customer_id   UUID NOT NULL REFERENCES users(id),
+                tenant_id     UUID NOT NULL REFERENCES users(id),
+                label         VARCHAR,
+                full_name     VARCHAR,
+                phone         VARCHAR,
+                address_line  VARCHAR NOT NULL,
+                city          VARCHAR,
+                postal_code   VARCHAR,
+                country       VARCHAR DEFAULT 'Colombia',
+                is_default    BOOLEAN DEFAULT FALSE,
+                created_at    TIMESTAMP DEFAULT NOW()
+            )""",
+            "CREATE INDEX IF NOT EXISTS ix_customer_addresses_customer_id ON customer_addresses (customer_id)",
+            "CREATE INDEX IF NOT EXISTS ix_customer_addresses_tenant_id ON customer_addresses (tenant_id)",
+            """CREATE TABLE IF NOT EXISTS wishlist_items (
+                id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                customer_id   UUID NOT NULL REFERENCES users(id),
+                tenant_id     UUID NOT NULL REFERENCES users(id),
+                product_id    UUID NOT NULL REFERENCES products(id),
+                created_at    TIMESTAMP DEFAULT NOW()
+            )""",
+            "CREATE INDEX IF NOT EXISTS ix_wishlist_items_customer_id ON wishlist_items (customer_id)",
+            "CREATE INDEX IF NOT EXISTS ix_wishlist_items_tenant_id ON wishlist_items (tenant_id)",
+            "CREATE INDEX IF NOT EXISTS ix_wishlist_items_product_id ON wishlist_items (product_id)",
+            # envío real + contraentrega + género de producto — ver alembic 0016
+            "ALTER TABLE products ADD COLUMN IF NOT EXISTS gender VARCHAR",
+            "ALTER TABLE payments ADD COLUMN IF NOT EXISTS customer_city VARCHAR(120)",
+            "ALTER TABLE payments ADD COLUMN IF NOT EXISTS shipping_address VARCHAR(500)",
+            "ALTER TABLE payments ADD COLUMN IF NOT EXISTS shipping_option_id UUID",
+            "ALTER TABLE payments ADD COLUMN IF NOT EXISTS shipping_cost DOUBLE PRECISION DEFAULT 0.0",
+            "ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_option_id UUID",
+            "ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_cost_snapshot DOUBLE PRECISION DEFAULT 0.0",
         ]
         with engine.begin() as conn:
             for stmt in stmts:
@@ -317,6 +367,8 @@ from routers import public as _r_public
 from routers import payments as _r_payments
 from routers import liquidations as _r_liq
 from routers import analytics as _r_analytics
+from routers import customer_account as _r_cust_account
+from routers import blog as _r_blog
 app.include_router(_r_notif.router)
 app.include_router(_r_col.router)
 app.include_router(_r_ship.router)
@@ -336,6 +388,8 @@ app.include_router(_r_public.router)
 app.include_router(_r_payments.router)
 app.include_router(_r_liq.router)
 app.include_router(_r_analytics.router)
+app.include_router(_r_cust_account.router)
+app.include_router(_r_blog.router)
 
 # Compatibilidad: el frontend llama a /onboarding/complete (sin prefijo /admin)
 from fastapi import Depends as _Depends

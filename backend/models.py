@@ -121,6 +121,7 @@ class Product(Base):
     wholesale_price = Column(Float, default=0.0)
     cost = Column(Float, default=0.0)
     category = Column(String, nullable=True) # Campo de categoría simple
+    gender = Column(String, nullable=True) # 'hombre'/'mujer'/'unisex' — filtro público de la tienda (hoy solo lo usa Orzen)
     sku = Column(String, index=True)
     status = Column(String, default="active")
     add_gateway_fee = Column(Boolean, default=False)
@@ -563,6 +564,10 @@ class Payment(Base):
     customer_name    = Column(String(255), nullable=True)
     customer_email   = Column(String(255), nullable=True)
     customer_phone   = Column(String(50),  nullable=True)
+    customer_city    = Column(String(120), nullable=True)
+    shipping_address = Column(String(500), nullable=True)
+    shipping_option_id = Column(GUID(), nullable=True)
+    shipping_cost    = Column(Float, default=0.0)
 
     # Artículos del carrito: [{product_id, name, qty, unit_price}]
     items            = Column(JSON, default=list)
@@ -594,6 +599,46 @@ class RoadmapVote(Base):
     user_id     = Column(GUID(), nullable=True, index=True)
     session_key = Column(String, nullable=True)
     voted_at    = Column(DateTime, default=datetime.datetime.utcnow)
+
+class Post(Base):
+    """Entrada de blog/journal editorial de una tienda (hoy exclusivo del tenant Orzen)."""
+    __tablename__ = "posts"
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(GUID(), ForeignKey("users.id"), index=True, nullable=False)
+    slug = Column(String, index=True, nullable=False)
+    title = Column(String, nullable=False)
+    category = Column(String, nullable=True)
+    excerpt = Column(String, nullable=True)
+    body = Column(JSON, default=list)  # lista de párrafos
+    image_url = Column(String, nullable=True)
+    published_at = Column(DateTime, default=datetime.datetime.utcnow)
+    is_published = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class Address(Base):
+    """Dirección guardada de un cliente final para reusar en checkout."""
+    __tablename__ = "customer_addresses"
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    customer_id = Column(GUID(), ForeignKey("users.id"), index=True, nullable=False)
+    tenant_id = Column(GUID(), ForeignKey("users.id"), index=True, nullable=False)
+    label = Column(String, nullable=True)
+    full_name = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
+    address_line = Column(String, nullable=False)
+    city = Column(String, nullable=True)
+    postal_code = Column(String, nullable=True)
+    country = Column(String, default="Colombia")
+    is_default = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class WishlistItem(Base):
+    """Producto guardado como favorito por un cliente final."""
+    __tablename__ = "wishlist_items"
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    customer_id = Column(GUID(), ForeignKey("users.id"), index=True, nullable=False)
+    tenant_id = Column(GUID(), ForeignKey("users.id"), index=True, nullable=False)
+    product_id = Column(GUID(), ForeignKey("products.id"), index=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 class RoadmapItem(Base):
     __tablename__ = "roadmap_items"

@@ -24,24 +24,41 @@ export async function getShopBaseData(slug: string): Promise<any | null> {
 // se piden siempre en vivo (`cache: 'no-store'`) porque reflejan inventario,
 // precios y contenido editado en el dashboard — no queremos servir una
 // version cacheada desactualizada.
-export async function getInitialShopData(slug: string, view: string): Promise<any | null> {
+export async function getInitialShopData(slug: string, view: string, postSlug?: string): Promise<any | null> {
   const data = await getShopBaseData(slug);
   if (!data) return null;
 
-  // "cart" no es una pagina real persistida (su contenido es 100% dinamico,
-  // viene del carrito en memoria del navegador) — reutilizamos el header/
-  // footer ya publicados de "home" en vez de pedir una pagina inexistente,
-  // igual que hace el fetch equivalente del lado del cliente en ShopContent.
-  const pageKeyToFetch = view === 'cart' ? 'home' : view;
-  const [prodResult, pageResult] = await Promise.allSettled([
+  // "cart" no siempre es una pagina real persistida: para tiendas nativas
+  // (bloques) su contenido es 100% dinamico (carrito en memoria) y no existe
+  // una ShopPage propia, asi que reutilizamos el header/footer ya publicados
+  // de "home". Pero una tienda con plantilla HTML curada (custom_html) puede
+  // tener su propia pagina de carrito real (ej. Orzen) — se intenta esa
+  // primero y solo se cae a "home" si de verdad no existe.
+  const fetchPageWithFallback = async () => {
+    const primary = await fetch(`${API_BASE}/public/stores/${data.id}/pages/${view}`, { cache: 'no-store' });
+    if (primary.ok || view !== 'cart') return primary;
+    return fetch(`${API_BASE}/public/stores/${data.id}/pages/home`, { cache: 'no-store' });
+  };
+  const fetchExtras = view === 'journal'
+    ? fetch(`${API_BASE}/public/stores/${data.id}/posts`, { cache: 'no-store' })
+    : (view === 'journal-post' && postSlug)
+    ? fetch(`${API_BASE}/public/stores/${data.id}/posts/${postSlug}`, { cache: 'no-store' })
+    : Promise.resolve(null as any);
+  const [prodResult, pageResult, postsResult] = await Promise.allSettled([
     fetch(`${API_BASE}/public/stores/${data.id}/products`, { cache: 'no-store' }),
-    fetch(`${API_BASE}/public/stores/${data.id}/pages/${pageKeyToFetch}`, { cache: 'no-store' }),
+    fetchPageWithFallback(),
+    fetchExtras,
   ]);
 
   if (prodResult.status === 'fulfilled' && prodResult.value.ok) {
     data.products = await prodResult.value.json();
   } else if (prodResult.status === 'rejected') {
     console.error('Error cargando productos', prodResult.reason);
+  }
+  if (postsResult.status === 'fulfilled' && postsResult.value && postsResult.value.ok) {
+    const postsJson = await postsResult.value.json();
+    if (view === 'journal') data.posts = postsJson;
+    else data.currentPost = postsJson;
   }
 
   if (pageResult.status === 'fulfilled' && pageResult.value.ok) {
