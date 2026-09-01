@@ -563,36 +563,102 @@ h1,h2,h3,h4,p{margin:0;}
 .reveal{opacity:0;transform:translateY(24px);transition:opacity .8s var(--ease),transform .8s var(--ease);}
 .reveal.in{opacity:1;transform:translateY(0);}
 
+/* Contenedor Bayup — evita overflow horizontal al cambiar de viewport */
+.orzen-storefront{
+  width:100%;
+  max-width:100%;
+  overflow-x:hidden;
+  isolation:isolate;
+}
+
+/* Dispositivos táctiles: acciones visibles sin depender de :hover */
+@media (hover:none){
+  .card-quick{transform:translateY(0);}
+  .product-card:hover .card-media .ph-primary{transform:none;}
+}
+
 /* =============== RESPONSIVE =============== */
 @media (max-width:1080px){
   .grid{grid-template-columns:repeat(3,1fr);}
   .pdp{grid-template-columns:1fr;}
+  .pdp-gallery{grid-template-columns:1fr 1fr;}
   .pdp-info{position:static;padding:40px var(--gutter);}
   .footer-top{grid-template-columns:1fr 1fr;}
-  .account-wrap{grid-template-columns:1fr;}
+  .account-wrap{grid-template-columns:1fr;gap:40px;}
   .account-nav{border-right:none;border-bottom:1px solid rgba(0,0,0,.1);padding-right:0;padding-bottom:20px;display:flex;flex-wrap:wrap;gap:4px 20px;}
   .account-nav a{border-bottom:none;padding:8px 0;}
   .checkout-wrap{grid-template-columns:1fr;}
   .checkout-side{order:-1;padding:40px var(--gutter);}
   .search-cols{grid-template-columns:1fr;gap:30px;}
+  .field-row{grid-template-columns:1fr;}
+  .page-head{padding:110px 0 36px;}
 }
 @media (max-width:760px){
+  .site-header .container{height:64px;}
+  .logo{font-size:18px;}
+  .logo img{height:18px;}
+  .nav-actions{gap:14px;}
   .nav-desktop{display:none;}
   .burger{display:flex;}
   .grid{grid-template-columns:repeat(2,1fr);gap:16px;}
   .grid-3{grid-template-columns:repeat(2,1fr);}
   .split{grid-template-columns:1fr;}
+  .split-panel{min-height:320px;}
+  .split-copy{padding:32px;}
   .footer-top{grid-template-columns:1fr;gap:36px;}
+  .footer-bottom{flex-direction:column;align-items:flex-start;gap:14px;}
   .filter-toggle{display:flex;}
   .chip-row.desktop-only{display:none;}
+  .shop-toolbar{flex-direction:column;align-items:stretch;gap:12px;}
+  .toolbar-right{justify-content:space-between;width:100%;}
   .search-results-grid{grid-template-columns:repeat(2,1fr);}
+  .search-top .container{height:72px;gap:12px;}
   .sticky-add{display:flex;}
-  .pdp-info{padding-bottom:100px;}
+  .pdp-gallery{grid-template-columns:1fr;}
+  .pdp-gallery .full{aspect-ratio:3/4;}
+  .pdp-info{padding:32px var(--gutter) 100px;}
+  .pdp-mystery{flex-direction:column;align-items:flex-start;}
+  .sizes{grid-template-columns:repeat(3,1fr);}
+  .editorial{height:60vh;min-height:360px;}
   .editorial-content{padding:28px;}
   .section{padding:64px 0;}
+  .section-tight{padding:48px 0;}
+  .section-head{flex-direction:column;align-items:flex-start;gap:12px;margin-bottom:28px;}
+  .page-head{padding:96px 0 28px;}
+  .page-head-photo{min-height:280px;}
   .quickview{grid-template-columns:1fr;}
+  .quickview-info{padding:28px;}
+  .newsletter{padding:64px 0;}
+  .newsletter-form{flex-direction:column;gap:12px;align-items:stretch;padding-bottom:0;border-bottom:none;}
+  .newsletter-form button{align-self:flex-end;}
+  .auth-wrap{padding:96px var(--gutter) 80px;}
+  .confirm-wrap{padding:96px var(--gutter) 80px;}
+  .account-wrap{padding:40px var(--gutter) 80px;}
+  .checkout-main{padding:40px var(--gutter) 80px;}
+  .checkout-steps{flex-wrap:wrap;gap:8px 12px;}
+  .order-row{flex-wrap:wrap;gap:12px;}
+  .journal-post-hero{height:52vh;min-height:320px;}
+  .journal-post-body{padding:48px var(--gutter);font-size:15px;}
+  .nosotros-1,.nosotros-2,.nosotros-3,.nosotros-4,.nosotros-5,.nosotros-6{
+    aspect-ratio:auto;min-height:220px;
+  }
+  .nosotros-banner img{object-fit:cover;}
+  .drawer,.filter-sheet,.mobile-menu,.search-overlay{-webkit-overflow-scrolling:touch;}
 }
 @media (max-width:480px){
-  .grid{grid-template-columns:repeat(2,1fr);}
-  .hero-title{font-size:14vw;}
+  .grid{grid-template-columns:repeat(2,1fr);gap:12px;}
+  .card-info{padding:10px 2px 18px;}
+  .card-name,.card-price{font-size:12px;}
+  .btn{padding:13px 20px;font-size:11px;}
+  .hero{min-height:360px;}
+  .photo-banner-own{height:220px;}
+  .photo-banner-limited{height:200px;}
+  .checkout-steps{flex-direction:column;align-items:flex-start;}
+  .checkout-steps .sep{display:none;}
+  .confirm-actions{flex-direction:column;width:100%;}
+  .confirm-actions .btn{width:100%;}
+  .promo-row{flex-direction:column;}
+  .cart-line .line-media{width:72px;height:90px;}
+  .gender-card{min-height:280px;}
+  .mobile-nav a{font-size:clamp(28px,11vw,44px);}
 }
