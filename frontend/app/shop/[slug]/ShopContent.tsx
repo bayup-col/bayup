@@ -532,20 +532,43 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
         }
 
         // --- Journal / blog (listado + post individual) ---
+        // El video de referencia NO usa fotos reales para Revista: cada post
+        // muestra una tarjeta "placeholder" de marca (anillos concéntricos +
+        // categoría en el centro) — mismo componente .ph/.ph-mark/.ph-ring ya
+        // definido en style.css y usado por el sitio estático original
+        // (js/app.js:initPlaceholders, js/data.js:ORZ_JOURNAL). PH_BY_SLUG
+        // replica exactamente la variante asignada a cada post ahí.
+        const PH_VARIANTS = ['ph-1', 'ph-2', 'ph-3', 'ph-4'];
+        const PH_BY_SLUG: Record<string, string> = {
+            'drop-001-detras-de-camaras': 'ph-1',
+            'la-filosofia-orz': 'ph-2',
+            'eclipse-notas-de-coleccion': 'ph-3',
+            'cuidado-de-prendas-orz': 'ph-light',
+            'comunidad-orz': 'ph-4',
+            'limited-tiraje-numerado': 'ph-1',
+        };
+        const phVariantFor = (slug: string, idx: number) => PH_BY_SLUG[slug] || PH_VARIANTS[idx % PH_VARIANTS.length];
+        const fmtDate = (iso: string) => iso ? new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+
         const posts: any[] = shopData.posts || [];
         const jGrid = root.querySelector('[data-bayup="journal-grid"]');
         const jTpl = root.querySelector('template[data-bayup="journal-card-template"]') as HTMLTemplateElement | null;
+
+        const fillJournalCard = (clone: DocumentFragment, post: any, idx: number) => {
+            clone.querySelectorAll('[data-bayup-card="ph"]').forEach(el => { el.classList.add('ph', phVariantFor(post.slug, idx)); });
+            clone.querySelectorAll('[data-bayup-card="title"]').forEach(el => { el.textContent = post.title; });
+            clone.querySelectorAll('[data-bayup-card="category"]').forEach(el => { el.textContent = post.category || ''; });
+            clone.querySelectorAll('[data-bayup-card="date"]').forEach(el => { el.textContent = fmtDate(post.published_at); });
+            clone.querySelectorAll('[data-bayup-action="nav-journal-post"]').forEach(el => { (el as HTMLElement).dataset.postSlug = post.slug; });
+        };
+
         if (jGrid && jTpl) {
             const renderJournal = (cat: string) => {
                 const list = cat === 'all' ? posts : posts.filter((p: any) => p.category === cat);
                 jGrid.innerHTML = '';
-                list.forEach((post: any) => {
+                list.forEach((post: any, idx: number) => {
                     const clone = jTpl.content.cloneNode(true) as DocumentFragment;
-                    clone.querySelectorAll('[data-bayup-card="image"]').forEach((el: any) => { if (post.image_url) el.src = post.image_url; el.alt = post.title; });
-                    clone.querySelectorAll('[data-bayup-card="title"]').forEach(el => { el.textContent = post.title; });
-                    clone.querySelectorAll('[data-bayup-card="category"]').forEach(el => { el.textContent = post.category || ''; });
-                    clone.querySelectorAll('[data-bayup-card="excerpt"]').forEach(el => { el.textContent = post.excerpt || ''; });
-                    clone.querySelectorAll('[data-bayup-action="nav-journal-post"]').forEach(el => { (el as HTMLElement).dataset.postSlug = post.slug; });
+                    fillJournalCard(clone, post, idx);
                     jGrid.appendChild(clone);
                 });
                 root.querySelectorAll('[data-bayup-action="filter-journal-category"]').forEach(el => {
@@ -559,11 +582,19 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             const post = shopData.currentPost;
             root.querySelectorAll('[data-bayup="post-title"]').forEach(el => { el.textContent = post.title; });
             root.querySelectorAll('[data-bayup="post-category"]').forEach(el => { el.textContent = post.category || ''; });
-            root.querySelectorAll('img[data-bayup="post-image"]').forEach((el: any) => { if (post.image_url) el.src = post.image_url; });
+            root.querySelectorAll('[data-bayup="post-ph"]').forEach(el => { el.classList.add('ph', phVariantFor(post.slug, 0)); });
             const bodyEl = root.querySelector('[data-bayup="post-body"]');
             if (bodyEl && Array.isArray(post.body)) {
                 bodyEl.innerHTML = '';
-                post.body.forEach((para: string) => {
+                post.body.forEach((para: string, i: number) => {
+                    // El diseño original inserta una segunda tarjeta placeholder
+                    // (ph-2, marca "ORZ") justo antes del segundo párrafo.
+                    if (i === 1) {
+                        const midPh = document.createElement('div');
+                        midPh.className = 'ph ph-2';
+                        midPh.innerHTML = '<span class="ph-ring r1"></span><span class="ph-ring r2"></span><span class="ph-mark">ORZ</span>';
+                        bodyEl.appendChild(midPh);
+                    }
                     const p = document.createElement('p');
                     p.textContent = para;
                     bodyEl.appendChild(p);
@@ -572,13 +603,9 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             const relGrid = root.querySelector('[data-bayup="journal-related-grid"]');
             if (relGrid && jTpl && Array.isArray(post.related)) {
                 relGrid.innerHTML = '';
-                post.related.forEach((rp: any) => {
+                post.related.forEach((rp: any, idx: number) => {
                     const clone = jTpl.content.cloneNode(true) as DocumentFragment;
-                    clone.querySelectorAll('[data-bayup-card="image"]').forEach((el: any) => { if (rp.image_url) el.src = rp.image_url; el.alt = rp.title; });
-                    clone.querySelectorAll('[data-bayup-card="title"]').forEach(el => { el.textContent = rp.title; });
-                    clone.querySelectorAll('[data-bayup-card="category"]').forEach(el => { el.textContent = rp.category || ''; });
-                    clone.querySelectorAll('[data-bayup-card="excerpt"]').forEach(el => { el.textContent = rp.excerpt || ''; });
-                    clone.querySelectorAll('[data-bayup-action="nav-journal-post"]').forEach(el => { (el as HTMLElement).dataset.postSlug = rp.slug; });
+                    fillJournalCard(clone, rp, idx);
                     relGrid.appendChild(clone);
                 });
             }
