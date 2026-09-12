@@ -534,6 +534,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
     // realmente encuentra el corazón; el POST se hace una sola vez.
     const pendingWishIdRef = useRef<string | null>(null);
     const pendingWishPostedRef = useRef(false);
+    const wishlistCountRef = useRef(0);
     useEffect(() => { if (wishParam) pendingWishIdRef.current = wishParam; }, [wishParam]);
 
     // --- Checkout wizard de 4 pasos (EXCLUSIVO del tenant Orzen, ver
@@ -579,6 +580,15 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
         ids.push(productId);
         setGuestWishlist(ids);
         return true;
+    };
+    const updateWishlistBadge = (count: number) => {
+        wishlistCountRef.current = count;
+        const root = customHtmlRef.current;
+        if (!root) return;
+        root.querySelectorAll('[data-bayup="wishlist-count"]').forEach((el: any) => {
+            el.textContent = count > 0 ? String(count) : '';
+            el.style.display = count > 0 ? '' : 'none';
+        });
     };
     const mergeGuestWishlistToServer = async (token: string) => {
         const ids = getGuestWishlist();
@@ -1039,10 +1049,15 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
         if (customerToken) {
             fetch(`${apiBase}/shop/${slug}/customer-auth/wishlist`, { headers: { Authorization: `Bearer ${customerToken}` } })
                 .then(r => r.ok ? r.json() : [])
-                .then((items: any[]) => markWishlistedHearts(new Set(items.map(i => String(i.product_id)))))
+                .then((items: any[]) => {
+                    markWishlistedHearts(new Set(items.map(i => String(i.product_id))));
+                    updateWishlistBadge(items.length);
+                })
                 .catch(() => {});
         } else if (isOrzenTenant) {
-            markWishlistedHearts(new Set(getGuestWishlist()));
+            const guestIds = getGuestWishlist();
+            markWishlistedHearts(new Set(guestIds));
+            updateWishlistBadge(guestIds.length);
         }
 
         // --- Favorito pendiente al volver del login (legacy ?wish=) ---
@@ -1055,6 +1070,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${customerToken}` },
                     body: JSON.stringify({ product_id: pendingWish }),
                 }).catch(() => {});
+                updateWishlistBadge(wishlistCountRef.current + 1);
                 const url = new URL(window.location.href);
                 url.searchParams.delete('wish');
                 window.history.replaceState({}, '', url.toString());
@@ -1533,6 +1549,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                         const nowActive = toggleGuestWishlist(pid);
                         target.setAttribute('data-wishlisted', nowActive ? 'true' : 'false');
                         target.classList.toggle('active', nowActive);
+                        updateWishlistBadge(getGuestWishlist().length);
                         if (view === 'wishlist') {
                             const ids = new Set(getGuestWishlist());
                             fillWishlistGrid(
@@ -1554,6 +1571,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                 const isActive = target.getAttribute('data-wishlisted') === 'true';
                 target.setAttribute('data-wishlisted', isActive ? 'false' : 'true');
                 target.classList.toggle('active', !isActive); // .card-wish.active svg{fill:...} en style.css
+                updateWishlistBadge(Math.max(0, wishlistCountRef.current + (isActive ? -1 : 1)));
                 fetch(`${apiBase}/shop/${slug}/customer-auth/wishlist${isActive ? '/' + pid : ''}`, {
                     method: isActive ? 'DELETE' : 'POST',
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -1561,6 +1579,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                 }).catch(() => {
                     target.setAttribute('data-wishlisted', isActive ? 'true' : 'false');
                     target.classList.toggle('active', isActive);
+                    updateWishlistBadge(Math.max(0, wishlistCountRef.current + (isActive ? 1 : -1)));
                 });
                 return;
             }
