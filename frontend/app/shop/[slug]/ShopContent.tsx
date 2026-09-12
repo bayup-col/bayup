@@ -845,7 +845,22 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             if (c) {
                 root.querySelectorAll('[data-bayup="collection-name"]').forEach(el => { el.textContent = c.title; });
                 root.querySelectorAll('[data-bayup="collection-description"]').forEach(el => { el.textContent = c.description || ''; });
-                root.querySelectorAll('img[data-bayup="collection-image"]').forEach((el: any) => { if (c.image_url) el.src = c.image_url; });
+                // El único activo disponible para cada drop es una miniatura de
+                // ~150px (asset de plantilla, nunca usada en el sitio original) —
+                // ampliarla a banner de ancho completo se ve borrosa. Se usa el
+                // mismo componente placeholder .ph/.ph-mark/.ph-ring que Revista,
+                // con la variante que cada colección ya tenía asignada.
+                const PH_BY_COLLECTION_ID: Record<string, string> = {
+                    'e520400e-bd65-434c-962e-d262734d52fb': 'ph-1', // Drop 001
+                    '1ca96510-0408-4d53-8998-bda1ef755500': 'ph-2', // Core
+                    '166b15a6-5681-43ef-b2c5-a9e19ba3c020': 'ph-3', // Eclipse
+                    '3296dfe9-8abd-4510-94d7-55c9b84bd57a': 'ph-4', // Limited
+                };
+                root.querySelectorAll('[data-bayup="collection-ph"]').forEach((el: any) => {
+                    el.classList.remove('ph-1', 'ph-2', 'ph-3', 'ph-4', 'ph-light');
+                    el.classList.add(PH_BY_COLLECTION_ID[String(c.id)] || 'ph-1');
+                });
+                root.querySelectorAll('[data-bayup="collection-mark"]').forEach(el => { el.textContent = c.title; });
             }
             const cGrid = root.querySelector('[data-bayup="collection-products-grid"]');
             if (cGrid && cardTpl) {
