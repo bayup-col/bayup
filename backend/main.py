@@ -212,6 +212,8 @@ def _sync_postgres_schema() -> None:
             "ALTER TABLE payments ADD COLUMN IF NOT EXISTS shipping_cost DOUBLE PRECISION DEFAULT 0.0",
             "ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_option_id UUID",
             "ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_cost_snapshot DOUBLE PRECISION DEFAULT 0.0",
+            # plantilla HTML exclusiva ligada a un tenant real (ver alembic 0017)
+            "ALTER TABLE web_templates ADD COLUMN IF NOT EXISTS live_shop_slug VARCHAR",
         ]
         with engine.begin() as conn:
             for stmt in stmts:

@@ -499,6 +499,11 @@ class WebTemplate(Base):
     # Páginas HTML: {"home":"...", "catalog":"...", "product":"...",
     #                "cart":"...", "checkout":"...", "contact":"...", "privacy":"..."}
     html_pages = Column(JSON, nullable=True)
+    # shop_slug del tenant real cuando esta plantilla HTML es exclusiva de un tenant
+    # ya en producción (ej. Orzen) — si está seteado, "Vista previa" abre la tienda
+    # real en vez del preview genérico con datos de muestra (que no conoce el
+    # contrato data-bayup propio de esa tienda).
+    live_shop_slug = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
