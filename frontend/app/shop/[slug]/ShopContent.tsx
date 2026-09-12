@@ -587,7 +587,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
         if (!root) return;
         root.querySelectorAll('[data-bayup="wishlist-count"]').forEach((el: any) => {
             el.textContent = count > 0 ? String(count) : '';
-            el.style.display = count > 0 ? '' : 'none';
+            el.hidden = count <= 0; // el atributo hidden gana sobre style.display='' — hay que quitarlo de verdad
         });
     };
     const mergeGuestWishlistToServer = async (token: string) => {
@@ -662,9 +662,9 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
         const root = customHtmlRef.current;
         if (!shopData.custom_html || !root) return;
         const fmt = (n: number) => `$${Math.round(n || 0).toLocaleString('es-CO')}`;
-        root.querySelectorAll('[data-bayup="cart-count"]').forEach(el => {
+        root.querySelectorAll('[data-bayup="cart-count"]').forEach((el: any) => {
             el.textContent = cart.length ? String(cart.length) : '';
-            (el as HTMLElement).style.display = cart.length ? '' : 'none';
+            el.hidden = cart.length === 0; // el atributo hidden gana sobre style.display='' — hay que quitarlo de verdad
         });
         const cartBody = root.querySelector('[data-bayup="cart-items"]');
         const rowTpl = root.querySelector('template[data-bayup="cart-row-template"]') as HTMLTemplateElement | null;
