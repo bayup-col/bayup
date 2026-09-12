@@ -13,6 +13,7 @@ interface Template {
   preview_url?: string | null;
   template_type?: 'schema' | 'html';
   html_pages?: string[];
+  live_shop_slug?: string | null;
 }
 
 const HTML_PAGE_KEYS = [
@@ -112,6 +113,14 @@ export default function WebTemplatesPage() {
   // para HTML abre el live-preview real del backend en una pestaña nueva.
   const openTemplatePreview = useCallback((t: Template) => {
     if (t.template_type === 'html') {
+      if (t.live_shop_slug) {
+        // Plantilla exclusiva de un tenant real ya en producción (ej. Orzen):
+        // el preview genérico usa datos de muestra y no conoce el contrato
+        // data-bayup propio de esa tienda, así que se abre la tienda real.
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://bayup.com.co';
+        window.open(`${siteUrl}/shop/${t.live_shop_slug}`, '_blank');
+        return;
+      }
       // Se abre la pestaña de inmediato (dentro del gesto del click) para
       // evitar que el navegador bloquee el popup; se navega una vez llega
       // el preview_token de un solo uso.
@@ -199,6 +208,36 @@ export default function WebTemplatesPage() {
         showToast(upd.isActive ? 'Plantilla activada' : 'Plantilla desactivada', 'success');
       }
     } catch { showToast('No se pudo actualizar la plantilla', 'error'); }
+  };
+
+  const [liveShopSlugInput, setLiveShopSlugInput] = useState('');
+  const [savingSlug, setSavingSlug] = useState(false);
+
+  useEffect(() => {
+    setLiveShopSlugInput(selected?.live_shop_slug || '');
+  }, [selected?.id, selected?.live_shop_slug]);
+
+  const saveLiveShopSlug = async () => {
+    if (!selected || !token) return;
+    const slug = liveShopSlugInput.trim().toLowerCase();
+    setSavingSlug(true);
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
+      const res = await fetch(`${base}/super-admin/web-templates/${selected.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ live_shop_slug: slug }),
+      });
+      if (res.ok) {
+        const upd = await res.json();
+        setTemplates(p => p.map(x => x.id === selected.id ? { ...x, live_shop_slug: upd.live_shop_slug } : x));
+        setSelected(s => s ? { ...s, live_shop_slug: upd.live_shop_slug } : s);
+        showToast(slug ? 'Tienda real vinculada' : 'Vínculo con tienda real eliminado', 'success');
+      } else {
+        showToast('No se pudo guardar', 'error');
+      }
+    } catch { showToast('Error de conexión al guardar', 'error'); }
+    finally { setSavingSlug(false); }
   };
 
   const openHtmlEditor = useCallback(async (t: Template) => {
@@ -521,6 +560,30 @@ export default function WebTemplatesPage() {
                           <FileCode2 size={9} />{p}
                         </span>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {selected.template_type === 'html' && (
+                  <div>
+                    <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mb-2">Tienda real vinculada (opcional)</p>
+                    <p className="text-[9px] text-white/25 leading-relaxed mb-2">
+                      Si esta plantilla es exclusiva de un tenant ya en producción, indica su shop_slug —
+                      &quot;Vista previa&quot; abrirá la tienda real en vez del preview genérico con datos de muestra.
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        value={liveShopSlugInput}
+                        onChange={e => setLiveShopSlugInput(e.target.value)}
+                        placeholder="ej. orzen"
+                        className="flex-1 h-9 px-3 rounded-xl bg-white/[0.03] border border-white/8 text-[11px] text-white/70 placeholder:text-white/15 outline-none focus:border-[#7c3aed]/40"
+                      />
+                      <button
+                        onClick={saveLiveShopSlug}
+                        disabled={savingSlug || liveShopSlugInput.trim().toLowerCase() === (selected.live_shop_slug || '')}
+                        className="h-9 px-4 rounded-xl bg-[#7c3aed]/15 border border-[#7c3aed]/30 text-[#7c3aed] text-[10px] font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#7c3aed]/25 transition-all">
+                        {savingSlug ? '...' : 'Guardar'}
+                      </button>
                     </div>
                   </div>
                 )}

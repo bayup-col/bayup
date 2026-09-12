@@ -83,6 +83,7 @@ def _serialize_template(t, include_html: bool = False) -> dict:
         "schema_data": t.schema_data,
         "template_type": getattr(t, "template_type", "schema") or "schema",
         "html_pages": list((getattr(t, "html_pages", None) or {}).keys()) if not include_html else (getattr(t, "html_pages", None) or {}),
+        "live_shop_slug": getattr(t, "live_shop_slug", None),
     }
     return d
 
@@ -549,11 +550,13 @@ async def create_web_template(payload: dict, request: Request, db: Session = Dep
     html_pages = payload.get("html_pages") or None
     if template_type == "html" and not html_pages:
         raise HTTPException(status_code=400, detail="Se requiere al menos la página 'home' para plantillas HTML")
+    live_shop_slug = (payload.get("live_shop_slug") or "").strip().lower() or None
     template = models.WebTemplate(
         name=name, category=payload.get("category") or "General",
         description=payload.get("description") or "", tags=tags or [],
         is_active=False, is_premium=False, color=payload.get("color") or "#0f1a1a",
         template_type=template_type, html_pages=html_pages,
+        live_shop_slug=live_shop_slug,
     )
     db.add(template)
     db.commit()
@@ -603,6 +606,8 @@ async def update_web_template(template_id: str, payload: dict, request: Request,
         merged = dict(template.html_pages or {})
         merged.update(incoming)
         template.html_pages = merged
+    if "live_shop_slug" in payload:
+        template.live_shop_slug = (payload.get("live_shop_slug") or "").strip().lower() or None
     db.commit()
     _clear_templates_cache()
     return _serialize_template(template, include_html=True)
