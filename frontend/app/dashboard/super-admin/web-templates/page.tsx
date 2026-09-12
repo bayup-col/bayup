@@ -953,7 +953,7 @@ export default function WebTemplatesPage() {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <a
-                      href={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://bayup.com.co'}/shop/${livePreviewModal.slug}`}
+                      href={`https://www.bayup.com.co/shop/${livePreviewModal.slug}`}
                       target="_blank" rel="noopener noreferrer"
                       className="h-8 px-3 rounded-xl border border-white/8 bg-white/4 flex items-center gap-1.5 text-[9px] font-bold text-white/40 hover:text-white/70 transition-all">
                       Abrir en pestaña nueva ↗
@@ -967,7 +967,11 @@ export default function WebTemplatesPage() {
                 <div className="flex-1 bg-white">
                   <iframe
                     key={livePreviewModal.slug}
-                    src={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://bayup.com.co'}/shop/${livePreviewModal.slug}`}
+                    // Ojo: bayup.com.co (sin www) responde con un 307 a www.bayup.com.co —
+                    // esa redirección DENTRO del iframe es lo que Edge bloquea como
+                    // "contenido bloqueado" (heurística anti bounce-tracking). Se apunta
+                    // directo al dominio final para evitar el salto.
+                    src={`https://www.bayup.com.co/shop/${livePreviewModal.slug}`}
                     className="w-full h-full border-0"
                     title={`Vista previa de ${livePreviewModal.name}`}
                   />
