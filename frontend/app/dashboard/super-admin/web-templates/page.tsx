@@ -111,14 +111,16 @@ export default function WebTemplatesPage() {
   // "Vista previa" rápida desde la tarjeta: para plantillas schema reutiliza
   // el mismo mecanismo que el onboarding (localStorage + /studio-preview);
   // para HTML abre el live-preview real del backend en una pestaña nueva.
+  const [livePreviewModal, setLivePreviewModal] = useState<{ slug: string; name: string } | null>(null);
+
   const openTemplatePreview = useCallback((t: Template) => {
     if (t.template_type === 'html') {
       if (t.live_shop_slug) {
         // Plantilla exclusiva de un tenant real ya en producción (ej. Orzen):
         // el preview genérico usa datos de muestra y no conoce el contrato
-        // data-bayup propio de esa tienda, así que se abre la tienda real.
-        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://bayup.com.co';
-        window.open(`${siteUrl}/shop/${t.live_shop_slug}`, '_blank');
+        // data-bayup propio de esa tienda. Se muestra la tienda real dentro
+        // de un iframe, sin salir del panel de admin ni navegar a producción.
+        setLivePreviewModal({ slug: t.live_shop_slug, name: t.name });
         return;
       }
       // Se abre la pestaña de inmediato (dentro del gesto del click) para
@@ -923,6 +925,52 @@ export default function WebTemplatesPage() {
                     className="h-10 px-5 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all bg-[#7c3aed] text-white hover:bg-[#8b5cf6] disabled:opacity-30 disabled:cursor-not-allowed">
                     {editorSaving ? <><RefreshCw size={12} className="animate-spin" /> Guardando…</> : <>Guardar página "{editorActivePage}"</>}
                   </button>
+                </div>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Vista previa embebida de la tienda real (plantillas con live_shop_slug) */}
+      <AnimatePresence>
+        {livePreviewModal && (
+          <>
+            <div className="fixed inset-0 z-[9998]" onClick={() => setLivePreviewModal(null)} />
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 16 }}
+                onClick={e => e.stopPropagation()}
+                className="w-full max-w-6xl h-[90vh] bg-[#080c0c] border border-white/8 rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+                <div className="flex justify-between items-center px-6 py-4 border-b border-white/5 shrink-0">
+                  <div>
+                    <h2 className="text-base font-black text-white flex items-center gap-2">
+                      <Eye size={16} className="text-[#7c3aed]" /> Vista previa — {livePreviewModal.name}
+                    </h2>
+                    <p className="text-[10px] text-white/25 mt-0.5">
+                      Esta es la tienda real en producción (shop_slug: {livePreviewModal.slug}), mostrada aquí en modo lectura.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <a
+                      href={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://bayup.com.co'}/shop/${livePreviewModal.slug}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="h-8 px-3 rounded-xl border border-white/8 bg-white/4 flex items-center gap-1.5 text-[9px] font-bold text-white/40 hover:text-white/70 transition-all">
+                      Abrir en pestaña nueva ↗
+                    </a>
+                    <button onClick={() => setLivePreviewModal(null)}
+                      className="h-8 w-8 rounded-xl border border-white/8 bg-white/4 flex items-center justify-center text-white/30 hover:text-white">
+                      <X size={14} />
+                    </button>
+                  </div>
+                </div>
+                <div className="flex-1 bg-white">
+                  <iframe
+                    key={livePreviewModal.slug}
+                    src={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://bayup.com.co'}/shop/${livePreviewModal.slug}`}
+                    className="w-full h-full border-0"
+                    title={`Vista previa de ${livePreviewModal.name}`}
+                  />
                 </div>
               </motion.div>
             </div>
