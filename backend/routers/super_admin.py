@@ -1,3 +1,4 @@
+import os
 import uuid as _uuid
 from datetime import datetime, timedelta, timezone
 
@@ -651,6 +652,17 @@ async def live_preview_template(
         .replace("__TPLID__", template_id) \
         .replace("__TOK__", tok) \
         .replace("__BASE__", base_url)
+    # Las plantillas HTML nativas usan rutas relativas (ej. /templates/clients/orzen/style.css)
+    # pensadas para el origen del FRONTEND, no del backend que sirve este preview — sin un
+    # <base> explícito, el navegador las resuelve contra api.bayup.com.co (404) y la página
+    # se ve sin estilos ni imágenes. Debe ir lo primero dentro de <head>, antes de cualquier
+    # <link>/<img> que el navegador ya empiece a resolver.
+    site_url = os.getenv("SITE_URL", "https://bayup.com.co").rstrip("/")
+    base_tag = f'<base href="{site_url}/">'
+    if "<head>" in html:
+        html = html.replace("<head>", "<head>" + base_tag, 1)
+    else:
+        html = base_tag + html
     if "</head>" in html:
         html = html.replace("</head>", preview_sdk + "</head>", 1)
     else:
