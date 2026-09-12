@@ -534,6 +534,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
     // realmente encuentra el corazón; el POST se hace una sola vez.
     const pendingWishIdRef = useRef<string | null>(null);
     const pendingWishPostedRef = useRef(false);
+    const wishlistCountRef = useRef(0);
     useEffect(() => { if (wishParam) pendingWishIdRef.current = wishParam; }, [wishParam]);
 
     // --- Checkout wizard de 4 pasos (EXCLUSIVO del tenant Orzen, ver
@@ -579,6 +580,15 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
         ids.push(productId);
         setGuestWishlist(ids);
         return true;
+    };
+    const updateWishlistBadge = (count: number) => {
+        wishlistCountRef.current = count;
+        const root = customHtmlRef.current;
+        if (!root) return;
+        root.querySelectorAll('[data-bayup="wishlist-count"]').forEach((el: any) => {
+            el.textContent = count > 0 ? String(count) : '';
+            el.hidden = count <= 0; // el atributo hidden gana sobre style.display='' — hay que quitarlo de verdad
+        });
     };
     const mergeGuestWishlistToServer = async (token: string) => {
         const ids = getGuestWishlist();
@@ -652,9 +662,9 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
         const root = customHtmlRef.current;
         if (!shopData.custom_html || !root) return;
         const fmt = (n: number) => `$${Math.round(n || 0).toLocaleString('es-CO')}`;
-        root.querySelectorAll('[data-bayup="cart-count"]').forEach(el => {
+        root.querySelectorAll('[data-bayup="cart-count"]').forEach((el: any) => {
             el.textContent = cart.length ? String(cart.length) : '';
-            (el as HTMLElement).style.display = cart.length ? '' : 'none';
+            el.hidden = cart.length === 0; // el atributo hidden gana sobre style.display='' — hay que quitarlo de verdad
         });
         const cartBody = root.querySelector('[data-bayup="cart-items"]');
         const rowTpl = root.querySelector('template[data-bayup="cart-row-template"]') as HTMLTemplateElement | null;
@@ -845,7 +855,22 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
             if (c) {
                 root.querySelectorAll('[data-bayup="collection-name"]').forEach(el => { el.textContent = c.title; });
                 root.querySelectorAll('[data-bayup="collection-description"]').forEach(el => { el.textContent = c.description || ''; });
-                root.querySelectorAll('img[data-bayup="collection-image"]').forEach((el: any) => { if (c.image_url) el.src = c.image_url; });
+                // El único activo disponible para cada drop es una miniatura de
+                // ~150px (asset de plantilla, nunca usada en el sitio original) —
+                // ampliarla a banner de ancho completo se ve borrosa. Se usa el
+                // mismo componente placeholder .ph/.ph-mark/.ph-ring que Revista,
+                // con la variante que cada colección ya tenía asignada.
+                const PH_BY_COLLECTION_ID: Record<string, string> = {
+                    'e520400e-bd65-434c-962e-d262734d52fb': 'ph-1', // Drop 001
+                    '1ca96510-0408-4d53-8998-bda1ef755500': 'ph-2', // Core
+                    '166b15a6-5681-43ef-b2c5-a9e19ba3c020': 'ph-3', // Eclipse
+                    '3296dfe9-8abd-4510-94d7-55c9b84bd57a': 'ph-4', // Limited
+                };
+                root.querySelectorAll('[data-bayup="collection-ph"]').forEach((el: any) => {
+                    el.classList.remove('ph-1', 'ph-2', 'ph-3', 'ph-4', 'ph-light');
+                    el.classList.add(PH_BY_COLLECTION_ID[String(c.id)] || 'ph-1');
+                });
+                root.querySelectorAll('[data-bayup="collection-mark"]').forEach(el => { el.textContent = c.title; });
             }
             const cGrid = root.querySelector('[data-bayup="collection-products-grid"]');
             if (cGrid && cardTpl) {
@@ -1024,10 +1049,15 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
         if (customerToken) {
             fetch(`${apiBase}/shop/${slug}/customer-auth/wishlist`, { headers: { Authorization: `Bearer ${customerToken}` } })
                 .then(r => r.ok ? r.json() : [])
-                .then((items: any[]) => markWishlistedHearts(new Set(items.map(i => String(i.product_id)))))
+                .then((items: any[]) => {
+                    markWishlistedHearts(new Set(items.map(i => String(i.product_id))));
+                    updateWishlistBadge(items.length);
+                })
                 .catch(() => {});
         } else if (isOrzenTenant) {
-            markWishlistedHearts(new Set(getGuestWishlist()));
+            const guestIds = getGuestWishlist();
+            markWishlistedHearts(new Set(guestIds));
+            updateWishlistBadge(guestIds.length);
         }
 
         // --- Favorito pendiente al volver del login (legacy ?wish=) ---
@@ -1040,6 +1070,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${customerToken}` },
                     body: JSON.stringify({ product_id: pendingWish }),
                 }).catch(() => {});
+                updateWishlistBadge(wishlistCountRef.current + 1);
                 const url = new URL(window.location.href);
                 url.searchParams.delete('wish');
                 window.history.replaceState({}, '', url.toString());
@@ -1518,6 +1549,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                         const nowActive = toggleGuestWishlist(pid);
                         target.setAttribute('data-wishlisted', nowActive ? 'true' : 'false');
                         target.classList.toggle('active', nowActive);
+                        updateWishlistBadge(getGuestWishlist().length);
                         if (view === 'wishlist') {
                             const ids = new Set(getGuestWishlist());
                             fillWishlistGrid(
@@ -1539,6 +1571,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                 const isActive = target.getAttribute('data-wishlisted') === 'true';
                 target.setAttribute('data-wishlisted', isActive ? 'false' : 'true');
                 target.classList.toggle('active', !isActive); // .card-wish.active svg{fill:...} en style.css
+                updateWishlistBadge(Math.max(0, wishlistCountRef.current + (isActive ? -1 : 1)));
                 fetch(`${apiBase}/shop/${slug}/customer-auth/wishlist${isActive ? '/' + pid : ''}`, {
                     method: isActive ? 'DELETE' : 'POST',
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -1546,6 +1579,7 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                 }).catch(() => {
                     target.setAttribute('data-wishlisted', isActive ? 'true' : 'false');
                     target.classList.toggle('active', isActive);
+                    updateWishlistBadge(Math.max(0, wishlistCountRef.current + (isActive ? 1 : -1)));
                 });
                 return;
             }
