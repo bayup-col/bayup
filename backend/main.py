@@ -371,6 +371,7 @@ from routers import liquidations as _r_liq
 from routers import analytics as _r_analytics
 from routers import customer_account as _r_cust_account
 from routers import blog as _r_blog
+from routers import catalog as _r_catalog
 app.include_router(_r_notif.router)
 app.include_router(_r_col.router)
 app.include_router(_r_ship.router)
@@ -392,6 +393,7 @@ app.include_router(_r_liq.router)
 app.include_router(_r_analytics.router)
 app.include_router(_r_cust_account.router)
 app.include_router(_r_blog.router)
+app.include_router(_r_catalog.router)
 
 # Compatibilidad: el frontend llama a /onboarding/complete (sin prefijo /admin)
 from fastapi import Depends as _Depends

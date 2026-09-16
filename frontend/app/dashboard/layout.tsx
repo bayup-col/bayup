@@ -17,7 +17,7 @@ import {
   Layout, BarChart3, Code, Activity,
   ChevronLeft, ChevronRight,
   UserCheck, Coins, HelpCircle, Lock, Menu, X, CreditCard, Send, Sparkles, Globe,
-  ArrowLeftCircle
+  ArrowLeftCircle, BookOpen
 } from 'lucide-react';
 
 // Componente externo memoizado — evita re-mount en cada render del layout
@@ -348,6 +348,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <MenuItem href="/dashboard/invoicing" label="Facturación" icon={<FileText size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/invoicing')} />
               <MenuItem href="/dashboard/orders" label="Pedidos Web" icon={<Package size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/orders')} />
               <MenuItem href="/dashboard/products" label="Productos" icon={<Store size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/products')} />
+              <MenuItem href="/dashboard/catalog" label="Catálogo" icon={<BookOpen size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/catalog')} />
               <MenuItem href="/dashboard/shipping" label="Envíos" icon={<Truck size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/shipping')} />
               <MenuItem href="/dashboard/customers" label="Clientes" icon={<UserCheck size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/customers')} />
               {/* <MenuItem href="/dashboard/paginas" label="Páginas Web" icon={<Globe size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/paginas')} /> */}
