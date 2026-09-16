@@ -211,6 +211,19 @@ class Collection(CollectionBase):
     owner_id: uuid.UUID
     model_config = ConfigDict(from_attributes=True)
 
+# --- Catalog Schemas ---
+class CatalogUpdate(BaseModel):
+    banner_url: Optional[str] = None
+
+class Catalog(BaseModel):
+    id: uuid.UUID
+    tenant_id: uuid.UUID
+    banner_url: Optional[str] = None
+    status: str
+    published_at: Optional[datetime] = None
+    public_url: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
 # --- Shipment Schemas ---
 class ShipmentBase(BaseModel):
     order_id: uuid.UUID

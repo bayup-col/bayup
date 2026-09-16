@@ -2124,6 +2124,14 @@ export function ShopContent({ initialShopData }: { initialShopData: any }) {
                 ) : (
                     view === 'home' ? (
                         <section className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                            {shopData.catalog_banner_url && (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                    src={shopData.catalog_banner_url}
+                                    alt={shopData.full_name}
+                                    className="w-full h-56 md:h-96 object-cover"
+                                />
+                            )}
                             <div className="max-w-7xl mx-auto px-6 py-24 text-center">
                                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#004d4d] mb-4">{shopData.category || 'Tienda Bayup'}</p>
                                 <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none">{shopData.full_name}</h1>

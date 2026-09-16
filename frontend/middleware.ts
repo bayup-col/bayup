@@ -29,7 +29,7 @@ export function middleware(request: NextRequest) {
   if (isBayupSubdomain || isCustomDomain) {
     const path = url.pathname;
     // Evitar reescribir rutas internas
-    if (path.startsWith('/api') || path.startsWith('/shop') || path.startsWith('/_next')) {
+    if (path.startsWith('/api') || path.startsWith('/shop') || path.startsWith('/catalogo') || path.startsWith('/_next')) {
       return NextResponse.next();
     }
     // Extrae el slug del primer segmento del hostname: mi-tienda.bayup.com.co → mi-tienda
