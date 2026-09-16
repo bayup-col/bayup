@@ -517,6 +517,17 @@ class ShopPage(Base):
     is_published = Column(Boolean, default=False)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
+class Catalog(Base):
+    __tablename__ = "catalogs"
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(GUID(), ForeignKey("users.id"), unique=True, nullable=False, index=True)
+    banner_url = Column(String, nullable=True)
+    status = Column(String, default="draft", nullable=False)  # draft | published
+    published_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    tenant = relationship("User")
+
 class SupportTicket(Base):
     __tablename__ = "support_tickets"
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)

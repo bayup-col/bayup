@@ -50,6 +50,11 @@ async def get_public_shop(request: Request, response: Response, slug: str, db: S
     if not store or store.status == "Suspendido":
         raise HTTPException(status_code=404, detail="Tienda no encontrada")
     collections = crud.get_collections_by_owner(db, owner_id=store.id)
+    catalog = (
+        db.query(models.Catalog)
+        .filter(models.Catalog.tenant_id == store.id, models.Catalog.status == "published")
+        .first()
+    )
     data = {
         "id": str(store.id),
         "owner_id": str(store.id),
@@ -66,10 +71,27 @@ async def get_public_shop(request: Request, response: Response, slug: str, db: S
         "privacy_policy": getattr(store, "privacy_policy", None),
         "return_policy": getattr(store, "return_policy", None),
         "shipping_policy": getattr(store, "shipping_policy", None),
+        "catalog_banner_url": catalog.banner_url if catalog else None,
     }
     _cache.cache_set(_cache.shop_cache, slug, data, 60)
     response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
     return data
+
+
+@router.get("/public/catalog/{slug}")
+@limiter.limit("30/minute")
+async def get_public_catalog(request: Request, slug: str, db: Session = Depends(get_db)):
+    store = crud.get_user_by_slug(db, slug=slug)
+    if not store or store.status == "Suspendido":
+        raise HTTPException(status_code=404, detail="Catálogo no encontrado")
+    catalog = (
+        db.query(models.Catalog)
+        .filter(models.Catalog.tenant_id == store.id, models.Catalog.status == "published")
+        .first()
+    )
+    if not catalog:
+        raise HTTPException(status_code=404, detail="Catálogo no encontrado")
+    return {"shop_slug": store.shop_slug}
 
 
 @router.get("/public/stores/{store_id}/products")
